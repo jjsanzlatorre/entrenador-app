@@ -1,10 +1,12 @@
 import type {
+  BlockType,
   ExerciseCategory,
   MuscleRole,
   SessionLocation,
   SessionType,
   TrackingType,
 } from '@/types/database'
+import type { TimerConfig, TimerState } from './timer'
 
 // Ejercicio del catálogo ya combinado con sus músculos.
 export type Exercise = {
@@ -37,14 +39,36 @@ export type SetEntry = {
   completedAt: string | null
 }
 
-export type BlockExercise = { exerciseId: string; restS: number }
+// Reps objetivo por ronda/minuto en bloques con temporizador (EMOM, AMRAP, For Time…).
+export type BlockExercise = { exerciseId: string; restS: number; targetReps?: number | null }
+
+export type LocalBlockType = BlockType
+
+export type CircuitConfig = { kind: 'circuit'; rounds: number; restBetweenRoundsS: number }
+export type BlockSettings = TimerConfig | CircuitConfig
+
+export type IntervalSplit = { distanceM: number | null; durationS: number }
+
+export type BlockResult =
+  | { kind: 'emom'; minutes: number; minutesCompleted: number }
+  | { kind: 'amrap'; durationS: number; rounds: number; extraReps: number }
+  | { kind: 'tabata'; rounds: number; roundsCompleted: number }
+  | { kind: 'for_time'; timeS: number | null; capped: boolean }
+  | { kind: 'intervals'; splits: IntervalSplit[] }
+  | { kind: 'free'; elapsedS: number }
+  | { kind: 'circuit'; rounds: number; roundsCompleted: number }
 
 export type LocalBlock = {
   id: string
   order: number
-  blockType: 'straight' | 'superset'
+  blockType: LocalBlockType
   exercises: BlockExercise[]
   sets: SetEntry[]
+  // Opcionales para leer sin problemas sesiones guardadas antes de la Fase 2.
+  settings?: BlockSettings | null
+  result?: BlockResult | null
+  // Estado del temporizador (solo en el dispositivo; se persiste en IndexedDB con la sesión).
+  timer?: TimerState | null
 }
 
 export type RestTimer = {
@@ -71,6 +95,8 @@ export type LocalSession = {
   calories: number | null
   location: SessionLocation | null
   notes: string | null
+  // Distancia total (carrera, natación, bici); se calcula de las series al terminar.
+  distanceM?: number | null
   blocks: LocalBlock[]
   rest: RestTimer | null
   // Versión creciente para que el servidor descarte copias antiguas.

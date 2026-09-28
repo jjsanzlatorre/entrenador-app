@@ -1,0 +1,8 @@
+.output
+.vercel
+.nitro
+.tanstack
+node_modules
+package-lock.json
+src/routeTree.gen.ts
+CLAUDE.md

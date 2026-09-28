@@ -3,23 +3,7 @@ import { expect, test, type Page } from '@playwright/test'
 // Criterio de aceptación de la Fase 1: registrar un entreno de 5 ejercicios × 3 series
 // en modo avión (incluido cerrar y reabrir la app sin conexión) y ver que se sincroniza
 // al volver la conexión.
-const MOCK = 'http://localhost:54321'
-const USER_ID = '11111111-1111-4111-8111-111111111111'
-
-function authCookie() {
-  const exp = Math.floor(Date.now() / 1000) + 3600
-  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
-  const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: USER_ID, exp, role: 'authenticated', aud: 'authenticated' })}.sig`
-  const session = {
-    access_token: jwt,
-    refresh_token: 'refresh',
-    expires_at: exp,
-    expires_in: 3600,
-    token_type: 'bearer',
-    user: { id: USER_ID, email: 'e2e@test.dev' },
-  }
-  return `base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`
-}
+import { MOCK, authCookie } from './helpers'
 
 const EXERCISES = [
   { search: 'press banca', name: 'Press banca', kg: '60', reps: '8' },
@@ -89,7 +73,11 @@ test('registrar 5 ejercicios × 3 series en modo avión y sincronizar al volver'
     { timeout: 30_000 },
   )
 
-  await page.getByRole('button', { name: 'Empezar entreno libre' }).click()
+  await page.getByRole('button', { name: 'Empezar entreno' }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Fuerza/ })
+    .click()
   await expect(page).toHaveURL(/\/entrenar\/sesion$/)
 
   // Dos ejercicios con conexión.

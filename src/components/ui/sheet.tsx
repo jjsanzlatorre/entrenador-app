@@ -1,4 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -30,8 +31,9 @@ export function Sheet({
     }
   }, [open, onClose])
 
-  if (!open) return null
-  return (
+  if (!open || typeof document === 'undefined') return null
+  // Portal al <body>: así una hoja puede abrir otra encima sin quedar atrapada en su transform.
+  return createPortal(
     <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
       <button
         type="button"
@@ -60,6 +62,7 @@ export function Sheet({
         <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-3">{children}</div>
         {footer && <div className="border-t px-4 py-3">{footer}</div>}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

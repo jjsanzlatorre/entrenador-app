@@ -1,13 +1,16 @@
 import { useEffect } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { BookOpen, ChevronRight, CloudUpload, Dumbbell, Play } from 'lucide-react'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { BookOpen, ChevronRight, CloudUpload, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Page } from '@/components/page'
+import { StartSessionButtons } from '@/components/workout/start-session'
 import { SyncBadge } from '@/components/workout/sync-badge'
-import { loadActiveSession, startNewSession, useActiveSession } from '@/lib/workout/active-session'
+import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
-import { formatDateShort, formatInt, formatTime } from '@/lib/workout/format'
+import { formatDateShort, formatTime } from '@/lib/workout/format'
 import { useCatalog, useHistory } from '@/lib/workout/hooks'
+import { sessionTypeEmoji } from '@/lib/workout/session-kinds'
+import { historySummary } from '@/lib/workout/summary'
 
 export const Route = createFileRoute('/_app/entrenar/')({
   ssr: false,
@@ -17,7 +20,6 @@ export const Route = createFileRoute('/_app/entrenar/')({
 function TrainPage() {
   const { auth } = Route.useRouteContext()
   const userId = auth.userId
-  const navigate = useNavigate()
   const { session } = useActiveSession()
   const history = useHistory(userId)
   const catalog = useCatalog(userId)
@@ -25,11 +27,6 @@ function TrainPage() {
   useEffect(() => {
     void loadActiveSession(userId)
   }, [userId])
-
-  async function start() {
-    await startNewSession(userId)
-    await navigate({ to: '/entrenar/sesion' })
-  }
 
   const stats = session ? sessionStats(session) : null
 
@@ -53,9 +50,7 @@ function TrainPage() {
           <ChevronRight className="size-6" />
         </Link>
       ) : (
-        <Button size="lg" className="h-16 text-lg" onClick={() => void start()}>
-          <Dumbbell className="size-6" /> Empezar entreno libre
-        </Button>
+        <StartSessionButtons userId={userId} />
       )}
 
       <Button asChild variant="outline" size="lg" className="justify-between">
@@ -92,18 +87,15 @@ function TrainPage() {
                 className="bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-3"
               >
                 <div className="bg-muted flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-xs font-medium">
+                  <span aria-hidden className="text-base">
+                    {sessionTypeEmoji(item.sessionType)}
+                  </span>
                   {formatDateShort(item.startedAt)}
                 </div>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{item.title}</p>
                   <p className="text-muted-foreground truncate text-xs">
-                    {item.endedAt ? `${item.durationMin ?? '—'} min · ` : 'Sin terminar · '}
-                    {item.completedSets} series · {formatInt(item.tonnageKg)} kg
-                    {item.exerciseIds.length > 0 &&
-                      ` · ${item.exerciseIds
-                        .slice(0, 3)
-                        .map((id) => catalog.byId.get(id)?.name ?? id)
-                        .join(', ')}`}
+                    {historySummary(item, (id) => catalog.byId.get(id)?.name ?? id)}
                   </p>
                 </div>
                 {item.pendingSync && (

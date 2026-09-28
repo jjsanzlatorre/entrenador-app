@@ -6,8 +6,10 @@ import { enqueueDelete, enqueueSave, listOutbox } from '@/lib/offline/outbox'
 import { requestSync } from '@/lib/offline/sync-engine'
 import { rememberLastPerformance } from './api'
 import { toPayload } from './payload'
-import { createSession, finishSession, type SessionDetailsPatch } from './session-ops'
+import { finishSession, type SessionDetailsPatch } from './session-ops'
+import { createSessionOfType } from './session-kinds'
 import type { LocalSession } from './types'
+import type { SessionType } from '@/types/database'
 
 type State = { loadedFor: string | null; session: LocalSession | null }
 
@@ -54,15 +56,21 @@ export function getActiveSession() {
   return state.session
 }
 
-export async function startNewSession(userId: string) {
+export async function startNewSession(userId: string, sessionType: SessionType = 'strength') {
   await loadActiveSession(userId)
   if (state.session) return state.session
-  const session = createSession(userId, Date.now())
+  const session = createSessionOfType(userId, sessionType, Date.now())
   setState({ loadedFor: userId, session })
   await persist(async () => {
     await idbPut('kv', activeKey(userId), session.id)
     await saveLocal(session, true)
   })
+  return session
+}
+
+// Guarda una sesión ya terminada (p. ej. «Registrar actividad») sin pasar por la sesión en curso.
+export async function saveFinishedSession(session: LocalSession) {
+  await persist(() => saveLocal(session, true))
   return session
 }
 

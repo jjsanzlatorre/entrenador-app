@@ -488,7 +488,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **1 cerrada en código** (pendiente de validar la aceptación en el móvil con Supabase/Vercel reales). Siguiente: Fase 2.
+- Fase actual: **2 verificada** (typecheck, lint, Vitest, build y E2E de Playwright en verde; pantallas revisadas a 375 px). Falta validar la aceptación en un móvil real. Siguiente: Fase 3.
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -504,8 +504,24 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Historial en `/entrenar` (servidor + copias locales pendientes) y detalle con editar (reusa la pantalla de sesión en modo edición) y borrar.
   - Offline: sesión en IndexedDB en cada cambio, cola de escritura por sesión (coalesce, backoff 2 s → 60 s, reintento al volver la conexión/foco), catálogo y «última vez» cacheados, estado de auth cacheado en `localStorage` para abrir sin red, service worker generado en build con precarga de assets y caché de páginas (`/`, `/entrenar`, `/entrenar/sesion`, `/entrenar/ejercicios`).
   - Tests: Vitest (operaciones de sesión, cálculos, búsqueda, sustitución, formato, cola con fake-indexeddb, persistencia de la sesión activa, plantilla del SW) + PGlite (migraciones ×2, RLS, RPC). Playwright E2E del criterio de aceptación contra un Supabase simulado (5 ejercicios × 3 series, modo avión, recarga sin conexión, terminar offline y sincronizar).
+- Hecho (Fase 2):
+  - Sin migraciones nuevas: los tipos de bloque, `config`, `result` y `distance_m` ya existían en `0004`.
+  - Motor de temporizadores puro (`src/lib/workout/timer.ts`): el estado solo guarda instantes (inicio, pausa, fin) y duraciones ajustadas por fase; todo se deriva de `ahora − inicio − pausas`. Fases: preparación 10 s + trabajo/descanso según el tipo. Acciones: empezar (con o sin cuenta atrás), pausa, +15 s, saltar fase, terminar.
+  - Bloques (`src/lib/workout/timed-blocks.ts`): EMOM (rotación de ejercicios por minuto), AMRAP (+1 ronda y reps sueltas), Tabata/HIIT (20/10 × 8 por defecto), For Time (cap opcional), intervalos de cardio por distancia («Serie hecha» guarda el parcial) o por tiempo, con recuperación, cronómetro libre y circuito (rondas × ejercicios, descanso al acabar la ronda). `result` por tipo; las series se completan al terminar el bloque.
+  - El estado del temporizador se guarda en IndexedDB con la sesión en curso; al volver a la app (o recargar) se recalcula, y si el tiempo terminó con la app cerrada el bloque se cierra en el instante exacto en que acabó.
+  - Avisos: pitido en los últimos 3 s y al final de cada fase, vibración donde exista (no en iOS), botón para silenciar (preferencia en el dispositivo). Wake Lock durante la sesión, con fallback silencioso.
+  - Tipos de sesión: Fuerza, Functional, Carrera, Natación, Bici y Spinning (las de cardio empiezan con un bloque continuo: cronómetro + distancia). Ritmo: min/km (carrera), min/100 m (natación), km/h (bici/spinning). `distance_m` de la sesión = suma de series completadas.
+  - «Registrar actividad» (`/entrenar/actividad`): surf, frontón, yoga u otro con duración, RPE, notas y datos del reloj en una pantalla.
+  - «Datos del reloj» (FC media, FC máx, calorías) en todas las sesiones (hoja de terminar y registro rápido).
+  - Historial y detalle muestran el tipo, distancia y ritmo, y el resultado de cada bloque (minutos de EMOM, rondas de AMRAP, tiempo de For Time, parciales de intervalos con ritmo).
+  - Tests: Vitest para ritmos y para el estado de los temporizadores (incluido reanudar desde timestamps tras bloquear/recargar) y los bloques.
+  - E2E de aceptación (`tests/e2e/timers.spec.ts`) con el reloj simulado de Playwright: EMOM de 12 min y 6×400 m rec. 90 s, con «pantalla bloqueada» (segundo plano + reloj adelantado sin ticks) y la app cerrada y reabierta a mitad; comprueba minuto/serie en pantalla, resultado y parciales guardados en el servidor.
 - Pendiente / deuda técnica:
   - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas).
+  - La cabecera de la sesión muestra «series · kg» también en sesiones de cardio; mostrar distancia sería más útil.
+  - Los E2E necesitan `npm run build` antes y, en este contenedor, `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
+  - Temporizadores: en iOS con la pantalla bloqueada no suenan (limitación de las PWA); el estado se corrige al volver. No hay notificaciones programadas.
+  - El ritmo medio en el historial usa la duración total de la sesión (incluye recuperaciones); el detalle usa el tiempo en movimiento.
   - E2E contra Supabase real: el test usa un mock de PostgREST/Auth (`tests/e2e/mock-supabase.ts`); no cubre RLS reales (eso lo cubren los tests PGlite).
   - Detección de PRs y mini mapa del resumen: fases 3 y 4 (el resumen ya muestra músculos en lista).
   - Sustitución con IA: fase 7. Filtro por material usa `training_profiles.equipment`, vacío hasta el onboarding (fase 5).
@@ -523,6 +539,8 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Variables `VITE_SUPABASE_*`: el servidor las lee en tiempo de ejecución (`process.env`) y las pasa al navegador con `window.__PUBLIC_ENV__`; el valor incrustado por Vite en el build queda como respaldo. Así un build sin esas variables no rompe la app (causa del 500 en el primer deploy).
   - Registro local-first: la sesión se edita en el dispositivo y se sube entera (snapshot) con `save_workout_session`; los ids (uuid) los genera el cliente, así los reintentos son idempotentes y `client_rev` evita que una copia antigua pise una nueva.
   - Cada ejercicio es un bloque `straight`; una superserie es un bloque con varios ejercicios. El orden y el descanso por ejercicio se guardan en `session_blocks.config.exercises`.
+  - Bloques con temporizador: `config = { exercises: [{exercise_id, rest_s, target_reps}], settings: {kind, …} }` y `result = {kind, …}`, en snake_case. El estado del temporizador no se sube al servidor (solo el resultado); vive en IndexedDB.
+  - AMRAP genera al terminar una serie por ejercicio y ronda completada (reps objetivo); las reps sueltas quedan en `result`.
   - `session_blocks` y `exercise_sets` llevan `user_id` (regla general de tablas de usuario) y su RLS exige además que la sesión sea propia.
   - Cardio y deportes no tienen músculos en la semilla: el mapa usará la aproximación por tipo de sesión (§6) en la fase 4.
   - Series de peso corporal (dominadas, fondos, flexiones) se registran solo con reps y no suman tonelaje (v1).

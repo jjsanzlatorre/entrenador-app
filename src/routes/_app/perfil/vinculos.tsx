@@ -14,6 +14,7 @@ import {
   type PartnerLink,
 } from '@/lib/progress/api'
 import { partnersKey, usePartnerLinks } from '@/lib/progress/hooks'
+import { notifyError, notifySaved } from '@/lib/notify'
 
 export const Route = createFileRoute('/_app/perfil/vinculos')({
   ssr: false,
@@ -78,9 +79,11 @@ function InviteForm({ userId }: { userId: string }) {
       await invitePartner(email.trim())
       setEmail('')
       setStatus({ ok: true, text: 'Invitación enviada. Le aparecerá en Perfil → Pareja y amigos.' })
+      notifySaved('Invitación enviada')
       await refresh()
     } catch (error) {
       setStatus({ ok: false, text: error instanceof Error ? error.message : String(error) })
+      notifyError(error, 'enviar la invitación')
     } finally {
       setBusy(false)
     }
@@ -133,6 +136,7 @@ function ReceivedCard({ userId, link }: { userId: string; link: PartnerLink }) {
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      notifyError(e, accept ? 'aceptar el vínculo' : 'rechazar el vínculo')
     }
   }
   return (
@@ -168,7 +172,12 @@ function SentCard({ userId, link }: { userId: string; link: PartnerLink }) {
       <CardContent>
         <Button
           variant="outline"
-          onClick={() => void revokePartner(link.partnerId).then(() => refresh())}
+          onClick={() =>
+            void revokePartner(link.partnerId).then(
+              () => refresh(),
+              (e: unknown) => notifyError(e, 'cancelar la invitación'),
+            )
+          }
         >
           Cancelar invitación
         </Button>
@@ -202,14 +211,19 @@ function LinkedCard({ userId, link }: { userId: string; link: PartnerLink }) {
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+      notifyError(e, 'guardar el permiso')
     }
   }
 
   async function revoke() {
     if (!confirm(`¿Deshacer el vínculo con ${link.displayName}? Dejaréis de ver vuestros datos.`))
       return
-    await revokePartner(link.partnerId)
-    await refresh()
+    try {
+      await revokePartner(link.partnerId)
+      await refresh()
+    } catch (e) {
+      notifyError(e, 'deshacer el vínculo')
+    }
   }
 
   const theyShare = PERMISSIONS.filter((p) => link.theyShare[p.key]).map((p) =>

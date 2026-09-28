@@ -3,6 +3,7 @@ import { ChevronRight, Flame, Users } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   adherenceLevel,
+  currentCommitment,
   formatPct,
   monthAdherence,
   monthValue,
@@ -80,22 +81,8 @@ export function WeekAdherenceCard({ userId }: { userId: string }) {
   if (error && commitments.length === 0) {
     return null
   }
-  if (commitments.length === 0) {
-    return (
-      <Link
-        to="/perfil/compromiso"
-        className="bg-card flex items-center gap-3 rounded-xl border p-4"
-      >
-        <Flame className="text-primary size-6 shrink-0" />
-        <div className="flex-1">
-          <p className="font-semibold">Define tu compromiso semanal</p>
-          <p className="text-muted-foreground text-sm">
-            Cuántas sesiones quieres hacer cada semana. Así verás tu barra aquí.
-          </p>
-        </div>
-        <ChevronRight className="text-muted-foreground size-5" />
-      </Link>
-    )
+  if (!currentCommitment(commitments, today)) {
+    return <NoCommitmentCard hadOne={commitments.length > 0} />
   }
   const week = weekAdherence(commitments, days, weekStartOf(today))
   const { current } = streaks(commitments, days, today)
@@ -122,6 +109,26 @@ export function WeekAdherenceCard({ userId }: { userId: string }) {
   )
 }
 
+// Aviso cuando no hay compromiso vigente (nunca definido o quitado): sin porcentajes.
+export function NoCommitmentCard({ hadOne }: { hadOne: boolean }) {
+  return (
+    <Link to="/perfil/compromiso" className="bg-card flex items-center gap-3 rounded-xl border p-4">
+      <Flame className="text-primary size-6 shrink-0" />
+      <div className="flex-1">
+        <p className="font-semibold">
+          {hadOne ? 'Ahora mismo no tienes compromiso' : 'Define tu compromiso semanal'}
+        </p>
+        <p className="text-muted-foreground text-sm">
+          {hadOne
+            ? 'Crea uno nuevo cuando quieras para volver a ver tu barra aquí.'
+            : 'Cuántas sesiones quieres hacer cada semana. Así verás tu barra aquí.'}
+        </p>
+      </div>
+      <ChevronRight className="text-muted-foreground size-5" />
+    </Link>
+  )
+}
+
 function PersonRow({
   name,
   commitments,
@@ -143,8 +150,12 @@ function PersonRow({
           <span className="text-muted-foreground text-xs font-normal">🔥 {current} sem.</span>
         )}
       </p>
-      {commitments.length === 0 ? (
-        <p className="text-muted-foreground text-sm">Aún no ha definido su compromiso.</p>
+      {!currentCommitment(commitments, today) ? (
+        <p className="text-muted-foreground text-sm">
+          {commitments.length === 0
+            ? 'Aún no ha definido su compromiso.'
+            : 'Ahora mismo no tiene compromiso.'}
+        </p>
       ) : (
         <>
           <AdherenceBar

@@ -52,8 +52,11 @@ export function ensureAuthState(queryClient: QueryClient) {
   })
 }
 
+// Vuelve a pedir el estado (p. ej. tras editar el perfil). El root lo lee con
+// ensureQueryData, que devuelve la copia en caché aunque esté invalidada, y la query no
+// tiene observadores: hay que forzar el refetch también de las queries inactivas.
 export function resetAuthState(queryClient: QueryClient) {
-  return queryClient.invalidateQueries({ queryKey: authQueryKey })
+  return queryClient.invalidateQueries({ queryKey: authQueryKey, refetchType: 'all' })
 }
 
 // Cierra sesión y borra lo que permitiría ver la app sin conexión.

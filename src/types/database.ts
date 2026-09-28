@@ -473,7 +473,7 @@ export type Database = {
         Update: { [_ in never]: never }
         Relationships: []
       }
-      // 0011_commitments.sql (escribir con la RPC set_commitment)
+      // 0011_commitments.sql (crear/cambiar con set_commitment, quitar con end_commitment)
       commitments: {
         Row: {
           id: string
@@ -653,6 +653,8 @@ export type Database = {
         }
         Returns: string
       }
+      // 0015_profile_settings_commitment_end.sql
+      end_commitment: { Args: { p_today: string }; Returns: number }
       shares_with_me: { Args: { p_owner: string; p_perm: string }; Returns: boolean }
       invite_partner: { Args: { p_email: string }; Returns: string }
       respond_partner_link: { Args: { p_partner: string; p_accept: boolean }; Returns: undefined }

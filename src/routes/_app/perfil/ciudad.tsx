@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { resetAuthState } from '@/lib/auth'
+import { notifyError, notifySaved } from '@/lib/notify'
 import { updateProfileSettings } from '@/lib/progress/api'
 import type { Home } from '@/lib/progress/equivalences'
 import { useEquivalenceCatalog } from '@/lib/progress/hooks'
@@ -57,9 +58,11 @@ function HomeCityPage() {
       await updateProfileSettings(auth.userId, { home })
       await resetAuthState(queryClient)
       await router.invalidate()
+      notifySaved(home ? `Ciudad de referencia: ${home.city}` : 'Ciudad de referencia quitada')
       await navigate({ to: volver === 'logros' ? '/progreso/logros' : '/perfil' })
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'No se pudo guardar')
+      notifyError(error, 'guardar la ciudad')
     } finally {
       setSaving(false)
     }
@@ -71,6 +74,7 @@ function HomeCityPage() {
     const ln = parseCoord(lng, 180)
     if (!name.trim() || la === null || ln === null) {
       setStatus('Escribe un nombre, una latitud (−90 a 90) y una longitud (−180 a 180).')
+      notifyError('faltan el nombre o unas coordenadas válidas', 'guardar la ciudad')
       return
     }
     void save({ city: name.trim().slice(0, 60), lat: la, lng: ln })

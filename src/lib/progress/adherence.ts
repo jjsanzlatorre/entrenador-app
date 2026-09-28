@@ -21,15 +21,25 @@ export function activityDaysFromSessions(sessions: SessionLogEntry[]): ActivityD
   }))
 }
 
-// Compromiso vigente en una semana (el que cubre su lunes).
+// Compromiso de una semana: el que la cubre entera (de lunes a domingo). Al cambiarlo, el
+// anterior se cierra el domingo; al quitarlo (valid_to = día en que se quita), la semana en
+// que se quitó a medias queda sin compromiso.
 export function commitmentForWeek(commitments: Commitment[], weekStart: DateKey) {
+  const weekEnd = addDays(weekStart, 6)
   let found: Commitment | null = null
   for (const c of commitments) {
-    if (c.validFrom <= weekStart && (c.validTo === null || c.validTo >= weekStart)) {
+    if (c.validFrom <= weekStart && (c.validTo === null || c.validTo >= weekEnd)) {
       if (!found || c.validFrom > found.validFrom) found = c
     }
   }
   return found
+}
+
+// Compromiso vigente hoy (null = «sin compromiso»: no se muestran porcentajes). Quitarlo
+// pone valid_to = hoy, así que desde ese mismo día ya no hay compromiso vigente.
+export function currentCommitment(commitments: Commitment[], today: DateKey) {
+  const c = commitmentForWeek(commitments, weekStartOf(today))
+  return c && (c.validTo === null || c.validTo > today) ? c : null
 }
 
 function counts(c: Commitment, type: SessionType) {

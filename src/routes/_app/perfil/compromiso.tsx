@@ -1,17 +1,18 @@
 import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Minus, Plus } from 'lucide-react'
+import { ChevronLeft, Minus, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { committedSessions, commitmentForWeek } from '@/lib/progress/adherence'
-import { saveCommitment } from '@/lib/progress/api'
+import { committedSessions, currentCommitment } from '@/lib/progress/adherence'
+import { deleteCommitment, endCommitment, saveCommitment } from '@/lib/progress/api'
 import { formatDayMonth, localDateKey, weekStartOf } from '@/lib/progress/dates'
 import { commitmentsKey, useCommitments } from '@/lib/progress/hooks'
 import type { Commitment } from '@/lib/progress/types'
 import { parseInteger } from '@/lib/workout/format'
+import { notifyError, notifySaved } from '@/lib/notify'
 import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
 import type { SessionType } from '@/types/database'
 
@@ -36,7 +37,7 @@ function CommitmentPage() {
   const { auth } = Route.useRouteContext()
   const commitments = useCommitments(auth.userId)
   const today = localDateKey(new Date())
-  const current = commitments.data ? commitmentForWeek(commitments.data, weekStartOf(today)) : null
+  const current = commitments.data ? currentCommitment(commitments.data, today) : null
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -57,32 +58,25 @@ function CommitmentPage() {
       ) : commitments.isError ? (
         <p className="text-destructive">{commitments.error.message}</p>
       ) : (
-        <CommitmentForm
-          key={current?.validFrom ?? 'new'}
-          userId={auth.userId}
-          current={current}
-          weekStart={weekStartOf(today)}
-        />
+        <>
+          {!current && (
+            <p className="bg-muted rounded-xl p-3 text-sm">
+              {commitments.data.length > 0
+                ? 'Ahora mismo no tienes compromiso. Crea uno nuevo cuando quieras.'
+                : 'Aún no tienes compromiso.'}
+            </p>
+          )}
+          <CommitmentForm
+            key={current?.id ?? current?.validFrom ?? 'new'}
+            userId={auth.userId}
+            current={current}
+            weekStart={weekStartOf(today)}
+          />
+          {current && <EndCommitmentButton userId={auth.userId} today={today} />}
+        </>
       )}
-      {commitments.data && commitments.data.length > 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Historial</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="flex flex-col gap-1 text-sm">
-              {[...commitments.data].reverse().map((c) => (
-                <li key={c.validFrom} className="flex justify-between gap-2">
-                  <span className="text-muted-foreground">
-                    Desde el {formatDayMonth(c.validFrom)}
-                    {c.validTo ? ` hasta el ${formatDayMonth(c.validTo)}` : ''}
-                  </span>
-                  <span className="font-medium">{committedSessions(c)} / semana</span>
-                </li>
-              ))}
-            </ul>
-          </CardContent>
-        </Card>
+      {commitments.data && commitments.data.length > 0 && (
+        <CommitmentHistory userId={auth.userId} commitments={commitments.data} today={today} />
       )}
     </div>
   )
@@ -157,6 +151,7 @@ function CommitmentForm({
     const minutesValue = minutes.trim() ? parseInteger(minutes) : null
     if (minutes.trim() && (!minutesValue || minutesValue < 1)) {
       setError('Los minutos tienen que ser un número mayor que 0')
+      notifyError('los minutos tienen que ser un número mayor que 0', 'guardar el compromiso')
       return
     }
     const cleanByType = Object.fromEntries(
@@ -172,9 +167,11 @@ function CommitmentForm({
         countsFreeActivities: countsFree,
       })
       await queryClient.invalidateQueries({ queryKey: commitmentsKey(userId) })
+      notifySaved('Compromiso guardado')
       await navigate({ to: '/progreso/cumplimiento' })
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
+      notifyError(err, 'guardar el compromiso')
     } finally {
       setSaving(false)
     }
@@ -280,5 +277,123 @@ function CommitmentForm({
         {saving ? 'Guardando…' : 'Guardar compromiso'}
       </Button>
     </form>
+  )
+}
+
+// «Quitar compromiso»: cierra el vigente hoy y conserva el historial.
+function EndCommitmentButton({ userId, today }: { userId: string; today: string }) {
+  const queryClient = useQueryClient()
+  const [busy, setBusy] = useState(false)
+
+  async function end() {
+    if (
+      !confirm(
+        '¿Quitar tu compromiso? Dejarás de ver los porcentajes hasta que crees uno nuevo. El historial se conserva.',
+      )
+    )
+      return
+    setBusy(true)
+    try {
+      await endCommitment(today)
+      await queryClient.invalidateQueries({ queryKey: commitmentsKey(userId) })
+      notifySaved('Compromiso quitado')
+    } catch (err) {
+      notifyError(err, 'quitar el compromiso')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="ghost"
+      size="lg"
+      className="text-destructive"
+      disabled={busy}
+      onClick={() => void end()}
+    >
+      Quitar compromiso
+    </Button>
+  )
+}
+
+// Historial con opción de borrar una entrada creada por error.
+function CommitmentHistory({
+  userId,
+  commitments,
+  today,
+}: {
+  userId: string
+  commitments: Commitment[]
+  today: string
+}) {
+  const queryClient = useQueryClient()
+  const [busyId, setBusyId] = useState<string | null>(null)
+
+  async function remove(c: Commitment) {
+    if (!c.id) return
+    const range = c.validTo
+      ? `del ${formatDayMonth(c.validFrom)} al ${formatDayMonth(c.validTo)}`
+      : `desde el ${formatDayMonth(c.validFrom)}`
+    if (
+      !confirm(
+        `¿Borrar el compromiso ${range} (${committedSessions(c)} / semana)? Esas semanas se quedarán sin compromiso. No se puede deshacer.`,
+      )
+    )
+      return
+    setBusyId(c.id)
+    try {
+      await deleteCommitment(c.id)
+      await queryClient.invalidateQueries({ queryKey: commitmentsKey(userId) })
+      notifySaved('Compromiso borrado')
+    } catch (err) {
+      notifyError(err, 'borrar el compromiso')
+    } finally {
+      setBusyId(null)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Historial</CardTitle>
+        <CardDescription>
+          Borra una entrada solo si la creaste por error: esas semanas se quedarán sin compromiso.
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col gap-1 text-sm">
+          {[...commitments].reverse().map((c) => {
+            const active = c.validTo === null || c.validTo > today
+            return (
+              <li key={c.id ?? c.validFrom} className="flex items-center justify-between gap-2">
+                <span className="text-muted-foreground">
+                  Desde el {formatDayMonth(c.validFrom)}
+                  {c.validTo ? ` hasta el ${formatDayMonth(c.validTo)}` : ''}
+                  {active ? ' (vigente)' : ''}
+                </span>
+                <span className="flex items-center gap-1">
+                  <span className="font-medium">{committedSessions(c)} / semana</span>
+                  {c.id && (
+                    <Button
+                      type="button"
+                      size="icon"
+                      variant="ghost"
+                      className="size-10"
+                      aria-label={`Borrar el compromiso desde el ${formatDayMonth(c.validFrom)}`}
+                      disabled={busyId !== null}
+                      onClick={() => void remove(c)}
+                    >
+                      <Trash2 className="text-destructive" />
+                    </Button>
+                  )}
+                </span>
+              </li>
+            )
+          })}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }

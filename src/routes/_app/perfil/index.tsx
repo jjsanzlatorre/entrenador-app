@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { KeyRound, LogOut, Mail, ShieldCheck } from 'lucide-react'
+import { ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Target, Users } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,7 +11,7 @@ import { Page } from '@/components/page'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState, signOut } from '@/lib/auth'
 
-export const Route = createFileRoute('/_app/perfil')({
+export const Route = createFileRoute('/_app/perfil/')({
   component: ProfilePage,
 })
 
@@ -61,6 +61,25 @@ function ProfilePage() {
           <p className="mt-3 text-xs">Se completarán en el onboarding (fase 5).</p>
         </CardContent>
       </Card>
+
+      <div className="flex flex-col gap-2">
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/compromiso">
+            <span className="flex items-center gap-2">
+              <Target /> Mi compromiso
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/vinculos">
+            <span className="flex items-center gap-2">
+              <Users /> Pareja y amigos
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
+      </div>
 
       <Card>
         <CardHeader>

@@ -165,7 +165,13 @@ export function startMockSupabase(port: number) {
       return send(res, 200, out)
     }
 
+    // Fase 3: sin datos de progreso ni vínculos en el mock.
+    if (path === '/rest/v1/rpc/list_partner_links') return send(res, 200, [])
+
     const table = path.replace('/rest/v1/', '')
+    if (['commitments', 'personal_records', 'body_metrics', 'progress_photos'].includes(table)) {
+      return send(res, 200, rows(req, []))
+    }
     if (table === 'profiles') return send(res, 200, rows(req, [profile]))
     if (table === 'exercises') return send(res, 200, rows(req, exercises))
     if (table === 'training_profiles') return send(res, 200, [])

@@ -123,7 +123,7 @@ export function useHistory(userId: string) {
       let server: HistoryItem[] = []
       let offline = false
       try {
-        server = await fetchHistory()
+        server = await fetchHistory(userId)
       } catch {
         offline = true
       }

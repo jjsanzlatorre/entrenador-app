@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { ChevronRight, Play } from 'lucide-react'
 import { ComingSoon, Page } from '@/components/page'
+import { UsCard, WeekAdherenceCard } from '@/components/progress/adherence'
 import { StartSessionButtons } from '@/components/workout/start-session'
 import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
@@ -21,7 +22,7 @@ function TodayPage() {
 
   return (
     <Page title={name ? `Hola, ${name}` : 'Hoy'}>
-      <ComingSoon phase={3}>Aquí verás tu barra de cumplimiento de la semana.</ComingSoon>
+      <WeekAdherenceCard userId={auth.userId} />
       {session ? (
         <Link
           to="/entrenar/sesion"
@@ -39,6 +40,7 @@ function TodayPage() {
       ) : (
         <StartSessionButtons userId={auth.userId} label="Entreno libre" />
       )}
+      <UsCard userId={auth.userId} myName={name ?? 'Yo'} />
       <ComingSoon phase={5}>La sesión planificada para hoy.</ComingSoon>
     </Page>
   )

@@ -26,6 +26,14 @@ import { isTimedBlock } from '@/lib/workout/timed-blocks'
 import type { Exercise, SetEntry } from '@/lib/workout/types'
 import { BLOCK_LABELS, describeTimer, resultSummary } from '@/components/workout/timed-block-card'
 import { cn } from '@/lib/utils'
+import { fetchSessionRecords } from '@/lib/progress/api'
+import {
+  formatPrevious,
+  formatRecordValue,
+  PR_LABELS,
+  sessionImprovements,
+  type PersonalRecord,
+} from '@/lib/progress/records'
 import type { SessionType } from '@/types/database'
 
 const QUICK_TYPES = new Set<SessionType>(['yoga', 'surf', 'padel_fronton', 'other'])
@@ -78,6 +86,15 @@ function SessionDetailPage() {
     queryKey: ['previous', sessionId, exerciseIds],
     queryFn: () => fetchPreviousPerformance(exerciseIds, sessionId, session?.startedAt ?? ''),
     enabled: Boolean(session?.startedAt) && exerciseIds.length > 0,
+    networkMode: 'always',
+    retry: false,
+  })
+
+  const pending = query.data?.pending ?? false
+  const prs = useQuery({
+    queryKey: ['session-prs', sessionId],
+    queryFn: () => fetchSessionRecords(sessionId),
+    enabled: Boolean(session?.endedAt) && !pending,
     networkMode: 'always',
     retry: false,
   })
@@ -191,6 +208,16 @@ function SessionDetailPage() {
           </>
         )}
       </div>
+
+      {session.endedAt && !quick && (
+        <SessionRecords
+          pending={pending}
+          loading={prs.isPending && prs.fetchStatus !== 'idle'}
+          unavailable={prs.isError}
+          records={prs.data ? sessionImprovements(prs.data) : []}
+          names={(id) => catalog.byId.get(id)?.name ?? id}
+        />
+      )}
 
       {muscles.length > 0 && (
         <Card>
@@ -321,6 +348,56 @@ function SessionDetailPage() {
         </Button>
       ) : null}
     </div>
+  )
+}
+
+function SessionRecords({
+  pending,
+  loading,
+  unavailable,
+  records,
+  names,
+}: {
+  pending: boolean
+  loading: boolean
+  unavailable: boolean
+  records: PersonalRecord[]
+  names: (exerciseId: string) => string
+}) {
+  if (pending) {
+    return (
+      <p className="text-muted-foreground text-sm">
+        🏆 Los récords se calculan al sincronizar la sesión.
+      </p>
+    )
+  }
+  if (loading || unavailable || records.length === 0) return null
+  return (
+    <Card className="border-amber-400 bg-amber-50 dark:bg-amber-950/30">
+      <CardHeader>
+        <CardTitle>
+          🏆 {records.length === 1 ? 'Nuevo récord' : `${records.length} récords nuevos`}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ul className="flex flex-col gap-1.5 text-sm">
+          {records.map((r) => (
+            <li key={r.id}>
+              <Link
+                to="/progreso/ejercicio/$exerciseId"
+                params={{ exerciseId: r.exerciseId }}
+                className="flex flex-wrap items-baseline gap-x-1.5"
+              >
+                <span className="font-semibold">{names(r.exerciseId)}</span>
+                <span className="text-muted-foreground">{PR_LABELS[r.prType]}:</span>
+                <strong className="tabular-nums">{formatRecordValue(r)}</strong>
+                <span className="text-muted-foreground text-xs">({formatPrevious(r)})</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </CardContent>
+    </Card>
   )
 }
 

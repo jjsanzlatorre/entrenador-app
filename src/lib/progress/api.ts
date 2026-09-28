@@ -5,6 +5,7 @@ import { isOnline, OfflineError, withTimeout } from '@/lib/workout/api'
 import type { Json, PhotoPose, SessionType, TablesUpdate } from '@/types/database'
 import type { EquivalenceCatalog, Home } from './equivalences'
 import type { ExerciseSetSample } from './exercise-progress'
+import type { ExerciseSetCount } from './muscle-volume'
 import type { PersonalRecord } from './records'
 import type { ActivityDay, Commitment, SessionLogEntry } from './types'
 
@@ -533,4 +534,18 @@ export async function updateOwnProfile(userId: string, update: TablesUpdate<'pro
     await withTimeout(db().from('profiles').update(update).eq('id', userId).select('id')),
   )
   if (rows.length === 0) throw new Error('No se ha podido guardar el perfil (sin permiso)')
+}
+
+// Series efectivas por sesión y ejercicio de las sesiones empezadas en [from, to).
+export async function fetchSessionExerciseSets(from: Date, to: Date): Promise<ExerciseSetCount[]> {
+  const rows = check(
+    await withTimeout(
+      db().rpc('session_exercise_sets', { p_from: from.toISOString(), p_to: to.toISOString() }),
+    ),
+  )
+  return (rows ?? []).map((r) => ({
+    sessionId: r.session_id,
+    exerciseId: r.exercise_id,
+    sets: Number(r.sets),
+  }))
 }

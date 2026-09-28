@@ -488,7 +488,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **3 hecha (3A + 3B)** (typecheck, lint, Vitest, build y E2E de Playwright en verde; pantallas revisadas a 375 px). Falta validar en móvil real con dos usuarios. Siguiente: **Fase 4** (mapa muscular y carga).
+- Fase actual: **4 hecha** (typecheck, lint, Vitest, build y E2E de Playwright en verde; mapa revisado a 375 px en claro y oscuro). Falta validar en móvil real. Siguiente: **Fase 5** (onboarding y planes plantilla).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -541,8 +541,19 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Los UPDATE del perfil y de permisos de vínculos piden la fila de vuelta: si la RLS no deja cambiar nada (0 filas, sin error) se trata como fallo.
   - «Quitar compromiso» (valid_to = hoy, historial intacto) y borrar entradas del historial con confirmación. Sin compromiso vigente, «Hoy», Cumplimiento y «Nosotros» muestran un aviso en vez de porcentajes.
   - Toasts (`sonner`, `src/lib/notify.ts`): todo guardado de Perfil (nombre, contraseña, ciudad, pop-ups, compromiso, vínculos) avisa del éxito o del error en español.
+- Hecho (Fase 4):
+  - Migración `0016_muscle_volume.sql`: RPC `session_exercise_sets(p_from, p_to)` (series efectivas por sesión y ejercicio de las sesiones terminadas empezadas en el rango; security invoker).
+  - Volumen por músculo (`src/lib/progress/muscle-volume.ts`): 1 principal / 0,5 secundario, sin calentamiento ni series sin completar; aproximación de cardio y deportes (§6) proporcional a la duración; detalle de aportaciones por ejercicio y por tipo de sesión; comparación semanal; músculos descuidados. Las sesiones pendientes de subir cuentan (series calculadas en el móvil) y los datos del servidor se cachean en IndexedDB por rango.
+  - Mapa corporal SVG propio (`src/lib/progress/body-map.ts` + `src/components/progress/body-map.tsx`), sin librerías: frente y espalda, un `path` por músculo y vista (16 músculos; `delt_side` y `forearms` en las dos), silueta de fondo. Escala 0 / 1–5 / 6–10 / 11–20 / >20 con tokens `--mv-*` (rampa de un solo tono; en oscuro, más series = más claro), leyenda, `aria-label` y `<title>` con el número en cada músculo, accesible con teclado.
+  - `/progreso/musculos`: selector de semana, mapa, toque → hoja de detalle (series, ± frente a la semana anterior, ejercicios y sesiones que las aportan, lo aproximado marcado), tabla de los 16 músculos con ± semana anterior y «≈ aprox.», músculos descuidados (contorno discontinuo + lista).
+  - `/progreso/carga`: ratio agudo:crónico con aviso > 1,5, «datos insuficientes» con < 4 semanas de datos o sin carga crónica, carga aguda y crónica, sesiones sin RPE, gráfica de 12 semanas y sRPE por sesión de la semana. Aviso compacto en «Hoy» y Progreso solo si hay riesgo.
+  - Mini mapa en el resumen de sesión y en el detalle del historial (misma pantalla), con la aproximación de cardio y deportes.
+  - Toasts de éxito/error también en medidas, fotos, ejercicios propios, registrar actividad, borrar/editar sesión e invitaciones de admin.
+  - Tests: Vitest de volumen por músculo, aproximación de cardio, semanas, escala, descuidados, geometría del mapa (16 paths) y ACWR; PGlite de `session_exercise_sets` (calentamiento, sin completar, sin terminar, rango, RLS entre usuarios, anon); E2E `tests/e2e/muscle-map.spec.ts` (pierna + carrera de 30 min colorean el mapa, detalle, mini mapa y «datos insuficientes»; `E2E_SCREENSHOTS=<dir>` guarda capturas a 375 px).
 - Pendiente / deuda técnica:
-  - Medidas, fotos y el resto de formularios fuera de Perfil aún muestran los errores solo en línea (sin toast).
+  - Aviso de subcarga (< 0,8): preparado (`acuteChronicRatio(…, { hasActivePlan })`, `HAS_ACTIVE_PLAN = false` en `src/components/progress/load.tsx`); conectarlo a `user_plans` en la fase 5.
+  - El mapa muscular sin conexión usa la última copia del rango consultado; si no se había abierto ese rango, solo cuentan las sesiones guardadas en el móvil.
+  - `/progreso/musculos` y `/progreso/carga` no están en la caché de páginas del service worker (sí funcionan al navegar dentro de la app ya abierta).
   - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas; cámara y compresión de fotos HEIC).
   - Botón «Compartir» de la tarjeta de logro (imagen): fase 7. Reescritura de frases con IA: fase 6.
   - «Mis logros» solo muestra el periodo en curso (sin navegar a semanas o meses anteriores).
@@ -557,7 +568,6 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Temporizadores: en iOS con la pantalla bloqueada no suenan (limitación de las PWA); el estado se corrige al volver. No hay notificaciones programadas.
   - El ritmo medio en el historial usa la duración total de la sesión (incluye recuperaciones); el detalle usa el tiempo en movimiento.
   - E2E contra Supabase real: el test usa un mock de PostgREST/Auth (`tests/e2e/mock-supabase.ts`); no cubre RLS reales (eso lo cubren los tests PGlite).
-  - Detección de PRs y mini mapa del resumen: fases 3 y 4 (el resumen ya muestra músculos en lista).
   - Sustitución con IA: fase 7. Filtro por material usa `training_profiles.equipment`, vacío hasta el onboarding (fase 5).
   - `planned_session_id` sin FK hasta que exista `planned_sessions` (fase 5).
   - Si el usuario cierra sesión con sesiones sin sincronizar, se quedan en la cola del dispositivo y se suben cuando vuelva a entrar ese usuario.
@@ -584,6 +594,10 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Vínculos: una fila por dirección (`user_id` = quien comparte, `partner_id` = quien ve). El estado solo cambia por RPC; el usuario solo puede actualizar los permisos de su propia fila (GRANT por columnas). El cumplimiento de la pareja llega por `partner_adherence_days` (solo días y tipos de sesión ≥ 15 min, en la zona horaria del que mira), nunca por lectura directa de sesiones. Los nombres de la otra persona salen de `list_partner_links` (security definer); `profiles` sigue siendo solo propio.
   - Todas las consultas de datos propios filtran por `user_id` (con permisos de pareja la RLS también devolvería filas ajenas).
   - Equivalencias: `equivalence_objects` añade `label_plural` y `article` (para «un tractor» / «3,4 tractores» / «la Torre Eiffel»); `phrase_template` usa `{qty}`. Las rutas a nado son objetos `distance_route`; la natación usa esas rutas + destinos `water_route` desde casa. Tonelaje: solo ejercicios `weight_reps`. Claves de hito `{métrica}_{periodo}[_{clave}]_{id}` (métricas `run|swim|bike|dist|tonnage|time`).
+  - Aproximación de cardio (§6): cada músculo de la lista recibe 2 series por cada 30 min (yoga 0,5), proporcional a la duración (`sessionMinutes`); «otro», fuerza y functional no suman aproximación. Las series de ejercicios de cardio (sin músculos en la semilla) no suman nada: solo cuenta la aproximación por tipo de sesión.
+  - Escala del mapa con decimales: 0 si 0; 1–5 si ≤ 5; 6–10 si ≤ 10; 11–20 si ≤ 20; >20 el resto (5,5 va a 6–10).
+  - Descuidado = 0 series (incluida la aproximación) en la semana elegida y la anterior o más (se mira hasta 4 semanas; «4+»). Solo si la primera sesión es anterior a esas 2 semanas, para no marcar todo a un usuario nuevo.
+  - ACWR «acoplado»: agudo = carga de los últimos 7 días (hoy incluido); crónico = carga de los últimos 28 días / 4. Datos insuficientes si la primera sesión es posterior a hoy − 27 días o la carga crónica es 0. Las sesiones sin RPE no suman carga (se avisa de cuántas hay).
   - Diagnóstico: `/api/health` (qué variables existen en runtime y en build, solo true/false), `errorComponent` raíz en español renderizado en servidor y logs `console.error` con stack (root `beforeLoad`, `onCatch`, middleware global en `src/start.ts`).
 
 ---

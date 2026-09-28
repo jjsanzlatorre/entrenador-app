@@ -231,6 +231,25 @@ export function startMockSupabase(port: number) {
       return send(res, 200, out)
     }
 
+    if (path === '/rest/v1/rpc/session_exercise_sets') {
+      const { p_from, p_to } = (await readBody(req)) as { p_from: string; p_to: string }
+      const from = Date.parse(p_from)
+      const to = Date.parse(p_to)
+      const out: { session_id: string; exercise_id: string; sets: number }[] = []
+      for (const p of sessions.values()) {
+        const start = Date.parse(String(p.session.started_at))
+        if (!p.session.ended_at || start < from || start >= to) continue
+        const counts = new Map<string, number>()
+        for (const x of p.sets.filter((x) => x.completed && !x.is_warmup)) {
+          counts.set(x.exercise_id, (counts.get(x.exercise_id) ?? 0) + 1)
+        }
+        for (const [exercise_id, n] of counts) {
+          out.push({ session_id: p.session.id, exercise_id, sets: n })
+        }
+      }
+      return send(res, 200, out)
+    }
+
     const table = path.replace('/rest/v1/', '')
     if (table === 'equivalence_objects') return send(res, 200, equivalenceObjects)
     if (table === 'destinations') return send(res, 200, destinations)

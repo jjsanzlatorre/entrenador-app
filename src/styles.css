@@ -23,6 +23,16 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
+  /* Mapa muscular: 0 / 1–5 / 6–10 / 11–20 / >20 series (rampa de un solo tono, de claro a
+     oscuro: se distingue también sin ver bien el color). */
+  --mv-0: oklch(0.87 0 0);
+  --mv-1: oklch(0.9 0.07 60);
+  --mv-2: oklch(0.78 0.14 55);
+  --mv-3: oklch(0.64 0.19 42);
+  --mv-4: oklch(0.47 0.16 35);
+  --mv-silhouette: oklch(0.95 0 0);
+  --mv-stroke: oklch(1 0 0);
+  --mv-neglected: oklch(0.45 0.18 260);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -45,6 +55,15 @@
     --border: oklch(1 0 0 / 10%);
     --input: oklch(1 0 0 / 15%);
     --ring: oklch(0.556 0 0);
+    /* En oscuro la rampa va al revés: más series, más claro (más contraste con el fondo). */
+    --mv-0: oklch(0.34 0 0);
+    --mv-1: oklch(0.47 0.1 45);
+    --mv-2: oklch(0.61 0.15 48);
+    --mv-3: oklch(0.72 0.17 55);
+    --mv-4: oklch(0.88 0.12 75);
+    --mv-silhouette: oklch(0.25 0 0);
+    --mv-stroke: oklch(0.205 0 0);
+    --mv-neglected: oklch(0.78 0.12 260);
   }
 }
 

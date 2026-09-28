@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Page } from '@/components/page'
 import { inviteUser, listUsers, setUserActive, type AdminUser } from '@/server/admin.functions'
+import { notifyError, notifySaved } from '@/lib/notify'
 
 const usersQueryKey = ['admin', 'users'] as const
 
@@ -32,7 +33,9 @@ function InvitationsPage() {
 
   const invite = useMutation({
     mutationFn: (value: string) => inviteFn({ data: { email: value } }),
-    onSuccess: () => {
+    onError: (error) => notifyError(error, 'enviar la invitación'),
+    onSuccess: (_data, value) => {
+      notifySaved(`Invitación enviada a ${value}`)
       setEmail('')
       void queryClient.invalidateQueries({ queryKey: usersQueryKey })
     },
@@ -40,6 +43,8 @@ function InvitationsPage() {
 
   const toggle = useMutation({
     mutationFn: (u: AdminUser) => setActiveFn({ data: { userId: u.id, active: !u.active } }),
+    onSuccess: (_data, u) => notifySaved(u.active ? 'Usuario desactivado' : 'Usuario reactivado'),
+    onError: (error) => notifyError(error, 'cambiar el acceso'),
     onSettled: () => queryClient.invalidateQueries({ queryKey: usersQueryKey }),
   })
 

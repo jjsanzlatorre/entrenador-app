@@ -1,15 +1,18 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import {
+  Activity,
   BarChart3,
   Camera,
   ChevronRight,
   Flame,
   Medal,
+  PersonStanding,
   Scale,
   Trophy,
   type LucideIcon,
 } from 'lucide-react'
 import { WeekAdherenceCard } from '@/components/progress/adherence'
+import { AcwrAlert } from '@/components/progress/load'
 import { Page } from '@/components/page'
 
 export const Route = createFileRoute('/_app/progreso/')({
@@ -24,6 +27,8 @@ const SECTIONS: {
     | '/progreso/medidas'
     | '/progreso/fotos'
     | '/progreso/logros'
+    | '/progreso/musculos'
+    | '/progreso/carga'
   label: string
   hint: string
   icon: LucideIcon
@@ -39,6 +44,18 @@ const SECTIONS: {
     label: 'Mis logros',
     hint: 'Acumulados, equivalencias y destinos',
     icon: Medal,
+  },
+  {
+    to: '/progreso/musculos',
+    label: 'Mapa muscular',
+    hint: 'Series por músculo y semana, descuidados',
+    icon: PersonStanding,
+  },
+  {
+    to: '/progreso/carga',
+    label: 'Carga',
+    hint: 'sRPE semanal y ratio agudo:crónico',
+    icon: Activity,
   },
   {
     to: '/progreso/resumen',
@@ -61,6 +78,7 @@ function ProgressPage() {
   return (
     <Page title="Progreso">
       <WeekAdherenceCard userId={auth.userId} />
+      <AcwrAlert userId={auth.userId} />
       <ul className="flex flex-col gap-2">
         {SECTIONS.map(({ to, label, hint, icon: Icon }) => (
           <li key={to}>

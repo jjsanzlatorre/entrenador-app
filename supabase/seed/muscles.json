@@ -1,0 +1,18 @@
+[
+  { "id": "chest", "name": "Pectoral", "view": "front", "group": "upper" },
+  { "id": "lats", "name": "Dorsal", "view": "back", "group": "upper" },
+  { "id": "upper_back", "name": "Trapecio / espalda alta", "view": "back", "group": "upper" },
+  { "id": "lower_back", "name": "Lumbar", "view": "back", "group": "core" },
+  { "id": "delt_front", "name": "Deltoides anterior", "view": "front", "group": "upper" },
+  { "id": "delt_side", "name": "Deltoides lateral", "view": "both", "group": "upper" },
+  { "id": "delt_rear", "name": "Deltoides posterior", "view": "back", "group": "upper" },
+  { "id": "biceps", "name": "Bíceps", "view": "front", "group": "upper" },
+  { "id": "triceps", "name": "Tríceps", "view": "back", "group": "upper" },
+  { "id": "forearms", "name": "Antebrazo", "view": "both", "group": "upper" },
+  { "id": "core", "name": "Core (abdomen y oblicuos)", "view": "front", "group": "core" },
+  { "id": "glutes", "name": "Glúteo", "view": "back", "group": "lower" },
+  { "id": "quads", "name": "Cuádriceps", "view": "front", "group": "lower" },
+  { "id": "hamstrings", "name": "Isquiotibiales", "view": "back", "group": "lower" },
+  { "id": "adductors", "name": "Aductores", "view": "front", "group": "lower" },
+  { "id": "calves", "name": "Gemelos", "view": "back", "group": "lower" }
+]

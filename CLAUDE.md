@@ -488,20 +488,31 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **0 cerrada en código** (pendiente de validar la aceptación en Supabase/Vercel reales). Siguiente: Fase 1.
+- Fase actual: **1 cerrada en código** (pendiente de validar la aceptación en el móvil con Supabase/Vercel reales). Siguiente: Fase 2.
 - Hecho (Fase 0):
-  - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge), ESLint 10 + Prettier, Vitest.
-  - Migraciones `0001_profiles.sql` (profiles, `is_admin()`, `is_active()`, trigger de alta, RLS y grants por columna) y `0002_training_profiles.sql` (RLS `user_id = auth.uid()` + usuario activo). Probadas dos veces seguidas en PGlite con un stub de `auth`.
-  - Auth: magic link + código de 6 dígitos + contraseña opcional; `/auth/callback` procesa PKCE, `token_hash` e invitaciones (tokens en `#`).
-  - `/admin/invitaciones`: invitar (`inviteUserByEmail`), listar usuarios, desactivar/reactivar (`profiles.active` + ban en Supabase Auth).
-  - Bloqueo de inactivos: guardas de ruta (`/_app` → `/bloqueado`), middleware de funciones de servidor (`authMiddleware`, `adminMiddleware`) y RLS (`is_active()`).
-  - PWA: `manifest.webmanifest`, iconos (192, 512, maskable, apple-touch), `sw.js` básico (assets cache-first, navegación con pantalla offline).
-  - Layout móvil con navegación inferior Hoy · Entrenar · Progreso · Plan · Perfil; Perfil con nombre, contraseña y cierre de sesión.
+  - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
+  - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
+  - Auth: magic link + código de 6 dígitos + contraseña opcional; `/admin/invitaciones`; bloqueo de inactivos (rutas, middleware y RLS).
+  - PWA instalable y layout con navegación inferior.
+- Hecho (Fase 1):
+  - Migraciones `0003_catalog.sql` (muscles, exercises globales/propios con ids `u_…`, exercise_muscles), `0004_workouts.sql` (workout_sessions, session_blocks, exercise_sets; RPC `save_workout_session(payload)` transaccional con `client_rev`; RPC `last_exercise_sets(ids, exclude, before)`).
+  - Semillas `supabase/seed/muscles.json` (16) y `exercises.json` (55: fuerza, functional/Hyrox/Deka, cardio y deportes) → SQL generado con `npm run seed:sql` en `0005`–`0007` (test que falla si el SQL no está sincronizado).
+  - Biblioteca `/entrenar/ejercicios`: búsqueda por nombre y alias sin acentos, filtros por músculo y material, detalle, crear y borrar ejercicios propios.
+  - Sesión en curso `/entrenar/sesion`: bloques `straight` y `superset`, valores de la última vez precargados, ✓ en 1 toque, ±2,5 kg / ±1 rep, teclado numérico al tocar el valor, cambios de peso/reps que arrastran a las series pendientes iguales, calentamiento, RIR, añadir/quitar serie, reordenar bloques, sustituir ejercicio por reglas (mismos primarios + material del perfil), Wake Lock.
+  - Descanso automático basado en timestamps: arranca al completar serie (en superserie, al acabar la ronda), −15/+15 (ajusta el descanso de ese ejercicio), pausa, saltar, pitido en los últimos 3 s y al final, vibración.
+  - Terminar: RPE 1–10, duración editable, «Datos del reloj» (FC media, FC máx, calorías) y notas. Resumen: duración, RPE, carga sRPE, volumen, series, reps, músculos (series efectivas 1/0,5) y comparación de tonelaje con la vez anterior.
+  - Historial en `/entrenar` (servidor + copias locales pendientes) y detalle con editar (reusa la pantalla de sesión en modo edición) y borrar.
+  - Offline: sesión en IndexedDB en cada cambio, cola de escritura por sesión (coalesce, backoff 2 s → 60 s, reintento al volver la conexión/foco), catálogo y «última vez» cacheados, estado de auth cacheado en `localStorage` para abrir sin red, service worker generado en build con precarga de assets y caché de páginas (`/`, `/entrenar`, `/entrenar/sesion`, `/entrenar/ejercicios`).
+  - Tests: Vitest (operaciones de sesión, cálculos, búsqueda, sustitución, formato, cola con fake-indexeddb, persistencia de la sesión activa, plantilla del SW) + PGlite (migraciones ×2, RLS, RPC). Playwright E2E del criterio de aceptación contra un Supabase simulado (5 ejercicios × 3 series, modo avión, recarga sin conexión, terminar offline y sincronizar).
 - Pendiente / deuda técnica:
-  - Playwright aún no está en el repo (se añadirá en la Fase 1 con el flujo de registrar sesión).
-  - El `sw.js` no cachea páginas ni datos; la persistencia offline real (IndexedDB + cola) es de la Fase 1.
-  - Warnings de build `MODULE_LEVEL_DIRECTIVE` ("use client" de lucide-react): inofensivos.
-  - Componentes shadcn copiados a mano (el registro de shadcn no es accesible desde el entorno); añadir nuevos igual.
+  - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas).
+  - E2E contra Supabase real: el test usa un mock de PostgREST/Auth (`tests/e2e/mock-supabase.ts`); no cubre RLS reales (eso lo cubren los tests PGlite).
+  - Detección de PRs y mini mapa del resumen: fases 3 y 4 (el resumen ya muestra músculos en lista).
+  - Sustitución con IA: fase 7. Filtro por material usa `training_profiles.equipment`, vacío hasta el onboarding (fase 5).
+  - `planned_session_id` sin FK hasta que exista `planned_sessions` (fase 5).
+  - Si el usuario cierra sesión con sesiones sin sincronizar, se quedan en la cola del dispositivo y se suben cuando vuelva a entrar ese usuario.
+  - Warnings de build `MODULE_LEVEL_DIRECTIVE` ("use client"): inofensivos.
+  - Componentes shadcn copiados a mano (registro no accesible desde el entorno).
 - Decisiones tomadas:
   - Sesión de Supabase en cookies (`@supabase/ssr`) para que SSR y funciones de servidor conozcan al usuario; `getUser()` valida el JWT en cada comprobación de servidor.
   - `role` y `active` no son editables por el usuario (GRANT de UPDATE solo en columnas personales); solo se cambian con service role desde servidor.
@@ -510,6 +521,11 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Login con código de 6 dígitos además del enlace, porque en iOS la PWA instalada no comparte sesión con Safari.
   - Enums como `text` + `CHECK` (más fáciles de hacer idempotentes que `CREATE TYPE`).
   - Variables `VITE_SUPABASE_*`: el servidor las lee en tiempo de ejecución (`process.env`) y las pasa al navegador con `window.__PUBLIC_ENV__`; el valor incrustado por Vite en el build queda como respaldo. Así un build sin esas variables no rompe la app (causa del 500 en el primer deploy).
+  - Registro local-first: la sesión se edita en el dispositivo y se sube entera (snapshot) con `save_workout_session`; los ids (uuid) los genera el cliente, así los reintentos son idempotentes y `client_rev` evita que una copia antigua pise una nueva.
+  - Cada ejercicio es un bloque `straight`; una superserie es un bloque con varios ejercicios. El orden y el descanso por ejercicio se guardan en `session_blocks.config.exercises`.
+  - `session_blocks` y `exercise_sets` llevan `user_id` (regla general de tablas de usuario) y su RLS exige además que la sesión sea propia.
+  - Cardio y deportes no tienen músculos en la semilla: el mapa usará la aproximación por tipo de sesión (§6) en la fase 4.
+  - Series de peso corporal (dominadas, fondos, flexiones) se registran solo con reps y no suman tonelaje (v1).
   - Diagnóstico: `/api/health` (qué variables existen en runtime y en build, solo true/false), `errorComponent` raíz en español renderizado en servidor y logs `console.error` con stack (root `beforeLoad`, `onCatch`, middleware global en `src/start.ts`).
 
 ---

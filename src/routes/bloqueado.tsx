@@ -1,8 +1,7 @@
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Button } from '@/components/ui/button'
-import { getSupabaseBrowserClient } from '@/lib/supabase/client'
-import { resetAuthState } from '@/lib/auth'
+import { signOut } from '@/lib/auth'
 
 export const Route = createFileRoute('/bloqueado')({
   beforeLoad: ({ context }) => {
@@ -16,9 +15,8 @@ function BlockedPage() {
   const router = useRouter()
   const queryClient = useQueryClient()
 
-  async function signOut() {
-    await getSupabaseBrowserClient().auth.signOut()
-    await resetAuthState(queryClient)
+  async function handleSignOut() {
+    await signOut(queryClient)
     await router.invalidate()
     await router.navigate({ to: '/login' })
   }
@@ -29,7 +27,7 @@ function BlockedPage() {
       <p className="text-muted-foreground">
         Tu cuenta está desactivada. Si crees que es un error, habla con el admin.
       </p>
-      <Button variant="outline" onClick={signOut}>
+      <Button variant="outline" onClick={handleSignOut}>
         Cerrar sesión
       </Button>
     </main>

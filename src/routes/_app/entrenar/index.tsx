@@ -1,0 +1,123 @@
+import { useEffect } from 'react'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { BookOpen, ChevronRight, CloudUpload, Dumbbell, Play } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Page } from '@/components/page'
+import { SyncBadge } from '@/components/workout/sync-badge'
+import { loadActiveSession, startNewSession, useActiveSession } from '@/lib/workout/active-session'
+import { sessionStats } from '@/lib/workout/calc'
+import { formatDateShort, formatInt, formatTime } from '@/lib/workout/format'
+import { useCatalog, useHistory } from '@/lib/workout/hooks'
+
+export const Route = createFileRoute('/_app/entrenar/')({
+  ssr: false,
+  component: TrainPage,
+})
+
+function TrainPage() {
+  const { auth } = Route.useRouteContext()
+  const userId = auth.userId
+  const navigate = useNavigate()
+  const { session } = useActiveSession()
+  const history = useHistory(userId)
+  const catalog = useCatalog(userId)
+
+  useEffect(() => {
+    void loadActiveSession(userId)
+  }, [userId])
+
+  async function start() {
+    await startNewSession(userId)
+    await navigate({ to: '/entrenar/sesion' })
+  }
+
+  const stats = session ? sessionStats(session) : null
+
+  return (
+    <Page title="Entrenar">
+      {session ? (
+        <Link
+          to="/entrenar/sesion"
+          className="bg-primary text-primary-foreground flex items-center gap-3 rounded-2xl p-4 shadow"
+        >
+          <Play className="size-8 shrink-0" />
+          <div className="min-w-0 flex-1">
+            <p className="text-lg font-bold">
+              {session.mode === 'edit' ? 'Continuar edición' : 'Continuar sesión'}
+            </p>
+            <p className="truncate text-sm opacity-90">
+              {session.title} · {stats?.completedSets ?? 0} series ·{' '}
+              {session.mode === 'live' ? `desde las ${formatTime(session.startedAt)}` : 'editando'}
+            </p>
+          </div>
+          <ChevronRight className="size-6" />
+        </Link>
+      ) : (
+        <Button size="lg" className="h-16 text-lg" onClick={() => void start()}>
+          <Dumbbell className="size-6" /> Empezar entreno libre
+        </Button>
+      )}
+
+      <Button asChild variant="outline" size="lg" className="justify-between">
+        <Link to="/entrenar/ejercicios">
+          <span className="flex items-center gap-2">
+            <BookOpen /> Biblioteca de ejercicios
+          </span>
+          <ChevronRight />
+        </Link>
+      </Button>
+
+      <section className="flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Historial</h2>
+          <SyncBadge />
+        </div>
+        {history.data?.offline && (
+          <p className="text-muted-foreground text-sm">
+            Sin conexión: se muestran las sesiones guardadas en este móvil.
+          </p>
+        )}
+        {history.isPending && <p className="text-muted-foreground text-sm">Cargando…</p>}
+        {history.data && history.data.items.length === 0 && (
+          <p className="text-muted-foreground rounded-xl border border-dashed p-4 text-center text-sm">
+            Aún no has registrado ninguna sesión.
+          </p>
+        )}
+        <ul className="flex flex-col gap-2">
+          {history.data?.items.map((item) => (
+            <li key={item.id}>
+              <Link
+                to="/entrenar/historial/$sessionId"
+                params={{ sessionId: item.id }}
+                className="bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-3"
+              >
+                <div className="bg-muted flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-xs font-medium">
+                  {formatDateShort(item.startedAt)}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate font-medium">{item.title}</p>
+                  <p className="text-muted-foreground truncate text-xs">
+                    {item.endedAt ? `${item.durationMin ?? '—'} min · ` : 'Sin terminar · '}
+                    {item.completedSets} series · {formatInt(item.tonnageKg)} kg
+                    {item.exerciseIds.length > 0 &&
+                      ` · ${item.exerciseIds
+                        .slice(0, 3)
+                        .map((id) => catalog.byId.get(id)?.name ?? id)
+                        .join(', ')}`}
+                  </p>
+                </div>
+                {item.pendingSync && (
+                  <CloudUpload
+                    className="size-5 text-amber-600"
+                    aria-label="Pendiente de sincronizar"
+                  />
+                )}
+                <ChevronRight className="text-muted-foreground size-5" />
+              </Link>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </Page>
+  )
+}

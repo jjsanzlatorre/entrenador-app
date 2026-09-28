@@ -14,7 +14,7 @@ export default tseslint.config(
       'dist',
       'node_modules',
       'src/routeTree.gen.ts',
-      'public/sw.js',
+      'src/sw/sw.js',
     ],
   },
   js.configs.recommended,
@@ -31,7 +31,7 @@ export default tseslint.config(
     },
   },
   {
-    files: ['public/**/*.js'],
+    files: ['src/sw/**/*.js'],
     languageOptions: { globals: { ...globals.serviceworker } },
   },
   prettier,

@@ -10,12 +10,15 @@ import {
   fetchEquivalenceCatalog,
   fetchPartnerAdherence,
   fetchPartnerLinks,
+  fetchSessionExerciseSets,
   fetchSessionLog,
   fetchSessionTotals,
 } from './api'
 import { activityDaysFromSessions, sessionMinutes } from './adherence'
 import type { EquivalenceCatalog } from './equivalences'
+import { addDays, type DateKey } from './dates'
 import { loadShownMilestones } from './milestones-store'
+import { localSetCounts, type ExerciseSetCount } from './muscle-volume'
 import type { Commitment, SessionLogEntry } from './types'
 
 export const sessionLogKey = (userId: string) => ['session-log', userId] as const
@@ -167,5 +170,45 @@ export function useShownMilestones(userId: string) {
     networkMode: 'always',
     staleTime: 0,
     queryFn: () => loadShownMilestones(userId),
+  })
+}
+
+const localMidnight = (key: DateKey) => {
+  const [y, m, d] = key.split('-').map(Number) as [number, number, number]
+  return new Date(y, m - 1, d)
+}
+
+// Series efectivas por sesión y ejercicio de las sesiones empezadas entre `from` y `to`
+// (días incluidos). Del servidor, con copia en el dispositivo, y las sesiones terminadas en el
+// móvil pendientes de subir (o todas las locales si no hay conexión) sustituyen a las del servidor.
+export function useExerciseSetCounts(userId: string, from: DateKey, to: DateKey) {
+  return useQuery({
+    queryKey: ['exercise-set-counts', userId, from, to],
+    networkMode: 'always',
+    staleTime: 0,
+    queryFn: async () => {
+      const key = `exercise-set-counts:${userId}:${from}:${to}`
+      const [pending, local] = await Promise.all([
+        listOutbox(userId),
+        listLocalFinishedSessions(userId),
+      ])
+      const pendingIds = new Set(pending.filter((i) => i.kind === 'save').map((i) => i.sessionId))
+      let server: ExerciseSetCount[]
+      let offline = false
+      try {
+        server = await fetchSessionExerciseSets(localMidnight(from), localMidnight(addDays(to, 1)))
+        await idbPut('kv', key, server)
+      } catch {
+        offline = true
+        server = (await idbGet<ExerciseSetCount[]>('kv', key)) ?? []
+      }
+      const replaced = local.filter((s) => offline || pendingIds.has(s.id))
+      const replacedIds = new Set(replaced.map((s) => s.id))
+      const counts = [
+        ...server.filter((c) => !replacedIds.has(c.sessionId)),
+        ...replaced.flatMap(localSetCounts),
+      ]
+      return { counts, offline }
+    },
   })
 }

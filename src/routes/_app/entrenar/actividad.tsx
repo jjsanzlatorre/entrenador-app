@@ -15,6 +15,7 @@ import {
   type QuickActivityType,
 } from '@/lib/workout/session-kinds'
 import { cn } from '@/lib/utils'
+import { notifyError } from '@/lib/notify'
 
 // «Registrar actividad»: yoga, surf, frontón u otra, en una sola pantalla.
 export const Route = createFileRoute('/_app/entrenar/actividad')({
@@ -86,6 +87,8 @@ function QuickActivityPage() {
         search: { nueva: 1 },
         replace: true,
       })
+    } catch (error) {
+      notifyError(error, 'guardar la actividad')
     } finally {
       setSaving(false)
     }

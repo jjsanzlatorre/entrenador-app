@@ -12,6 +12,7 @@ import { formatDayMonth, localDateKey } from '@/lib/progress/dates'
 import { compressPhoto } from '@/lib/progress/image'
 import { cn } from '@/lib/utils'
 import type { PhotoPose } from '@/types/database'
+import { notifyError, notifySaved } from '@/lib/notify'
 
 export const Route = createFileRoute('/_app/progreso/fotos')({
   ssr: false,
@@ -92,8 +93,9 @@ function PhotosPage() {
                     if (!confirm('¿Borrar esta foto?')) return
                     try {
                       await deletePhoto(p)
+                      notifySaved('Foto borrada')
                     } catch (error) {
-                      alert(error instanceof Error ? error.message : String(error))
+                      notifyError(error, 'borrar la foto')
                     }
                     await refresh()
                   }}
@@ -182,9 +184,11 @@ function UploadCard({ userId, onUploaded }: { userId: string; onUploaded: () => 
       setStatus({ ok: true, text: `Subiendo (${Math.round(blob.size / 1024)} KB)…` })
       await uploadPhoto(userId, blob, date, pose)
       setStatus({ ok: true, text: 'Foto guardada' })
+      notifySaved('Foto guardada')
       await onUploaded()
     } catch (error) {
       setStatus({ ok: false, text: error instanceof Error ? error.message : String(error) })
+      notifyError(error, 'subir la foto')
     } finally {
       setBusy(false)
       if (input.current) input.current.value = ''

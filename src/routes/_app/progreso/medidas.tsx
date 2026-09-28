@@ -19,6 +19,7 @@ import {
 import { formatDayMonth, localDateKey } from '@/lib/progress/dates'
 import { formatKg, parseDecimal } from '@/lib/workout/format'
 import { cn } from '@/lib/utils'
+import { notifyError, notifySaved } from '@/lib/notify'
 
 export const Route = createFileRoute('/_app/progreso/medidas')({
   ssr: false,
@@ -134,7 +135,12 @@ function BodyMetricsPage() {
                     aria-label={`Borrar el registro del ${formatDayMonth(m.date)}`}
                     onClick={async () => {
                       if (!confirm('¿Borrar este registro?')) return
-                      await deleteBodyMetric(m.id)
+                      try {
+                        await deleteBodyMetric(m.id)
+                        notifySaved('Registro borrado')
+                      } catch (error) {
+                        notifyError(error, 'borrar')
+                      }
                       await refresh()
                     }}
                   >
@@ -205,9 +211,11 @@ function MetricForm({
     setStatus(null)
     try {
       await saveBodyMetric(userId, input)
+      notifySaved('Medidas guardadas')
       await onSaved()
     } catch (error) {
       setStatus(error instanceof Error ? error.message : String(error))
+      notifyError(error)
     } finally {
       setSaving(false)
     }

@@ -682,6 +682,11 @@ export type Database = {
         Args: Record<PropertyKey, never>
         Returns: { session_id: string; tonnage_kg: number; total_reps: number }[]
       }
+      // 0016_muscle_volume.sql
+      session_exercise_sets: {
+        Args: { p_from: string; p_to: string }
+        Returns: { session_id: string; exercise_id: string; sets: number }[]
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }

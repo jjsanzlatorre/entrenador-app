@@ -9,7 +9,7 @@ import { SyncBadge } from '@/components/workout/sync-badge'
 import { listOutbox } from '@/lib/offline/outbox'
 import { deleteSession, editSession, getLocalSession } from '@/lib/workout/active-session'
 import { fetchPreviousPerformance, fetchSession, isOnline } from '@/lib/workout/api'
-import { effectiveSetsByMuscle, sessionStats, tonnage } from '@/lib/workout/calc'
+import { sessionStats, tonnage } from '@/lib/workout/calc'
 import { setFields } from '@/lib/workout/fields'
 import { formatClock, formatDateLong, formatInt, formatKg, formatTime } from '@/lib/workout/format'
 import { historyQueryKey, useCatalog } from '@/lib/workout/hooks'
@@ -28,6 +28,8 @@ import { BLOCK_LABELS, describeTimer, resultSummary } from '@/components/workout
 import { cn } from '@/lib/utils'
 import { fetchSessionRecords } from '@/lib/progress/api'
 import { HomeCityPrompt, SessionMilestonePopup } from '@/components/progress/achievements'
+import { BodyMap, BodyMapLegend } from '@/components/progress/body-map'
+import { formatSets, localSetCounts, muscleVolume } from '@/lib/progress/muscle-volume'
 import {
   formatPrevious,
   formatRecordValue,
@@ -36,6 +38,7 @@ import {
   type PersonalRecord,
 } from '@/lib/progress/records'
 import type { SessionType } from '@/types/database'
+import { notifyError, notifySaved } from '@/lib/notify'
 
 const QUICK_TYPES = new Set<SessionType>(['yoga', 'surf', 'padel_fronton', 'other'])
 
@@ -113,9 +116,22 @@ function SessionDetailPage() {
   }
 
   const stats = sessionStats(session)
-  const muscles = effectiveSetsByMuscle(
-    session.blocks.flatMap((b) => b.sets),
+  // Series por músculo de esta sesión, con la aproximación de cardio y deportes (§6).
+  const muscleSets = muscleVolume(
+    [
+      {
+        id: session.id,
+        sessionType: session.sessionType,
+        startedAt: session.startedAt,
+        endedAt: session.endedAt ?? session.startedAt,
+        durationMin: session.durationMin,
+      },
+    ],
+    localSetCounts(session),
     catalog.byId,
+  )
+  const muscles = [...muscleSets.values()].sort(
+    (a, b) => b.sets - a.sets || a.muscleId.localeCompare(b.muscleId),
   )
   const maxMuscle = Math.max(1, ...muscles.map((m) => m.sets))
   const load = session.rpe && session.durationMin ? session.rpe * session.durationMin : null
@@ -138,13 +154,19 @@ function SessionDetailPage() {
       await editSession(session)
       await navigate({ to: '/entrenar/sesion' })
     } catch (error) {
-      alert(error instanceof Error ? error.message : String(error))
+      notifyError(error, 'abrir la sesión para editarla')
     }
   }
 
   async function handleDelete() {
     if (!session || !confirm('¿Borrar esta sesión? No se puede deshacer.')) return
-    await deleteSession(session.id, session.userId)
+    try {
+      await deleteSession(session.id, session.userId)
+    } catch (error) {
+      notifyError(error, 'borrar la sesión')
+      return
+    }
+    notifySaved('Sesión borrada')
     await queryClient.invalidateQueries({ queryKey: historyQueryKey(auth.userId) })
     queryClient.removeQueries({ queryKey: ['session', session.id] })
     await navigate({ to: '/entrenar', replace: true })
@@ -235,12 +257,14 @@ function SessionDetailPage() {
           <CardHeader>
             <CardTitle>Músculos trabajados</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="flex flex-col gap-3">
+            <BodyMap size="mini" sets={(id) => muscleSets.get(id)?.sets ?? 0} />
+            <BodyMapLegend />
             <ul className="flex flex-col gap-1.5">
               {muscles.map((m) => (
                 <li
                   key={m.muscleId}
-                  className="grid grid-cols-[8rem_1fr_2.5rem] items-center gap-2 text-sm"
+                  className="grid grid-cols-[8rem_1fr_3rem] items-center gap-2 text-sm"
                 >
                   <span className="truncate">{muscleName(m.muscleId)}</span>
                   <span className="bg-muted h-2.5 overflow-hidden rounded-full">
@@ -249,13 +273,17 @@ function SessionDetailPage() {
                       style={{ width: `${(m.sets / maxMuscle) * 100}%` }}
                     />
                   </span>
-                  <span className="text-right tabular-nums">{formatKg(m.sets)}</span>
+                  <span className="text-right tabular-nums">
+                    {m.approxSets > 0 ? '≈' : ''}
+                    {formatSets(m.sets)}
+                  </span>
                 </li>
               ))}
             </ul>
-            <p className="text-muted-foreground mt-2 text-xs">
-              Series efectivas: 1 por músculo principal y 0,5 por secundario. El mapa corporal llega
-              en la fase 4.
+            <p className="text-muted-foreground text-xs">
+              Series efectivas: 1 por músculo principal y 0,5 por secundario.
+              {muscles.some((m) => m.approxSets > 0) &&
+                ' ≈ incluye una parte aproximada por el tiempo de cardio o deporte (≈2 series por cada 30 min).'}
             </p>
           </CardContent>
         </Card>

@@ -4,6 +4,7 @@ import { ChevronRight, Play } from 'lucide-react'
 import { ComingSoon, Page } from '@/components/page'
 import { UsCard, WeekAdherenceCard } from '@/components/progress/adherence'
 import { MonthSummaryPopup } from '@/components/progress/achievements'
+import { AcwrAlert } from '@/components/progress/load'
 import { StartSessionButtons } from '@/components/workout/start-session'
 import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
@@ -24,6 +25,7 @@ function TodayPage() {
   return (
     <Page title={name ? `Hola, ${name}` : 'Hoy'}>
       <WeekAdherenceCard userId={auth.userId} />
+      <AcwrAlert userId={auth.userId} />
       {session ? (
         <Link
           to="/entrenar/sesion"

@@ -29,6 +29,7 @@ import { searchExercises } from '@/lib/workout/search'
 import type { Exercise } from '@/lib/workout/types'
 import type { ExerciseCategory, TrackingType } from '@/types/database'
 import { cn } from '@/lib/utils'
+import { notifyError, notifySaved } from '@/lib/notify'
 
 export const Route = createFileRoute('/_app/entrenar/ejercicios')({
   ssr: false,
@@ -91,9 +92,11 @@ function ExerciseDetail({
   const remove = useMutation({
     mutationFn: (id: string) => deleteExercise(id),
     onSuccess: async () => {
+      notifySaved('Ejercicio borrado')
       await queryClient.invalidateQueries({ queryKey: catalogQueryKey(userId) })
       onClose()
     },
+    onError: (error) => notifyError(error, 'borrar el ejercicio'),
   })
 
   return (
@@ -199,7 +202,9 @@ function CreateExerciseSheet({
   const [form, setForm] = useState<NewExerciseInput>(EMPTY_FORM)
   const create = useMutation({
     mutationFn: () => createExercise(userId, form),
+    onError: (error) => notifyError(error, 'crear el ejercicio'),
     onSuccess: async () => {
+      notifySaved('Ejercicio creado')
       await queryClient.invalidateQueries({ queryKey: catalogQueryKey(userId) })
       setForm(EMPTY_FORM)
       onClose()

@@ -509,6 +509,8 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - El primer admin se crea a mano: usuario en Supabase Auth + `supabase/snippets/make_admin.sql`.
   - Login con código de 6 dígitos además del enlace, porque en iOS la PWA instalada no comparte sesión con Safari.
   - Enums como `text` + `CHECK` (más fáciles de hacer idempotentes que `CREATE TYPE`).
+  - Variables `VITE_SUPABASE_*`: el servidor las lee en tiempo de ejecución (`process.env`) y las pasa al navegador con `window.__PUBLIC_ENV__`; el valor incrustado por Vite en el build queda como respaldo. Así un build sin esas variables no rompe la app (causa del 500 en el primer deploy).
+  - Diagnóstico: `/api/health` (qué variables existen en runtime y en build, solo true/false), `errorComponent` raíz en español renderizado en servidor y logs `console.error` con stack (root `beforeLoad`, `onCatch`, middleware global en `src/start.ts`).
 
 ---
 

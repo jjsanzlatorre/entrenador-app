@@ -1,14 +1,27 @@
 import { useEffect, type ReactNode } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
+import { RootError, logError } from '@/components/root-error'
 import { ensureAuthState } from '@/lib/auth'
+import { ConfigError, readPublicEnv } from '@/lib/env'
 import { registerServiceWorker } from '@/lib/pwa'
 import appCss from '@/styles.css?url'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ context }) => {
-    const auth = await ensureAuthState(context.queryClient)
-    return { auth }
+    const { problems } = readPublicEnv()
+    if (problems.length > 0) {
+      const error = new ConfigError(problems)
+      logError('root.beforeLoad', error)
+      throw error
+    }
+    try {
+      const auth = await ensureAuthState(context.queryClient)
+      return { auth }
+    } catch (error) {
+      logError('root.beforeLoad', error)
+      throw error
+    }
   },
   head: () => ({
     meta: [
@@ -25,6 +38,12 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       { name: 'apple-mobile-web-app-title', content: 'Entrenador' },
     ],
+    scripts: [
+      {
+        // Config pública para el navegador, leída en el servidor en tiempo de ejecución.
+        children: `window.__PUBLIC_ENV__=${serializePublicEnv()}`,
+      },
+    ],
     links: [
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
@@ -33,7 +52,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { rel: 'apple-touch-icon', href: '/icons/apple-touch-icon.png' },
     ],
   }),
+  shellComponent: RootDocument,
   component: RootComponent,
+  errorComponent: RootError,
+  onCatch: (error) => logError('root.onCatch', error),
   notFoundComponent: () => (
     <div className="p-6 text-center">
       <p className="text-lg font-semibold">Página no encontrada</p>
@@ -52,12 +74,16 @@ function RootComponent() {
   }, [])
 
   return (
-    <RootDocument>
-      <QueryClientProvider client={queryClient}>
-        <Outlet />
-      </QueryClientProvider>
-    </RootDocument>
+    <QueryClientProvider client={queryClient}>
+      <Outlet />
+    </QueryClientProvider>
   )
+}
+
+function serializePublicEnv() {
+  const { env } = readPublicEnv()
+  // Escapa "<" para que el valor no pueda cerrar la etiqueta <script>.
+  return JSON.stringify(env ?? {}).replace(/</g, '\\u003c')
 }
 
 function RootDocument({ children }: Readonly<{ children: ReactNode }>) {

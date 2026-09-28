@@ -142,9 +142,17 @@ export type MonthAdherence = {
   monthStart: DateKey
   // Prorrateado por días en las semanas partidas (puede tener decimales).
   committed: number
+  // Objetivo entero del mes: el prorrateo redondeado (mínimo 1). 0 si no había compromiso.
+  target: number
   done: number
-  // done / committed (puede pasar de 1). null si no había compromiso en todo el mes.
+  // Sesiones que llenan el objetivo (≤ target) y las que sobran («+N extra»).
+  counted: number
+  extra: number
+  // counted / target (0–1). null si no había compromiso o el mes es parcial.
   pct: number | null
+  // El compromiso empezó tan tarde que el objetivo prorrateado no llega a 1 sesión:
+  // se muestra «Mes parcial» en vez de un porcentaje.
+  partial: boolean
 }
 
 export function monthAdherence(
@@ -173,7 +181,38 @@ export function monthAdherence(
     done++
   }
   committed = Math.round(committed * 10) / 10
-  return { monthStart, committed, done, pct: committed > 0 ? done / committed : null }
+  if (committed === 0) {
+    return {
+      monthStart,
+      committed,
+      target: 0,
+      done,
+      counted: 0,
+      extra: 0,
+      pct: null,
+      partial: false,
+    }
+  }
+  const partial = committed < 1
+  const target = Math.max(1, Math.round(committed))
+  const counted = Math.min(done, target)
+  return {
+    monthStart,
+    committed,
+    target,
+    done,
+    counted,
+    extra: done - counted,
+    pct: partial ? null : counted / target,
+    partial,
+  }
+}
+
+// «3/4 · 75 %», «Mes parcial · 2 sesiones» o «—».
+export function monthValue(m: MonthAdherence) {
+  if (m.partial) return `Mes parcial · ${plural(m.done, 'sesión', 'sesiones')}`
+  if (m.target === 0) return '—'
+  return `${m.counted}/${m.target} · ${formatPct(m.pct)}`
 }
 
 export type Streaks = { current: number; best: number }

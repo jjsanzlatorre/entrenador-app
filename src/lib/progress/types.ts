@@ -10,6 +10,9 @@ export type SessionLogEntry = {
   durationMin: number | null
   rpe: number | null
   distanceM: number | null
+  // Fuerza (session_totals en el servidor; calculado en el cliente si está pendiente de subir).
+  tonnageKg?: number
+  totalReps?: number
 }
 
 // Día con actividad de un tipo. minutes = null cuando no se conoce (datos de la pareja,

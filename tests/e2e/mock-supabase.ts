@@ -45,6 +45,21 @@ const exercises = seed.exercises.map((e) => ({
   ],
 }))
 
+// Catálogos de equivalencias (fase 3B), tal cual la semilla.
+const equivalenceObjects = (
+  JSON.parse(readFileSync(join(root, 'supabase/seed/equivalences.json'), 'utf8')) as {
+    objects: (Record<string, unknown> & { source?: string })[]
+  }
+).objects.map(({ source: _source, ...o }) => o)
+const destinations = (
+  JSON.parse(readFileSync(join(root, 'supabase/seed/destinations.json'), 'utf8')) as {
+    destinations: Record<string, unknown>[]
+  }
+).destinations
+const weightReps = new Set(
+  seed.exercises.filter((e) => e.tracking_type === 'weight_reps').map((e) => e.id),
+)
+
 const user = {
   id: MOCK_USER_ID,
   aud: 'authenticated',
@@ -54,7 +69,7 @@ const user = {
   user_metadata: {},
   created_at: '2026-01-01T00:00:00Z',
 }
-const profile = {
+const baseProfile = {
   id: MOCK_USER_ID,
   display_name: 'E2E',
   role: 'member',
@@ -68,16 +83,26 @@ const profile = {
   show_equivalence_popups: true,
   created_at: '2026-01-01T00:00:00Z',
 }
+let profile: Record<string, unknown> = { ...baseProfile }
+let milestones: { milestone_key: string; shown_at: string }[] = []
 
 type Payload = {
   session: Record<string, unknown> & { id: string; client_rev: number }
   blocks: (Record<string, unknown> & { id: string })[]
-  sets: (Record<string, unknown> & { id: string; exercise_id: string; completed: boolean })[]
+  sets: (Record<string, unknown> & {
+    id: string
+    exercise_id: string
+    completed: boolean
+    is_warmup?: boolean
+    weight_kg?: number | null
+    reps?: number | null
+  })[]
 }
 const sessions = new Map<string, Payload>()
 let saveCalls = 0
 // Datos de progreso que siembran los tests con POST /__seed.
 type Seed = {
+  profile?: Record<string, unknown>
   commitments: Record<string, unknown>[]
   partnerLinks: Record<string, unknown>[]
   partnerDays: Record<string, { day: string; session_type: string }[]>
@@ -113,7 +138,7 @@ function sessionRow(p: Payload) {
     ...p.session,
     user_id: MOCK_USER_ID,
     planned_session_id: null,
-    distance_m: null,
+    distance_m: p.session.distance_m ?? null,
     pair_group_id: null,
     created_at: '',
     updated_at: '',
@@ -131,16 +156,20 @@ export function startMockSupabase(port: number) {
     if (req.method === 'OPTIONS') return send(res, 204, undefined)
 
     if (path === '/__state') {
-      return send(res, 200, { saveCalls, sessions: [...sessions.values()] })
+      return send(res, 200, { saveCalls, sessions: [...sessions.values()], milestones, profile })
     }
     if (path === '/__seed') {
-      progressSeed = { ...progressSeed, ...((await readBody(req)) as Partial<Seed>) }
+      const body = (await readBody(req)) as Partial<Seed>
+      progressSeed = { ...progressSeed, ...body }
+      if (body.profile) profile = { ...profile, ...body.profile }
       return send(res, 200, { ok: true })
     }
     if (path === '/__reset') {
       sessions.clear()
       saveCalls = 0
       progressSeed = { commitments: [], partnerLinks: [], partnerDays: {} }
+      profile = { ...baseProfile }
+      milestones = []
       return send(res, 200, { ok: true })
     }
     if (path.startsWith('/auth/v1/user')) return send(res, 200, user)
@@ -184,7 +213,37 @@ export function startMockSupabase(port: number) {
       return send(res, 200, progressSeed.partnerDays[p_partner] ?? [])
     }
 
+    if (path === '/rest/v1/rpc/session_totals') {
+      const out = [...sessions.values()]
+        .filter((p) => p.session.ended_at)
+        .map((p) => {
+          const sets = p.sets.filter((x) => x.completed && !x.is_warmup)
+          return {
+            session_id: p.session.id,
+            tonnage_kg: sets
+              .filter((x) => weightReps.has(x.exercise_id))
+              .reduce((a, x) => a + (x.weight_kg ?? 0) * (x.reps ?? 0), 0),
+            total_reps: sets.reduce((a, x) => a + (x.reps ?? 0), 0),
+          }
+        })
+      return send(res, 200, out)
+    }
+
     const table = path.replace('/rest/v1/', '')
+    if (table === 'equivalence_objects') return send(res, 200, equivalenceObjects)
+    if (table === 'destinations') return send(res, 200, destinations)
+    if (table === 'milestones_shown') {
+      if (req.method === 'POST') {
+        const body = (await readBody(req)) as { milestone_key: string; shown_at: string }[]
+        for (const m of Array.isArray(body) ? body : [body]) {
+          if (!milestones.some((x) => x.milestone_key === m.milestone_key)) {
+            milestones.push({ milestone_key: m.milestone_key, shown_at: m.shown_at })
+          }
+        }
+        return send(res, 201, undefined)
+      }
+      return send(res, 200, milestones)
+    }
     if (table === 'commitments') {
       const uid = eqParam(url, 'user_id')
       return send(
@@ -196,7 +255,10 @@ export function startMockSupabase(port: number) {
     if (['personal_records', 'body_metrics', 'progress_photos'].includes(table)) {
       return send(res, 200, rows(req, []))
     }
-    if (table === 'profiles') return send(res, 200, rows(req, [profile]))
+    if (table === 'profiles') {
+      if (req.method === 'PATCH') profile = { ...profile, ...((await readBody(req)) as object) }
+      return send(res, 200, rows(req, [profile]))
+    }
     if (table === 'exercises') return send(res, 200, rows(req, exercises))
     if (table === 'training_profiles') return send(res, 200, [])
     if (table === 'workout_sessions') {

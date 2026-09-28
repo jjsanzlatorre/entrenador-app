@@ -1,7 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronRight, KeyRound, LogOut, Mail, ShieldCheck, Target, Users } from 'lucide-react'
+import {
+  ChevronRight,
+  KeyRound,
+  LogOut,
+  Mail,
+  MapPin,
+  PartyPopper,
+  ShieldCheck,
+  Target,
+  Users,
+} from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -10,6 +20,7 @@ import { Label } from '@/components/ui/label'
 import { Page } from '@/components/page'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState, signOut } from '@/lib/auth'
+import { updateProfileSettings } from '@/lib/progress/api'
 
 export const Route = createFileRoute('/_app/perfil/')({
   component: ProfilePage,
@@ -47,7 +58,7 @@ function ProfilePage() {
       <Card>
         <CardHeader>
           <CardTitle>Datos personales</CardTitle>
-          <CardDescription>Altura, año de nacimiento y ciudad de referencia.</CardDescription>
+          <CardDescription>Altura y año de nacimiento.</CardDescription>
         </CardHeader>
         <CardContent className="text-muted-foreground text-sm">
           <dl className="grid grid-cols-2 gap-2">
@@ -55,8 +66,6 @@ function ProfilePage() {
             <dd>{profile.height_cm ? `${profile.height_cm} cm` : '—'}</dd>
             <dt>Año de nacimiento</dt>
             <dd>{profile.birth_year ?? '—'}</dd>
-            <dt>Ciudad</dt>
-            <dd>{profile.home_city ?? '—'}</dd>
           </dl>
           <p className="mt-3 text-xs">Se completarán en el onboarding (fase 5).</p>
         </CardContent>
@@ -72,6 +81,17 @@ function ProfilePage() {
           </Link>
         </Button>
         <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/ciudad">
+            <span className="flex min-w-0 items-center gap-2">
+              <MapPin /> Ciudad de referencia
+              <span className="text-muted-foreground truncate font-normal">
+                {profile.home_city ?? 'sin elegir'}
+              </span>
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="justify-between">
           <Link to="/perfil/vinculos">
             <span className="flex items-center gap-2">
               <Users /> Pareja y amigos
@@ -80,6 +100,8 @@ function ProfilePage() {
           </Link>
         </Button>
       </div>
+
+      <PopupsToggle enabled={profile.show_equivalence_popups} />
 
       <Card>
         <CardHeader>
@@ -184,5 +206,56 @@ function PasswordForm() {
       </div>
       {status && <p className="text-muted-foreground text-sm">{status}</p>}
     </form>
+  )
+}
+
+// Pop-ups de logros (fin de sesión y resumen del mes): show_equivalence_popups.
+function PopupsToggle({ enabled }: { enabled: boolean }) {
+  const router = useRouter()
+  const queryClient = useQueryClient()
+  const { auth } = Route.useRouteContext()
+  const [saving, setSaving] = useState(false)
+  const [status, setStatus] = useState<string | null>(null)
+
+  async function toggle() {
+    setSaving(true)
+    setStatus(null)
+    try {
+      await updateProfileSettings(auth.userId, { showPopups: !enabled })
+      await resetAuthState(queryClient)
+      await router.invalidate()
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'No se pudo guardar')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardContent className="flex items-center gap-3">
+        <PartyPopper className="text-primary size-6 shrink-0" />
+        <div className="flex-1">
+          <p className="font-semibold">Pop-ups de logros</p>
+          <p className="text-muted-foreground text-sm">
+            Al terminar una sesión que supera un objeto o un destino, y el resumen de cada mes.
+          </p>
+          {status && <p className="text-destructive text-sm">{status}</p>}
+        </div>
+        <button
+          type="button"
+          role="switch"
+          aria-checked={enabled}
+          aria-label="Pop-ups de logros"
+          disabled={saving}
+          onClick={() => void toggle()}
+          className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${enabled ? 'bg-primary' : 'bg-muted-foreground/40'}`}
+        >
+          <span
+            className={`bg-background absolute top-1 left-1 size-6 rounded-full shadow transition-transform ${enabled ? 'translate-x-6' : ''}`}
+          />
+        </button>
+      </CardContent>
+    </Card>
   )
 }

@@ -4,12 +4,13 @@ import {
   Camera,
   ChevronRight,
   Flame,
+  Medal,
   Scale,
   Trophy,
   type LucideIcon,
 } from 'lucide-react'
 import { WeekAdherenceCard } from '@/components/progress/adherence'
-import { ComingSoon, Page } from '@/components/page'
+import { Page } from '@/components/page'
 
 export const Route = createFileRoute('/_app/progreso/')({
   component: ProgressPage,
@@ -22,6 +23,7 @@ const SECTIONS: {
     | '/progreso/records'
     | '/progreso/medidas'
     | '/progreso/fotos'
+    | '/progreso/logros'
   label: string
   hint: string
   icon: LucideIcon
@@ -31,6 +33,12 @@ const SECTIONS: {
     label: 'Cumplimiento',
     hint: 'Semana, mes, histórico y rachas',
     icon: Flame,
+  },
+  {
+    to: '/progreso/logros',
+    label: 'Mis logros',
+    hint: 'Acumulados, equivalencias y destinos',
+    icon: Medal,
   },
   {
     to: '/progreso/resumen',
@@ -70,7 +78,6 @@ function ProgressPage() {
           </li>
         ))}
       </ul>
-      <ComingSoon phase={3}>Mis logros: acumulados y equivalencias.</ComingSoon>
     </Page>
   )
 }

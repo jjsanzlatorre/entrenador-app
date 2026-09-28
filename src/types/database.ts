@@ -38,6 +38,8 @@ export type PrType =
   'est_1rm' | 'max_weight' | 'max_reps_at_weight' | 'best_time' | 'longest_distance' | 'best_pace'
 export type PhotoPose = 'front' | 'side' | 'back'
 export type PartnerLinkStatus = 'pending' | 'accepted' | 'revoked'
+export type EquivalenceKind = 'weight' | 'distance_route' | 'time'
+export type DestinationType = 'city' | 'island' | 'landmark'
 
 export type Database = {
   public: {
@@ -534,6 +536,87 @@ export type Database = {
         }
         Relationships: []
       }
+      // 0013_achievements.sql (global, solo lectura)
+      equivalence_objects: {
+        Row: {
+          id: string
+          kind: EquivalenceKind
+          label: string
+          label_plural: string
+          article: string
+          emoji: string
+          value: number
+          phrase_template: string
+          min_value: number
+        }
+        Insert: {
+          id: string
+          kind: EquivalenceKind
+          label: string
+          label_plural: string
+          article?: string
+          emoji: string
+          value: number
+          phrase_template: string
+          min_value?: number
+        }
+        Update: {
+          kind?: EquivalenceKind
+          label?: string
+          label_plural?: string
+          article?: string
+          emoji?: string
+          value?: number
+          phrase_template?: string
+          min_value?: number
+        }
+        Relationships: []
+      }
+      // 0013_achievements.sql (global, solo lectura)
+      destinations: {
+        Row: {
+          id: string
+          name: string
+          lat: number
+          lng: number
+          type: DestinationType
+          water_route: boolean
+        }
+        Insert: {
+          id: string
+          name: string
+          lat: number
+          lng: number
+          type: DestinationType
+          water_route?: boolean
+        }
+        Update: {
+          name?: string
+          lat?: number
+          lng?: number
+          type?: DestinationType
+          water_route?: boolean
+        }
+        Relationships: []
+      }
+      // 0013_achievements.sql
+      milestones_shown: {
+        Row: {
+          user_id: string
+          milestone_key: string
+          shown_at: string
+        }
+        Insert: {
+          user_id?: string
+          milestone_key: string
+          shown_at?: string
+        }
+        Update: {
+          milestone_key?: string
+          shown_at?: string
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -593,6 +676,10 @@ export type Database = {
         Args: { p_partner: string; p_from: string; p_tz?: string }
         Returns: { day: string; session_type: SessionType }[]
       }
+      session_totals: {
+        Args: Record<PropertyKey, never>
+        Returns: { session_id: string; tonnage_kg: number; total_reps: number }[]
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -619,3 +706,6 @@ export type BodyMetricRow = Tables<'body_metrics'>
 export type ProgressPhotoRow = Tables<'progress_photos'>
 export type CommitmentRow = Tables<'commitments'>
 export type PartnerLinkRow = Tables<'partner_links'>
+export type EquivalenceObjectRow = Tables<'equivalence_objects'>
+export type DestinationRow = Tables<'destinations'>
+export type MilestoneShownRow = Tables<'milestones_shown'>

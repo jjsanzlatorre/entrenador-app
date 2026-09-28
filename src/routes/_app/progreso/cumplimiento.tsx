@@ -9,6 +9,7 @@ import {
   averagePct,
   formatPct,
   monthAdherence,
+  monthValue,
   streaks,
   weekAdherence,
   weekHistory,
@@ -127,10 +128,13 @@ function AdherencePage() {
           <AdherenceBar
             pct={month.pct}
             label="Sesiones del mes"
-            value={`${month.done}/${String(month.committed).replace('.', ',')} · ${formatPct(month.pct)}`}
+            value={monthValue(month)}
+            extra={month.extra}
           />
           <p className="text-muted-foreground text-xs">
-            Las semanas partidas entre dos meses cuentan por días.
+            {month.partial
+              ? 'Tu compromiso empezó a final de mes: el porcentaje se verá el mes que viene.'
+              : `Objetivo del mes: ${String(month.committed).replace('.', ',')} sesiones (las semanas partidas entre dos meses cuentan por días), redondeado a ${month.target}.`}
           </p>
         </CardContent>
       </Card>

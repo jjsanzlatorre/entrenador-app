@@ -3,6 +3,7 @@ import type { SessionType } from '@/types/database'
 import { formatInt } from './format'
 import { formatDistance, formatPace, paceKindForSession } from './pace'
 import { CARDIO_TYPES } from './session-kinds'
+import type { LocalSession } from './types'
 
 export type HistorySummaryInput = {
   sessionType: SessionType
@@ -41,4 +42,24 @@ export function historySummary(item: HistorySummaryInput, exerciseName: (id: str
     parts.push(item.exerciseIds.slice(0, 3).map(exerciseName).join(', '))
   }
   return parts.join(' · ')
+}
+
+// Cabecera de la sesión en curso. En carrera, natación y bici: distancia y ritmo (o velocidad)
+// de las series completadas; en el resto: series y volumen.
+export function sessionHeaderStats(
+  session: Pick<LocalSession, 'sessionType' | 'blocks'>,
+  stats: { completedSets: number; tonnageKg: number },
+) {
+  const pace = paceKindForSession(session.sessionType)
+  if (!pace) return `${stats.completedSets} series · ${formatInt(stats.tonnageKg)} kg`
+  let distance = 0
+  let movingS = 0
+  for (const s of session.blocks.flatMap((b) => b.sets)) {
+    if (!s.completed || !s.distanceM) continue
+    distance += s.distanceM
+    if (s.durationS) movingS += s.durationS
+  }
+  const paceLabel = pace === 'bike' ? 'velocidad' : 'ritmo'
+  if (distance === 0) return `0 ${pace === 'swim' ? 'm' : 'km'} · ${paceLabel} —`
+  return `${formatDistance(distance, pace)} · ${formatPace(pace, distance, movingS) ?? `${paceLabel} —`}`
 }

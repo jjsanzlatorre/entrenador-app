@@ -34,6 +34,10 @@ export type BlockType =
   | 'for_time'
   | 'intervals'
   | 'free'
+export type PrType =
+  'est_1rm' | 'max_weight' | 'max_reps_at_weight' | 'best_time' | 'longest_distance' | 'best_pace'
+export type PhotoPose = 'front' | 'side' | 'back'
+export type PartnerLinkStatus = 'pending' | 'accepted' | 'revoked'
 
 export type Database = {
   public: {
@@ -358,6 +362,178 @@ export type Database = {
           },
         ]
       }
+      // 0008_personal_records.sql (solo lectura: los calcula un trigger)
+      personal_records: {
+        Row: {
+          id: string
+          user_id: string
+          exercise_id: string
+          pr_type: PrType
+          value: number
+          unit: string
+          weight_kg: number | null
+          previous_value: number | null
+          set_id: string | null
+          session_id: string
+          achieved_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          exercise_id: string
+          pr_type: PrType
+          value: number
+          unit: string
+          weight_kg?: number | null
+          previous_value?: number | null
+          set_id?: string | null
+          session_id: string
+          achieved_at: string
+        }
+        Update: { [_ in never]: never }
+        Relationships: [
+          {
+            foreignKeyName: 'personal_records_exercise_id_fkey'
+            columns: ['exercise_id']
+            isOneToOne: false
+            referencedRelation: 'exercises'
+            referencedColumns: ['id']
+          },
+          {
+            foreignKeyName: 'personal_records_session_id_fkey'
+            columns: ['session_id']
+            isOneToOne: false
+            referencedRelation: 'workout_sessions'
+            referencedColumns: ['id']
+          },
+        ]
+      }
+      // 0009_body_metrics_photos.sql
+      body_metrics: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          weight_kg: number | null
+          body_fat_pct: number | null
+          waist_cm: number | null
+          hip_cm: number | null
+          chest_cm: number | null
+          arm_cm: number | null
+          thigh_cm: number | null
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          date: string
+          weight_kg?: number | null
+          body_fat_pct?: number | null
+          waist_cm?: number | null
+          hip_cm?: number | null
+          chest_cm?: number | null
+          arm_cm?: number | null
+          thigh_cm?: number | null
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          date?: string
+          weight_kg?: number | null
+          body_fat_pct?: number | null
+          waist_cm?: number | null
+          hip_cm?: number | null
+          chest_cm?: number | null
+          arm_cm?: number | null
+          thigh_cm?: number | null
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      progress_photos: {
+        Row: {
+          id: string
+          user_id: string
+          date: string
+          pose: PhotoPose
+          storage_path: string
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          date: string
+          pose: PhotoPose
+          storage_path: string
+          created_at?: string
+        }
+        Update: { [_ in never]: never }
+        Relationships: []
+      }
+      // 0011_commitments.sql (escribir con la RPC set_commitment)
+      commitments: {
+        Row: {
+          id: string
+          user_id: string
+          valid_from: string
+          valid_to: string | null
+          sessions_per_week: number
+          minutes_per_week: number | null
+          by_type: Json | null
+          counts_free_activities: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          valid_from: string
+          valid_to?: string | null
+          sessions_per_week: number
+          minutes_per_week?: number | null
+          by_type?: Json | null
+          counts_free_activities?: boolean
+          created_at?: string
+        }
+        Update: {
+          valid_from?: string
+          valid_to?: string | null
+          sessions_per_week?: number
+          minutes_per_week?: number | null
+          by_type?: Json | null
+          counts_free_activities?: boolean
+        }
+        Relationships: []
+      }
+      // 0012_partner_links.sql (estado solo por RPC; el usuario edita los permisos de su fila)
+      partner_links: {
+        Row: {
+          id: string
+          user_id: string
+          partner_id: string
+          status: PartnerLinkStatus
+          can_view_adherence: boolean
+          can_view_sessions: boolean
+          can_view_metrics: boolean
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          partner_id: string
+          status?: PartnerLinkStatus
+          can_view_adherence?: boolean
+          can_view_sessions?: boolean
+          can_view_metrics?: boolean
+        }
+        Update: {
+          can_view_adherence?: boolean
+          can_view_sessions?: boolean
+          can_view_metrics?: boolean
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -384,6 +560,39 @@ export type Database = {
           calories: number | null
         }[]
       }
+      set_commitment: {
+        Args: {
+          p_valid_from: string
+          p_sessions_per_week: number
+          p_minutes_per_week?: number | null
+          p_by_type?: Json | null
+          p_counts_free_activities?: boolean
+        }
+        Returns: string
+      }
+      shares_with_me: { Args: { p_owner: string; p_perm: string }; Returns: boolean }
+      invite_partner: { Args: { p_email: string }; Returns: string }
+      respond_partner_link: { Args: { p_partner: string; p_accept: boolean }; Returns: undefined }
+      revoke_partner_link: { Args: { p_partner: string }; Returns: undefined }
+      list_partner_links: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          partner_id: string
+          display_name: string | null
+          status: 'sent' | 'received' | 'accepted'
+          i_share_adherence: boolean
+          i_share_sessions: boolean
+          i_share_metrics: boolean
+          they_share_adherence: boolean
+          they_share_sessions: boolean
+          they_share_metrics: boolean
+          created_at: string
+        }[]
+      }
+      partner_adherence_days: {
+        Args: { p_partner: string; p_from: string; p_tz?: string }
+        Returns: { day: string; session_type: SessionType }[]
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -405,3 +614,8 @@ export type ExerciseRow = Tables<'exercises'>
 export type WorkoutSessionRow = Tables<'workout_sessions'>
 export type SessionBlockRow = Tables<'session_blocks'>
 export type ExerciseSetRow = Tables<'exercise_sets'>
+export type PersonalRecordRow = Tables<'personal_records'>
+export type BodyMetricRow = Tables<'body_metrics'>
+export type ProgressPhotoRow = Tables<'progress_photos'>
+export type CommitmentRow = Tables<'commitments'>
+export type PartnerLinkRow = Tables<'partner_links'>

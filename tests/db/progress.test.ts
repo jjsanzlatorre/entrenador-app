@@ -201,15 +201,15 @@ describe('récords personales', () => {
     )
     const rows = await records(A, 'run')
     const pace = rows.filter((r) => r.pr_type === 'best_pace')
-    expect(pace.map((r) => [Number(r.value), r.previous_value && Number(r.previous_value)])).toEqual(
-      [
-        [300, null],
-        [280, 300],
-      ],
-    )
-    expect(rows.filter((r) => r.pr_type === 'longest_distance').map((r) => Number(r.value))).toEqual(
-      [5000],
-    )
+    expect(
+      pace.map((r) => [Number(r.value), r.previous_value && Number(r.previous_value)]),
+    ).toEqual([
+      [300, null],
+      [280, 300],
+    ])
+    expect(
+      rows.filter((r) => r.pr_type === 'longest_distance').map((r) => Number(r.value)),
+    ).toEqual([5000])
   })
 
   it('nadie puede escribir récords a mano ni ver los de otro', async () => {
@@ -313,7 +313,9 @@ describe('peso, medidas y fotos', () => {
       ),
     ).rejects.toThrow()
     expect(await asUser(db, B, 'select name from storage.objects')).toEqual([])
-    expect(await asUser(db, A, 'select name from storage.objects')).toEqual([{ name: `${A}/a.jpg` }])
+    expect(await asUser(db, A, 'select name from storage.objects')).toEqual([
+      { name: `${A}/a.jpg` },
+    ])
   })
 })
 
@@ -342,9 +344,9 @@ describe('vínculos', () => {
   })
 
   it('invitar por email: no existe, a uno mismo', async () => {
-    await expect(
-      asUser(db, A, "select public.invite_partner('nadie@test.dev')"),
-    ).rejects.toThrow(/ningún usuario/)
+    await expect(asUser(db, A, "select public.invite_partner('nadie@test.dev')")).rejects.toThrow(
+      /ningún usuario/,
+    )
     await expect(asUser(db, A, "select public.invite_partner('ana@test.dev')")).rejects.toThrow()
   })
 
@@ -405,7 +407,9 @@ describe('vínculos', () => {
       'update public.partner_links set can_view_sessions = true, can_view_metrics = true where user_id = $1',
       [A],
     )
-    expect((await asUser(db, B, 'select id from public.workout_sessions')).length).toBeGreaterThan(0)
+    expect((await asUser(db, B, 'select id from public.workout_sessions')).length).toBeGreaterThan(
+      0,
+    )
     expect((await asUser(db, B, 'select id from public.exercise_sets')).length).toBeGreaterThan(0)
     expect((await asUser(db, B, 'select id from public.body_metrics')).length).toBe(1)
     // Las fotos nunca.
@@ -419,9 +423,9 @@ describe('vínculos', () => {
     )
     expect(edited).toEqual([])
     // Y en la otra dirección nada cambia: A no ve las de B.
-    expect(await asUser(db, A, 'select id from public.body_metrics where user_id = $1', [B])).toEqual(
-      [],
-    )
+    expect(
+      await asUser(db, A, 'select id from public.body_metrics where user_id = $1', [B]),
+    ).toEqual([])
   })
 
   it('dejar de compartir el cumplimiento lo oculta al momento', async () => {
@@ -436,9 +440,12 @@ describe('vínculos', () => {
   })
 
   it('revocar corta el acceso en las dos direcciones', async () => {
-    await asUser(db, A, 'update public.partner_links set can_view_adherence = true where user_id = $1', [
+    await asUser(
+      db,
       A,
-    ])
+      'update public.partner_links set can_view_adherence = true where user_id = $1',
+      [A],
+    )
     expect((await asUser(db, B, 'select * from public.commitments')).length).toBe(2)
     await asUser(db, B, 'select public.revoke_partner_link($1)', [A])
     expect(await asUser(db, B, 'select * from public.commitments')).toEqual([])

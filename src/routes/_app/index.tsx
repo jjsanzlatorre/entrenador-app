@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ChevronRight, Dumbbell, Play } from 'lucide-react'
-import { Button } from '@/components/ui/button'
+import { createFileRoute, Link } from '@tanstack/react-router'
+import { ChevronRight, Play } from 'lucide-react'
 import { ComingSoon, Page } from '@/components/page'
-import { loadActiveSession, startNewSession, useActiveSession } from '@/lib/workout/active-session'
+import { StartSessionButtons } from '@/components/workout/start-session'
+import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
 
 export const Route = createFileRoute('/_app/')({
@@ -12,18 +12,12 @@ export const Route = createFileRoute('/_app/')({
 
 function TodayPage() {
   const { auth } = Route.useRouteContext()
-  const navigate = useNavigate()
   const { session } = useActiveSession()
   const name = auth.profile.display_name
 
   useEffect(() => {
     void loadActiveSession(auth.userId)
   }, [auth.userId])
-
-  async function start() {
-    await startNewSession(auth.userId)
-    await navigate({ to: '/entrenar/sesion' })
-  }
 
   return (
     <Page title={name ? `Hola, ${name}` : 'Hoy'}>
@@ -43,11 +37,8 @@ function TodayPage() {
           <ChevronRight className="size-6" />
         </Link>
       ) : (
-        <Button size="lg" className="h-16 text-lg" onClick={() => void start()}>
-          <Dumbbell className="size-6" /> Entreno libre
-        </Button>
+        <StartSessionButtons userId={auth.userId} label="Entreno libre" />
       )}
-      <ComingSoon phase={2}>«Registrar actividad» rápida para surf, frontón o yoga.</ComingSoon>
       <ComingSoon phase={5}>La sesión planificada para hoy.</ComingSoon>
     </Page>
   )

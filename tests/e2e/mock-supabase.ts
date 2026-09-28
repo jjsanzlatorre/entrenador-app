@@ -76,6 +76,13 @@ type Payload = {
 }
 const sessions = new Map<string, Payload>()
 let saveCalls = 0
+// Datos de progreso que siembran los tests con POST /__seed.
+type Seed = {
+  commitments: Record<string, unknown>[]
+  partnerLinks: Record<string, unknown>[]
+  partnerDays: Record<string, { day: string; session_type: string }[]>
+}
+let progressSeed: Seed = { commitments: [], partnerLinks: [], partnerDays: {} }
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
@@ -126,9 +133,14 @@ export function startMockSupabase(port: number) {
     if (path === '/__state') {
       return send(res, 200, { saveCalls, sessions: [...sessions.values()] })
     }
+    if (path === '/__seed') {
+      progressSeed = { ...progressSeed, ...((await readBody(req)) as Partial<Seed>) }
+      return send(res, 200, { ok: true })
+    }
     if (path === '/__reset') {
       sessions.clear()
       saveCalls = 0
+      progressSeed = { commitments: [], partnerLinks: [], partnerDays: {} }
       return send(res, 200, { ok: true })
     }
     if (path.startsWith('/auth/v1/user')) return send(res, 200, user)
@@ -166,10 +178,22 @@ export function startMockSupabase(port: number) {
     }
 
     // Fase 3: sin datos de progreso ni vínculos en el mock.
-    if (path === '/rest/v1/rpc/list_partner_links') return send(res, 200, [])
+    if (path === '/rest/v1/rpc/list_partner_links') return send(res, 200, progressSeed.partnerLinks)
+    if (path === '/rest/v1/rpc/partner_adherence_days') {
+      const { p_partner } = (await readBody(req)) as { p_partner: string }
+      return send(res, 200, progressSeed.partnerDays[p_partner] ?? [])
+    }
 
     const table = path.replace('/rest/v1/', '')
-    if (['commitments', 'personal_records', 'body_metrics', 'progress_photos'].includes(table)) {
+    if (table === 'commitments') {
+      const uid = eqParam(url, 'user_id')
+      return send(
+        res,
+        200,
+        progressSeed.commitments.filter((c) => !uid || c.user_id === uid),
+      )
+    }
+    if (['personal_records', 'body_metrics', 'progress_photos'].includes(table)) {
       return send(res, 200, rows(req, []))
     }
     if (table === 'profiles') return send(res, 200, rows(req, [profile]))

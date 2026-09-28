@@ -17,8 +17,14 @@ Stack: TanStack Start (React + TypeScript) · Tailwind + shadcn/ui · Supabase �
    5. `supabase/migrations/0005_seed_muscles.sql`
    6. `supabase/migrations/0006_seed_exercises_strength.sql`
    7. `supabase/migrations/0007_seed_exercises_functional_cardio.sql`
+   8. `supabase/migrations/0008_personal_records.sql`
+   9. `supabase/migrations/0009_body_metrics_photos.sql`
+   10. `supabase/migrations/0010_storage_progress_photos.sql` (crea el bucket privado `progress-photos` y sus políticas)
+   11. `supabase/migrations/0011_commitments.sql`
+   12. `supabase/migrations/0012_partner_links.sql`
 
    Son idempotentes: si dudas, puedes volver a ejecutarlos.
+   Comprueba en **Storage** que existe el bucket `progress-photos` marcado como privado (no «Public»).
 
 3. **Authentication → Sign In / Providers**: desactiva **Allow new users to sign up**. Deja activado el proveedor Email.
 4. **Authentication → URL Configuration**:

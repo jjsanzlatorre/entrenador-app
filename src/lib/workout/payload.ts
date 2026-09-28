@@ -1,5 +1,36 @@
 import type { ExerciseSetRow, Json, SessionBlockRow, WorkoutSessionRow } from '@/types/database'
-import type { BlockExercise, LocalBlock, LocalSession, SetEntry } from './types'
+import type {
+  BlockExercise,
+  BlockResult,
+  BlockSettings,
+  LocalBlock,
+  LocalSession,
+  SetEntry,
+} from './types'
+
+// Las claves de config/result se guardan en snake_case en la base de datos.
+function snakeKey(key: string) {
+  return key.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`)
+}
+
+function camelKey(key: string) {
+  return key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
+}
+
+function mapKeys(value: unknown, fn: (key: string) => string): Json {
+  if (Array.isArray(value)) return value.map((v) => mapKeys(v, fn))
+  if (value && typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .filter(([, v]) => v !== undefined)
+        .map(([k, v]) => [fn(k), mapKeys(v, fn)]),
+    )
+  }
+  return (value ?? null) as Json
+}
+
+export const toSnake = (value: unknown) => mapKeys(value, snakeKey)
+export const toCamel = (value: unknown) => mapKeys(value, camelKey)
 
 // Formato que espera save_workout_session(payload) (supabase/migrations/0004_workouts.sql).
 export function toPayload(session: LocalSession) {
@@ -12,6 +43,7 @@ export function toPayload(session: LocalSession) {
       ended_at: session.endedAt,
       duration_min: session.durationMin,
       rpe: session.rpe,
+      distance_m: session.distanceM ?? null,
       avg_hr: session.avgHr,
       max_hr: session.maxHr,
       calories: session.calories,
@@ -24,8 +56,14 @@ export function toPayload(session: LocalSession) {
       order: b.order,
       block_type: b.blockType,
       config: {
-        exercises: b.exercises.map((e) => ({ exercise_id: e.exerciseId, rest_s: e.restS })),
+        exercises: b.exercises.map((e) => ({
+          exercise_id: e.exerciseId,
+          rest_s: e.restS,
+          ...(e.targetReps !== undefined ? { target_reps: e.targetReps } : {}),
+        })),
+        ...(b.settings ? { settings: toSnake(b.settings) } : {}),
       },
+      result: b.result ? toSnake(b.result) : null,
     })),
     sets: session.blocks.flatMap((b) =>
       b.sets.map((s) => ({
@@ -53,15 +91,24 @@ function num(value: number | string | null) {
   return value === null ? null : Number(value)
 }
 
+function isObject(value: unknown): value is Record<string, Json | undefined> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
+}
+
 function blockExercises(config: Json, sets: ExerciseSetRow[]): BlockExercise[] {
-  const fromConfig =
-    config &&
-    typeof config === 'object' &&
-    !Array.isArray(config) &&
-    Array.isArray(config.exercises)
+  const fromConfig: BlockExercise[] =
+    isObject(config) && Array.isArray(config.exercises)
       ? config.exercises.flatMap((e) =>
-          e && typeof e === 'object' && !Array.isArray(e) && typeof e.exercise_id === 'string'
-            ? [{ exerciseId: e.exercise_id, restS: typeof e.rest_s === 'number' ? e.rest_s : 90 }]
+          isObject(e) && typeof e.exercise_id === 'string'
+            ? [
+                {
+                  exerciseId: e.exercise_id,
+                  restS: typeof e.rest_s === 'number' ? e.rest_s : 90,
+                  ...(e.target_reps !== undefined
+                    ? { targetReps: typeof e.target_reps === 'number' ? e.target_reps : null }
+                    : {}),
+                },
+              ]
             : [],
         )
       : []
@@ -76,6 +123,9 @@ function blockExercises(config: Json, sets: ExerciseSetRow[]): BlockExercise[] {
   return fromConfig
 }
 
+// En EMOM y Tabata las series van por minuto/ronda (rotando ejercicios).
+const ROUND_ORDERED = new Set(['emom', 'tabata'])
+
 // Reconstruye una sesión local desde las filas del servidor (para ver o editar).
 export function fromServerRows(
   session: WorkoutSessionRow,
@@ -89,32 +139,47 @@ export function fromServerRows(
       const own = sets.filter((s) => s.block_id === b.id).sort((x, y) => x.set_index - y.set_index)
       const exercises = blockExercises(b.config, own)
       const order = new Map(exercises.map((e, idx) => [e.exerciseId, idx]))
-      return {
+      const blockType =
+        b.block_type === 'straight' || b.block_type === 'superset'
+          ? exercises.length > 1
+            ? 'superset'
+            : 'straight'
+          : b.block_type
+      const settings =
+        isObject(b.config) && isObject(b.config.settings)
+          ? (toCamel(b.config.settings) as BlockSettings)
+          : null
+      const byRound = ROUND_ORDERED.has(blockType)
+      const block: LocalBlock = {
         id: b.id,
         order: i,
-        blockType: exercises.length > 1 ? 'superset' : 'straight',
+        blockType,
         exercises,
         sets: own
-          .sort(
-            (x, y) =>
-              (order.get(x.exercise_id) ?? 0) - (order.get(y.exercise_id) ?? 0) ||
-              x.set_index - y.set_index,
-          )
-          .map((s): SetEntry => ({
-            id: s.id,
-            exerciseId: s.exercise_id,
-            setIndex: s.set_index,
-            isWarmup: s.is_warmup,
-            weightKg: num(s.weight_kg),
-            reps: s.reps,
-            rir: s.rir,
-            durationS: s.duration_s,
-            distanceM: num(s.distance_m),
-            calories: s.calories,
-            completed: s.completed,
-            completedAt: s.completed_at,
-          })),
+          .sort((x, y) => {
+            const ex = (order.get(x.exercise_id) ?? 0) - (order.get(y.exercise_id) ?? 0)
+            return byRound ? x.set_index - y.set_index || ex : ex || x.set_index - y.set_index
+          })
+          .map(
+            (s): SetEntry => ({
+              id: s.id,
+              exerciseId: s.exercise_id,
+              setIndex: s.set_index,
+              isWarmup: s.is_warmup,
+              weightKg: num(s.weight_kg),
+              reps: s.reps,
+              rir: s.rir,
+              durationS: s.duration_s,
+              distanceM: num(s.distance_m),
+              calories: s.calories,
+              completed: s.completed,
+              completedAt: s.completed_at,
+            }),
+          ),
       }
+      if (settings) block.settings = settings
+      if (b.result) block.result = toCamel(b.result) as BlockResult
+      return block
     })
 
   return {
@@ -132,6 +197,7 @@ export function fromServerRows(
     calories: session.calories,
     location: session.location,
     notes: session.notes,
+    distanceM: num(session.distance_m),
     blocks: localBlocks,
     rest: null,
     rev: session.client_rev,

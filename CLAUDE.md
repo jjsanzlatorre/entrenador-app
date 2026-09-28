@@ -10,6 +10,24 @@
 
 ---
 
+## Entorno de trabajo (restricciones del propietario)
+
+- **Sin terminal local ni instalaciones.** Se trabaja solo con Claude Code en la nube, GitHub, Supabase (web) y Vercel (web). Todo lo que requiera ejecutar comandos lo hace Claude Code en su contenedor antes de hacer push.
+- **Sin CLI de Supabase.** Migraciones en `supabase/migrations/` con nombres numerados (`0001_…`, `0002_…`). Se aplican pegándolas en el **SQL Editor** de Supabase, en orden.
+  - Al final de cada tarea: indicar **exactamente qué archivos SQL pegar y en qué orden**.
+  - Migraciones y semillas **idempotentes** (`IF NOT EXISTS`, `CREATE OR REPLACE`, `DROP POLICY IF EXISTS` + `CREATE POLICY`, `ON CONFLICT DO NOTHING`). Deben poder ejecutarse dos veces sin error.
+  - SQL de un solo uso que no es migración (p. ej. nombrar admin) va en `supabase/snippets/`.
+- **Tipos de Supabase escritos a mano** en `src/types/database.ts` (mismo formato que `supabase gen types`). Mantenerlos sincronizados con cada migración en el mismo commit.
+- **Solo planes gratuitos**: Supabase Free y Vercel Hobby. Nada que requiera pago (ni cron de pago, ni Edge Config, ni add-ons).
+- **Variables de entorno** (nombres exactos en `.env.example`):
+  - Públicas, con prefijo `VITE_`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
+  - Solo servidor, sin prefijo: `SUPABASE_SERVICE_ROLE_KEY` (y en la Fase 6 `ANTHROPIC_API_KEY`, `AI_MODEL`).
+  - Al añadir una variable nueva: actualizar `.env.example` y decir cuáles configurar en Vercel.
+- **Vercel sin configuración extra**: el build (`npm run build`) usa Nitro, que detecta Vercel y genera `.vercel/output` (Build Output API). Preset «TanStack Start» (o «Other»), comando de build por defecto, sin directorio de salida personalizado.
+- Antes de cada push: `npm run typecheck`, `npm run lint`, `npm test` y `npm run build` deben pasar.
+
+---
+
 ## 1. Visión
 
 App web móvil (PWA) de entrenamiento personal para un grupo privado (inicialmente 2 usuarios: el admin y su pareja; ampliable por invitación).
@@ -47,7 +65,7 @@ Funciones núcleo:
 
 ### Reglas técnicas
 - Migraciones SQL versionadas en `supabase/migrations`. Nunca cambios manuales en producción.
-- Tipos generados con `supabase gen types`.
+- Tipos de Supabase escritos a mano en `src/types/database.ts` (ver «Entorno de trabajo»).
 - **RLS activado en todas las tablas.** Sin excepción.
 - Ninguna clave secreta en el cliente. Las llamadas a IA pasan siempre por funciones de servidor.
 - Datos semilla (músculos, ejercicios, plantillas) en `supabase/seed/*.json` y cargados con un script idempotente.
@@ -470,10 +488,27 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: 0
-- Hecho: —
-- Pendiente / deuda técnica: —
-- Decisiones tomadas: —
+- Fase actual: **0 cerrada en código** (pendiente de validar la aceptación en Supabase/Vercel reales). Siguiente: Fase 1.
+- Hecho (Fase 0):
+  - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge), ESLint 10 + Prettier, Vitest.
+  - Migraciones `0001_profiles.sql` (profiles, `is_admin()`, `is_active()`, trigger de alta, RLS y grants por columna) y `0002_training_profiles.sql` (RLS `user_id = auth.uid()` + usuario activo). Probadas dos veces seguidas en PGlite con un stub de `auth`.
+  - Auth: magic link + código de 6 dígitos + contraseña opcional; `/auth/callback` procesa PKCE, `token_hash` e invitaciones (tokens en `#`).
+  - `/admin/invitaciones`: invitar (`inviteUserByEmail`), listar usuarios, desactivar/reactivar (`profiles.active` + ban en Supabase Auth).
+  - Bloqueo de inactivos: guardas de ruta (`/_app` → `/bloqueado`), middleware de funciones de servidor (`authMiddleware`, `adminMiddleware`) y RLS (`is_active()`).
+  - PWA: `manifest.webmanifest`, iconos (192, 512, maskable, apple-touch), `sw.js` básico (assets cache-first, navegación con pantalla offline).
+  - Layout móvil con navegación inferior Hoy · Entrenar · Progreso · Plan · Perfil; Perfil con nombre, contraseña y cierre de sesión.
+- Pendiente / deuda técnica:
+  - Playwright aún no está en el repo (se añadirá en la Fase 1 con el flujo de registrar sesión).
+  - El `sw.js` no cachea páginas ni datos; la persistencia offline real (IndexedDB + cola) es de la Fase 1.
+  - Warnings de build `MODULE_LEVEL_DIRECTIVE` ("use client" de lucide-react): inofensivos.
+  - Componentes shadcn copiados a mano (el registro de shadcn no es accesible desde el entorno); añadir nuevos igual.
+- Decisiones tomadas:
+  - Sesión de Supabase en cookies (`@supabase/ssr`) para que SSR y funciones de servidor conozcan al usuario; `getUser()` valida el JWT en cada comprobación de servidor.
+  - `role` y `active` no son editables por el usuario (GRANT de UPDATE solo en columnas personales); solo se cambian con service role desde servidor.
+  - Desactivar = `profiles.active = false` + ban largo en Auth (invalida el refresh token); reactivar quita el ban.
+  - El primer admin se crea a mano: usuario en Supabase Auth + `supabase/snippets/make_admin.sql`.
+  - Login con código de 6 dígitos además del enlace, porque en iOS la PWA instalada no comparte sesión con Safari.
+  - Enums como `text` + `CHECK` (más fáciles de hacer idempotentes que `CREATE TYPE`).
 
 ---
 

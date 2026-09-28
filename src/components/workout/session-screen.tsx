@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -20,13 +20,19 @@ import {
   useNow,
   useWakeLock,
 } from '@/lib/workout/hooks'
+import { formatDistance, formatPace, paceKindForSession } from '@/lib/workout/pace'
 import * as ops from '@/lib/workout/session-ops'
+import { cardioExerciseFor } from '@/lib/workout/session-kinds'
+import * as timed from '@/lib/workout/timed-blocks'
 import type { Exercise, LocalSession } from '@/lib/workout/types'
+import { AddBlockSheet, type NewBlock } from './add-block-sheet'
 import { BlockCard, type BlockActions } from './block-card'
 import { ExercisePicker, type PickerMode } from './exercise-picker'
 import { FinishSheet } from './finish-sheet'
 import { RestTimerBar } from './rest-timer-bar'
 import { SyncBadge } from './sync-badge'
+import { TimedBlockCard, type TimedBlockActions } from './timed-block-card'
+import { SoundToggle } from './timer-controls'
 
 const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
@@ -44,6 +50,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   useWakeLock(live)
 
   const [picker, setPicker] = useState<PickerMode | null>(null)
+  const [addingBlock, setAddingBlock] = useState(false)
   const [finishing, setFinishing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [manualSelection, setManualSelection] = useState<string | null>(null)
@@ -110,6 +117,68 @@ export function SessionScreen({ session }: { session: LocalSession }) {
 
   const skipRest = useCallback(() => updateActiveSession((s) => ops.clearRest(s)), [])
 
+  // Temporizadores que terminaron con la app cerrada o en segundo plano: se cierran al volver.
+  const settleTimers = useCallback(
+    () => updateActiveSession((s) => timed.settleFinishedTimers(s, Date.now())),
+    [],
+  )
+  useEffect(() => {
+    settleTimers()
+    const onVisible = () => document.visibilityState === 'visible' && settleTimers()
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [settleTimers])
+
+  const running = timed.runningTimedBlock(session)
+
+  const timedActions: TimedBlockActions = {
+    onTimer: (blockId, action) => {
+      unlockAudio()
+      updateActiveSession((s) => timed.applyTimerAction(s, blockId, action, Date.now()))
+    },
+    onAmrap: (blockId, field, delta) =>
+      updateActiveSession((s) => timed.amrapAdd(s, blockId, field, delta, Date.now())),
+    onSettle: settleTimers,
+    onChangeSet: (setId, patch) =>
+      updateActiveSession((s) => ops.updateSet(s, setId, patch, Date.now())),
+    onToggleComplete: (setId) =>
+      updateActiveSession((s) => ops.toggleSetComplete(s, setId, Date.now())),
+    onRemoveSet: (setId) => updateActiveSession((s) => ops.removeSet(s, setId, Date.now())),
+    onMove: (blockId, direction) =>
+      updateActiveSession((s) => ops.moveBlock(s, blockId, direction, Date.now())),
+    onRemoveBlock: (blockId) =>
+      updateActiveSession((s) => timed.removeBlock(s, blockId, Date.now())),
+  }
+
+  async function handleNewBlock(block: NewBlock) {
+    if (block.kind === 'straight') {
+      setPicker({ kind: 'add' })
+      return
+    }
+    if (block.kind === 'circuit') {
+      const lastMap = await getLastPerformance(
+        session.userId,
+        block.exercises.map((e) => e.id),
+        session.id,
+      )
+      const t = Date.now()
+      updateActiveSession((s) =>
+        timed.addCircuitBlock(
+          s,
+          block.config,
+          block.exercises.map((e) => ({ exercise: e, last: lastMap.get(e.id) })),
+          t,
+        ),
+      )
+    } else {
+      const t = Date.now()
+      updateActiveSession((s) => timed.addTimedBlock(s, block.config, block.exercises, t))
+    }
+    requestAnimationFrame(() =>
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }),
+    )
+  }
+
   async function handleSave(details: ops.SessionDetailsPatch) {
     setSaving(true)
     try {
@@ -145,6 +214,19 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   const restExercise = session.rest ? catalog.byId.get(session.rest.exerciseId) : undefined
   const elapsedS = Math.max(0, (now - new Date(session.startedAt).getTime()) / 1000)
 
+  // Cabecera: en cardio, distancia y ritmo; en el resto, series y volumen.
+  const paceKind = paceKindForSession(session.sessionType)
+  const distance = ops.totalDistanceM(session)
+  const cardioTime = session.blocks
+    .flatMap((b) => b.sets)
+    .reduce((acc, s) => (s.completed && s.distanceM && s.durationS ? acc + s.durationS : acc), 0)
+  const headerStats =
+    paceKind && distance
+      ? [formatDistance(distance, paceKind), formatPace(paceKind, distance, cardioTime)]
+          .filter(Boolean)
+          .join(' · ')
+      : `${stats.completedSets} series · ${formatInt(stats.tonnageKg)} kg`
+
   return (
     <div className="flex flex-col pb-40">
       <header
@@ -177,12 +259,11 @@ export function SessionScreen({ session }: { session: LocalSession }) {
               ) : (
                 <span className="text-muted-foreground">Editando</span>
               )}
-              <span className="text-muted-foreground">
-                {stats.completedSets} series · {formatInt(stats.tonnageKg)} kg
-              </span>
+              <span className="text-muted-foreground">{headerStats}</span>
               <SyncBadge compact />
             </div>
           </div>
+          <SoundToggle className="-mr-1" />
           <Button size="lg" onClick={() => setFinishing(true)} className="h-11 px-4">
             {live ? 'Terminar' : 'Guardar'}
           </Button>
@@ -201,36 +282,62 @@ export function SessionScreen({ session }: { session: LocalSession }) {
           </div>
         )}
 
-        {session.blocks.map((block, i) => (
-          <BlockCard
-            key={block.id}
-            block={block}
-            letter={LETTERS[i] ?? String(i + 1)}
-            isFirst={i === 0}
-            isLast={i === session.blocks.length - 1}
-            exercisesById={catalog.byId}
-            lastByExercise={last.data}
-            selectedSetId={selectedSetId}
-            actions={actions}
-          />
-        ))}
+        {session.blocks.map((block, i) =>
+          timed.isTimedBlock(block) ? (
+            <TimedBlockCard
+              key={block.id}
+              block={block}
+              letter={LETTERS[i] ?? String(i + 1)}
+              isFirst={i === 0}
+              isLast={i === session.blocks.length - 1}
+              exercisesById={catalog.byId}
+              live={live}
+              anotherRunning={Boolean(running && running.id !== block.id)}
+              actions={timedActions}
+            />
+          ) : (
+            <BlockCard
+              key={block.id}
+              block={block}
+              letter={LETTERS[i] ?? String(i + 1)}
+              isFirst={i === 0}
+              isLast={i === session.blocks.length - 1}
+              exercisesById={catalog.byId}
+              lastByExercise={last.data}
+              selectedSetId={selectedSetId}
+              actions={actions}
+            />
+          ),
+        )}
 
-        <Button
-          size="lg"
-          variant="outline"
-          className="border-primary text-primary h-16 border-2 border-dashed text-lg"
-          onClick={() => setPicker({ kind: 'add' })}
-        >
-          <Plus className="size-6" /> Añadir ejercicio
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-primary text-primary h-16 border-2 border-dashed text-base"
+            aria-label="Añadir ejercicio"
+            onClick={() => setPicker({ kind: 'add' })}
+          >
+            <Plus className="size-5" /> Ejercicio
+          </Button>
+          <Button
+            size="lg"
+            variant="outline"
+            className="border-primary text-primary h-16 border-2 border-dashed text-base"
+            aria-label="Añadir bloque con temporizador"
+            onClick={() => setAddingBlock(true)}
+          >
+            <Plus className="size-5" /> Bloque
+          </Button>
+        </div>
 
         <Button variant="ghost" className="text-destructive mt-6" onClick={handleDiscard}>
           <Trash2 /> {live ? 'Descartar sesión' : 'Cancelar edición'}
         </Button>
         {live && (
           <p className="text-muted-foreground px-2 text-center text-xs">
-            Todo se guarda en el móvil al momento. En iPhone el aviso de descanso puede no sonar con
-            la pantalla bloqueada; al volver verás el tiempo correcto.
+            Todo se guarda en el móvil al momento. En iPhone los avisos pueden no sonar con la
+            pantalla bloqueada y no vibran; al volver verás el tiempo correcto.
           </p>
         )}
       </div>
@@ -262,6 +369,15 @@ export function SessionScreen({ session }: { session: LocalSession }) {
         error={catalog.isError && !catalog.data ? catalog.error.message : null}
         onPick={(e) => void handlePick(e)}
         onClose={() => setPicker(null)}
+      />
+
+      <AddBlockSheet
+        open={addingBlock}
+        exercises={catalog.data ?? []}
+        equipment={equipment.data ?? []}
+        defaultCardioId={cardioExerciseFor(session.sessionType)}
+        onClose={() => setAddingBlock(false)}
+        onCreate={(b) => void handleNewBlock(b)}
       />
 
       {finishing && (

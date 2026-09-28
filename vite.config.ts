@@ -3,6 +3,7 @@ import { tanstackStart } from '@tanstack/react-start/plugin/vite'
 import { nitro } from 'nitro/vite'
 import viteReact from '@vitejs/plugin-react'
 import tailwindcss from '@tailwindcss/vite'
+import { serviceWorkerPlugin } from './scripts/vite-sw-plugin.ts'
 
 export default defineConfig({
   resolve: {
@@ -15,5 +16,6 @@ export default defineConfig({
     // Nitro auto-detects Vercel at build time (VERCEL env var) and emits .vercel/output.
     nitro(),
     viteReact(),
+    serviceWorkerPlugin({ template: 'src/sw/sw.js', publicDir: 'public' }),
   ],
 })

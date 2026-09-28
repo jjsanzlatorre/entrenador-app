@@ -9,7 +9,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Page } from '@/components/page'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
-import { resetAuthState } from '@/lib/auth'
+import { resetAuthState, signOut } from '@/lib/auth'
 
 export const Route = createFileRoute('/_app/perfil')({
   component: ProfilePage,
@@ -21,9 +21,8 @@ function ProfilePage() {
   const queryClient = useQueryClient()
   const { profile } = auth
 
-  async function signOut() {
-    await getSupabaseBrowserClient().auth.signOut()
-    await resetAuthState(queryClient)
+  async function handleSignOut() {
+    await signOut(queryClient)
     await router.invalidate()
     await router.navigate({ to: '/login' })
   }
@@ -85,7 +84,7 @@ function ProfilePage() {
         </Button>
       )}
 
-      <Button variant="ghost" size="lg" onClick={signOut}>
+      <Button variant="ghost" size="lg" onClick={handleSignOut}>
         <LogOut /> Cerrar sesión
       </Button>
     </Page>

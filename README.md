@@ -12,6 +12,11 @@ Stack: TanStack Start (React + TypeScript) · Tailwind + shadcn/ui · Supabase �
 2. **SQL Editor** → pega y ejecuta, en este orden:
    1. `supabase/migrations/0001_profiles.sql`
    2. `supabase/migrations/0002_training_profiles.sql`
+   3. `supabase/migrations/0003_catalog.sql`
+   4. `supabase/migrations/0004_workouts.sql`
+   5. `supabase/migrations/0005_seed_muscles.sql`
+   6. `supabase/migrations/0006_seed_exercises_strength.sql`
+   7. `supabase/migrations/0007_seed_exercises_functional_cardio.sql`
 
    Son idempotentes: si dudas, puedes volver a ejecutarlos.
 
@@ -47,9 +52,14 @@ npm install
 npm run dev        # http://localhost:3000
 npm run typecheck
 npm run lint
-npm test
+npm test           # Vitest: lógica, cola offline y SQL (migraciones en PGlite)
 npm run build
+npm run test:e2e   # Playwright contra un Supabase simulado (requiere build previo)
+npm run seed:sql   # regenera 0005–0007 desde supabase/seed/*.json
 ```
+
+En este contenedor Playwright usa el Chromium preinstalado:
+`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e`.
 
 ## Estructura
 
@@ -58,11 +68,17 @@ src/
   routes/            rutas (TanStack Router, basado en archivos)
     _app/            zona autenticada con navegación inferior
   server/            funciones de servidor (*.functions.ts) y helpers solo servidor (*.server.ts)
+  lib/workout/       dominio del registro (operaciones de sesión, cálculos, búsqueda, API)
+  lib/offline/       IndexedDB, cola de escritura y motor de sincronización
+  sw/sw.js           plantilla del service worker (el build genera /sw.js)
   lib/               utilidades de cliente
   components/ui/     componentes shadcn
   types/database.ts  tipos de Supabase escritos a mano
 supabase/
   migrations/        SQL numerado e idempotente (pegar en el SQL Editor en orden)
+  seed/              semillas en JSON (fuente de verdad de 0005–0007)
   snippets/          SQL de un solo uso (no son migraciones)
-public/              manifest, service worker e iconos de la PWA
+public/              manifest e iconos de la PWA
+tests/db/            tests de migraciones, RLS y RPC con PGlite
+tests/e2e/           Playwright + Supabase simulado
 ```

@@ -59,7 +59,12 @@ function mapBlock(
   return changed ? bump({ ...session, blocks }, now) : session
 }
 
-function newSet(exerciseId: string, setIndex: number, id: string, patch: Partial<SetEntry> = {}): SetEntry {
+function newSet(
+  exerciseId: string,
+  setIndex: number,
+  id: string,
+  patch: Partial<SetEntry> = {},
+): SetEntry {
   return {
     id,
     exerciseId,
@@ -168,7 +173,10 @@ export function addTimedBlock(
 export function addCircuitBlock(
   session: LocalSession,
   config: CircuitConfig,
-  inputs: { exercise: Pick<Exercise, 'id' | 'defaultRestS'>; last: LastPerformance | null | undefined }[],
+  inputs: {
+    exercise: Pick<Exercise, 'id' | 'defaultRestS'>
+    last: LastPerformance | null | undefined
+  }[],
   now: number,
   newId: IdFn = defaultId,
 ): LocalSession {
@@ -204,13 +212,7 @@ export function addCircuitBlock(
 // ── Control del temporizador ────────────────────────────────
 
 export type TimerAction =
-  | 'start'
-  | 'start-now'
-  | 'toggle-pause'
-  | 'add-15'
-  | 'sub-15'
-  | 'skip'
-  | 'finish'
+  'start' | 'start-now' | 'toggle-pause' | 'add-15' | 'sub-15' | 'skip' | 'finish'
 
 export function applyTimerAction(
   session: LocalSession,
@@ -253,7 +255,12 @@ export function applyTimerAction(
   )
 }
 
-function recordIntervalSplit(block: LocalBlock, round: number, durationMs: number, now: number): LocalBlock {
+function recordIntervalSplit(
+  block: LocalBlock,
+  round: number,
+  durationMs: number,
+  now: number,
+): LocalBlock {
   if (block.settings?.kind !== 'intervals') return block
   const durationS = Math.round(durationMs / 1000)
   const distanceM = block.settings.workDistanceM
@@ -264,7 +271,13 @@ function recordIntervalSplit(block: LocalBlock, round: number, durationMs: numbe
     result: { kind: 'intervals', splits },
     sets: block.sets.map((s) =>
       s.setIndex === round - 1
-        ? { ...s, durationS, distanceM: s.distanceM ?? distanceM, completed: true, completedAt: new Date(now).toISOString() }
+        ? {
+            ...s,
+            durationS,
+            distanceM: s.distanceM ?? distanceM,
+            completed: true,
+            completedAt: new Date(now).toISOString(),
+          }
         : s,
     ),
   }
@@ -394,7 +407,12 @@ export function settleFinishedTimers(session: LocalSession, now: number): LocalS
     if (view.status !== 'done') continue
     // Se cierra en el instante exacto en que terminó, no en el de volver a la app.
     const endAt = block.timer.startedAt + block.timer.pausedMs + view.totalMs
-    next = mapBlock(next, block.id, (b) => finalizeTimedBlock({ ...b, timer: finishTimer(b.timer!, endAt) }, endAt), now)
+    next = mapBlock(
+      next,
+      block.id,
+      (b) => finalizeTimedBlock({ ...b, timer: finishTimer(b.timer!, endAt) }, endAt),
+      now,
+    )
   }
   return next
 }

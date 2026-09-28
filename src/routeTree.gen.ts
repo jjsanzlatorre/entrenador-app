@@ -20,6 +20,7 @@ import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AppAdminInvitacionesRouteImport } from './routes/_app/admin/invitaciones'
 import { Route as AppEntrenarIndexRouteImport } from './routes/_app/entrenar/index'
+import { Route as AppEntrenarActividadRouteImport } from './routes/_app/entrenar/actividad'
 import { Route as AppEntrenarEjerciciosRouteImport } from './routes/_app/entrenar/ejercicios'
 import { Route as AppEntrenarSesionRouteImport } from './routes/_app/entrenar/sesion'
 import { Route as AppEntrenarHistorialSessionIdRouteImport } from './routes/_app/entrenar/historial.$sessionId'
@@ -78,6 +79,11 @@ const AppEntrenarIndexRoute = AppEntrenarIndexRouteImport.update({
   path: '/entrenar/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppEntrenarActividadRoute = AppEntrenarActividadRouteImport.update({
+  id: '/entrenar/actividad',
+  path: '/entrenar/actividad',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEntrenarEjerciciosRoute = AppEntrenarEjerciciosRouteImport.update({
   id: '/entrenar/ejercicios',
   path: '/entrenar/ejercicios',
@@ -105,6 +111,7 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
+  '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/entrenar/': typeof AppEntrenarIndexRoute
@@ -120,6 +127,7 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AppIndexRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
+  '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/entrenar': typeof AppEntrenarIndexRoute
@@ -137,6 +145,7 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/invitaciones': typeof AppAdminInvitacionesRoute
+  '/_app/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/_app/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/_app/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/_app/entrenar/': typeof AppEntrenarIndexRoute
@@ -154,6 +163,7 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/auth/callback'
     | '/admin/invitaciones'
+    | '/entrenar/actividad'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
     | '/entrenar/'
@@ -169,6 +179,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/'
     | '/admin/invitaciones'
+    | '/entrenar/actividad'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
     | '/entrenar'
@@ -185,6 +196,7 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/_app/'
     | '/_app/admin/invitaciones'
+    | '/_app/entrenar/actividad'
     | '/_app/entrenar/ejercicios'
     | '/_app/entrenar/sesion'
     | '/_app/entrenar/'
@@ -278,6 +290,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEntrenarIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/entrenar/actividad': {
+      id: '/_app/entrenar/actividad'
+      path: '/entrenar/actividad'
+      fullPath: '/entrenar/actividad'
+      preLoaderRoute: typeof AppEntrenarActividadRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/entrenar/ejercicios': {
       id: '/_app/entrenar/ejercicios'
       path: '/entrenar/ejercicios'
@@ -308,6 +327,7 @@ interface AppRouteChildren {
   AppProgresoRoute: typeof AppProgresoRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminInvitacionesRoute: typeof AppAdminInvitacionesRoute
+  AppEntrenarActividadRoute: typeof AppEntrenarActividadRoute
   AppEntrenarEjerciciosRoute: typeof AppEntrenarEjerciciosRoute
   AppEntrenarSesionRoute: typeof AppEntrenarSesionRoute
   AppEntrenarIndexRoute: typeof AppEntrenarIndexRoute
@@ -320,6 +340,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProgresoRoute: AppProgresoRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminInvitacionesRoute: AppAdminInvitacionesRoute,
+  AppEntrenarActividadRoute: AppEntrenarActividadRoute,
   AppEntrenarEjerciciosRoute: AppEntrenarEjerciciosRoute,
   AppEntrenarSesionRoute: AppEntrenarSesionRoute,
   AppEntrenarIndexRoute: AppEntrenarIndexRoute,

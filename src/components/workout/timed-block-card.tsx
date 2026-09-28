@@ -1,5 +1,16 @@
 import { useEffect, useState } from 'react'
-import { ArrowDown, ArrowUp, Flag, Minus, Pause, Play, Plus, SkipForward, Timer, Trash2 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Flag,
+  Minus,
+  Pause,
+  Play,
+  Plus,
+  SkipForward,
+  Timer,
+  Trash2,
+} from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { setFields } from '@/lib/workout/fields'
 import { formatClock } from '@/lib/workout/format'
@@ -121,25 +132,33 @@ export function TimedBlockCard({
         </span>
         <div className="min-w-0 flex-1">
           <h3 className="flex items-center gap-1.5 text-lg leading-tight font-semibold">
-            <Timer className="size-4" /> {BLOCK_LABELS[config.kind]}
-            <span className="text-muted-foreground text-sm font-normal">
-              {describeTimer(config)}
-            </span>
+            <Timer className="size-5 shrink-0" /> {BLOCK_LABELS[config.kind]}
           </h3>
+          <p className="text-muted-foreground text-sm">{describeTimer(config)}</p>
           {block.exercises.length > 0 && (
             <p className="text-muted-foreground text-sm">
               {block.exercises
-                .map((e) => `${e.targetReps ? `${e.targetReps} ` : ''}${exerciseName(e.exerciseId)}`)
+                .map(
+                  (e) => `${e.targetReps ? `${e.targetReps} ` : ''}${exerciseName(e.exerciseId)}`,
+                )
                 .join(' · ')}
             </p>
           )}
         </div>
         {view.status === 'idle' && live && (
           <div className="flex">
-            <IconButton label="Subir bloque" disabled={isFirst} onClick={() => actions.onMove(block.id, -1)}>
+            <IconButton
+              label="Subir bloque"
+              disabled={isFirst}
+              onClick={() => actions.onMove(block.id, -1)}
+            >
               <ArrowUp className="size-4" />
             </IconButton>
-            <IconButton label="Bajar bloque" disabled={isLast} onClick={() => actions.onMove(block.id, 1)}>
+            <IconButton
+              label="Bajar bloque"
+              disabled={isLast}
+              onClick={() => actions.onMove(block.id, 1)}
+            >
               <ArrowDown className="size-4" />
             </IconButton>
             <IconButton
@@ -157,6 +176,7 @@ export function TimedBlockCard({
           <BigButton
             variant="primary"
             label="Empezar con cuenta atrás de 10 segundos"
+            className="flex-none"
             disabled={anotherRunning}
             onClick={() => act(config.kind === 'free' ? 'start-now' : 'start')}
           >
@@ -201,7 +221,9 @@ export function TimedBlockCard({
             return (
               <div key={set.id}>
                 {block.exercises.length > 1 && (
-                  <p className="text-muted-foreground px-2 text-xs">{exerciseName(set.exerciseId)}</p>
+                  <p className="text-muted-foreground px-2 text-xs">
+                    {exerciseName(set.exerciseId)}
+                  </p>
                 )}
                 <SetRow
                   set={set}
@@ -274,15 +296,26 @@ function RunningView({
   const workS = workElapsedMs(schedule, block.timer ?? createTimerState(), now) / 1000
 
   // Reloj principal: cuenta atrás de la fase, o ascendente si es abierta.
-  let clock = open ? formatClock(view.phaseElapsedMs / 1000) : formatClock(Math.ceil(view.phaseRemainingMs / 1000))
-  let title = prep ? 'Prepárate' : rest ? (config.kind === 'intervals' ? 'Recuperación' : 'Descanso') : 'Trabajo'
+  let clock = open
+    ? formatClock(view.phaseElapsedMs / 1000)
+    : formatClock(Math.ceil(view.phaseRemainingMs / 1000))
+  let title = prep
+    ? 'Prepárate'
+    : rest
+      ? config.kind === 'intervals'
+        ? 'Recuperación'
+        : 'Descanso'
+      : 'Trabajo'
   let detail: string | null = null
 
   switch (config.kind) {
     case 'emom': {
-      const ex = block.exercises[(Math.max(1, phase?.round ?? 1) - 1) % Math.max(1, block.exercises.length)]
+      const ex =
+        block.exercises[(Math.max(1, phase?.round ?? 1) - 1) % Math.max(1, block.exercises.length)]
       title = prep ? 'Prepárate' : `Minuto ${phase?.round} de ${config.minutes}`
-      detail = ex ? `${ex.targetReps ? `${ex.targetReps} × ` : ''}${exerciseName(ex.exerciseId)}` : null
+      detail = ex
+        ? `${ex.targetReps ? `${ex.targetReps} × ` : ''}${exerciseName(ex.exerciseId)}`
+        : null
       break
     }
     case 'amrap':
@@ -292,8 +325,10 @@ function RunningView({
       }
       break
     case 'tabata': {
-      const ex = block.exercises[(Math.max(1, phase?.round ?? 1) - 1) % Math.max(1, block.exercises.length)]
-      if (!prep) title = `${rest ? 'Descanso' : 'Trabajo'} · ronda ${phase?.round} de ${config.rounds}`
+      const ex =
+        block.exercises[(Math.max(1, phase?.round ?? 1) - 1) % Math.max(1, block.exercises.length)]
+      if (!prep)
+        title = `${rest ? 'Descanso' : 'Trabajo'} · ronda ${phase?.round} de ${config.rounds}`
       detail = ex && !rest ? exerciseName(ex.exerciseId) : null
       break
     }
@@ -304,8 +339,11 @@ function RunningView({
       }
       break
     case 'intervals': {
-      const target = config.workDistanceM ? formatDistance(config.workDistanceM) : formatClock(config.workS ?? 0)
-      if (!prep) title = `${rest ? 'Recuperación' : 'Serie'} ${phase?.round} de ${config.reps}${rest ? '' : ` · ${target}`}`
+      const target = config.workDistanceM
+        ? formatDistance(config.workDistanceM)
+        : formatClock(config.workS ?? 0)
+      if (!prep)
+        title = `${rest ? 'Recuperación' : 'Serie'} ${phase?.round} de ${config.reps}${rest ? '' : ` · ${target}`}`
       break
     }
     case 'free':
@@ -349,14 +387,22 @@ function RunningView({
 
       {config.kind === 'amrap' && block.result?.kind === 'amrap' && !prep && (
         <div className="flex flex-col gap-2">
-          <BigButton variant="primary" label="Sumar una ronda" onClick={() => onAmrap('rounds', 1)} className="h-20 text-xl">
+          <BigButton
+            variant="primary"
+            label="Sumar una ronda"
+            onClick={() => onAmrap('rounds', 1)}
+            className="h-20 flex-none text-xl"
+          >
             <Plus className="size-7" /> 1 ronda
           </BigButton>
           <div className="flex items-center gap-2">
             <BigButton label="Restar una ronda" onClick={() => onAmrap('rounds', -1)}>
               −1 ronda
             </BigButton>
-            <BigButton label="Restar una repetición suelta" onClick={() => onAmrap('extraReps', -1)}>
+            <BigButton
+              label="Restar una repetición suelta"
+              onClick={() => onAmrap('extraReps', -1)}
+            >
               <Minus className="size-5" /> rep
             </BigButton>
             <BigButton label="Sumar una repetición suelta" onClick={() => onAmrap('extraReps', 1)}>
@@ -367,7 +413,12 @@ function RunningView({
       )}
 
       {lapMode && (
-        <BigButton variant="primary" label="Vuelta hecha" onClick={() => onAction('skip')} className="h-20 text-xl">
+        <BigButton
+          variant="primary"
+          label="Vuelta hecha"
+          onClick={() => onAction('skip')}
+          className="h-20 flex-none text-xl"
+        >
           <Flag className="size-7" /> Serie hecha
         </BigButton>
       )}
@@ -380,7 +431,11 @@ function RunningView({
           +15 s
         </BigButton>
         {!lapMode && (
-          <BigButton label="Saltar fase" disabled={config.kind === 'free' || config.kind === 'for_time'} onClick={() => onAction('skip')}>
+          <BigButton
+            label="Saltar fase"
+            disabled={config.kind === 'free' || config.kind === 'for_time'}
+            onClick={() => onAction('skip')}
+          >
             <SkipForward className="size-6" />
           </BigButton>
         )}
@@ -388,7 +443,12 @@ function RunningView({
           variant="danger"
           label="Terminar bloque"
           onClick={() => {
-            if (config.kind === 'for_time' || config.kind === 'free' || confirm('¿Terminar el bloque ya?')) onAction('finish')
+            if (
+              config.kind === 'for_time' ||
+              config.kind === 'free' ||
+              confirm('¿Terminar el bloque ya?')
+            )
+              onAction('finish')
           }}
         >
           <Flag className="size-6" />
@@ -423,7 +483,9 @@ export function resultSummary(block: LocalBlock) {
     case 'tabata':
       return `${r.roundsCompleted} de ${r.rounds} rondas`
     case 'for_time':
-      return r.timeS === null ? null : `${formatClock(r.timeS)}${r.capped ? ' (cap alcanzado)' : ''}`
+      return r.timeS === null
+        ? null
+        : `${formatClock(r.timeS)}${r.capped ? ' (cap alcanzado)' : ''}`
     case 'intervals':
       return r.splits.length > 0 ? `${r.splits.length} series` : null
     case 'free':
@@ -437,9 +499,13 @@ function ResultView({ block, config }: { block: LocalBlock; config: TimerConfig 
   const summary = resultSummary(block)
   return (
     <div className="rounded-xl bg-emerald-500/10 p-3 text-center">
-      <p className="text-muted-foreground text-xs uppercase">{BLOCK_LABELS[config.kind]} terminado</p>
+      <p className="text-muted-foreground text-xs uppercase">
+        {BLOCK_LABELS[config.kind]} terminado
+      </p>
       {summary && <p className="text-2xl font-bold tabular-nums">{summary}</p>}
-      <p className="text-muted-foreground mt-1 text-xs">Revisa y ajusta las series si hace falta.</p>
+      <p className="text-muted-foreground mt-1 text-xs">
+        Revisa y ajusta las series si hace falta.
+      </p>
     </div>
   )
 }

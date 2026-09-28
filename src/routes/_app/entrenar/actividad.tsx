@@ -29,6 +29,11 @@ function localDateTimeValue(date: Date) {
   return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
 }
 
+// Inicio de una actividad de «min» minutos que acaba ahora.
+function startForDuration(min: number) {
+  return localDateTimeValue(new Date(Date.now() - min * 60_000))
+}
+
 function QuickActivityPage() {
   const { auth } = Route.useRouteContext()
   const navigate = useNavigate()
@@ -37,7 +42,7 @@ function QuickActivityPage() {
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState('60')
   // Por defecto: terminó ahora y empezó hace «duración» minutos.
-  const [start, setStart] = useState(() => localDateTimeValue(new Date(Date.now() - 60 * 60_000)))
+  const [start, setStart] = useState(() => startForDuration(60))
   const [rpe, setRpe] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [watchOpen, setWatchOpen] = useState(false)
@@ -51,7 +56,7 @@ function QuickActivityPage() {
 
   function pickDuration(min: number) {
     setDuration(String(min))
-    setStart(localDateTimeValue(new Date(Date.now() - min * 60_000)))
+    setStart(startForDuration(min))
   }
 
   async function save() {
@@ -88,7 +93,10 @@ function QuickActivityPage() {
 
   return (
     <div className="flex flex-col gap-5 p-4">
-      <Link to="/entrenar" className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium">
+      <Link
+        to="/entrenar"
+        className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
+      >
         <ChevronLeft className="size-4" /> Entrenar
       </Link>
       <h1 className="text-2xl font-bold">Registrar actividad</h1>
@@ -124,7 +132,9 @@ function QuickActivityPage() {
               aria-pressed={duration === String(m)}
               className={cn(
                 'h-10 rounded-full border px-4 text-sm font-medium',
-                duration === String(m) ? 'bg-primary text-primary-foreground border-primary' : 'bg-background',
+                duration === String(m)
+                  ? 'bg-primary text-primary-foreground border-primary'
+                  : 'bg-background',
               )}
             >
               {m}
@@ -160,14 +170,24 @@ function QuickActivityPage() {
         </div>
       </fieldset>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid gap-3">
         <div className="flex flex-col gap-2">
           <Label htmlFor="act-start">Empezó</Label>
-          <Input id="act-start" type="datetime-local" value={start} onChange={(e) => setStart(e.target.value)} />
+          <Input
+            id="act-start"
+            type="datetime-local"
+            value={start}
+            onChange={(e) => setStart(e.target.value)}
+          />
         </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="act-title">Título (opcional)</Label>
-          <Input id="act-title" value={title} maxLength={80} onChange={(e) => setTitle(e.target.value)} />
+          <Input
+            id="act-title"
+            value={title}
+            maxLength={80}
+            onChange={(e) => setTitle(e.target.value)}
+          />
         </div>
       </div>
 
@@ -195,10 +215,20 @@ function QuickActivityPage() {
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="act-notes">Notas</Label>
-        <Textarea id="act-notes" value={notes} onChange={(e) => setNotes(e.target.value)} placeholder="Condiciones, sensaciones…" />
+        <Textarea
+          id="act-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          placeholder="Condiciones, sensaciones…"
+        />
       </div>
 
-      <Button size="lg" className="h-14 text-lg" disabled={!valid || saving} onClick={() => void save()}>
+      <Button
+        size="lg"
+        className="h-14 text-lg"
+        disabled={!valid || saving}
+        onClick={() => void save()}
+      >
         {saving ? 'Guardando…' : 'Guardar actividad'}
       </Button>
     </div>

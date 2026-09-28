@@ -3,7 +3,12 @@ import type { SessionType } from '@/types/database'
 
 export type PaceKind = 'run' | 'swim' | 'bike'
 
-const SWIM_EXERCISES = new Set(['swim_freestyle', 'swim_backstroke', 'swim_breaststroke', 'swim_drills'])
+const SWIM_EXERCISES = new Set([
+  'swim_freestyle',
+  'swim_backstroke',
+  'swim_breaststroke',
+  'swim_drills',
+])
 const BIKE_EXERCISES = new Set(['bike', 'spinning', 'air_bike'])
 
 export function paceKindForExercise(exerciseId: string): PaceKind | null {
@@ -46,7 +51,10 @@ export function formatPaceClock(seconds: number) {
   return `${m}:${String(s).padStart(2, '0')}`
 }
 
-const speedFormat = new Intl.NumberFormat('es-ES', { maximumFractionDigits: 1, minimumFractionDigits: 1 })
+const speedFormat = new Intl.NumberFormat('es-ES', {
+  maximumFractionDigits: 1,
+  minimumFractionDigits: 1,
+})
 
 // Texto listo para la UI: «4:05 min/km», «1:52 min/100 m» o «28,4 km/h».
 export function formatPace(kind: PaceKind, distanceM: number | null, durationS: number | null) {

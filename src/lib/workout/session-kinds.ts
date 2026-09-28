@@ -14,12 +14,42 @@ export type StartOption = {
 }
 
 export const START_OPTIONS: StartOption[] = [
-  { sessionType: 'strength', label: 'Fuerza', title: 'Entreno libre', location: 'gym', exerciseId: null },
-  { sessionType: 'functional', label: 'Functional', title: 'Functional', location: 'gym', exerciseId: null },
-  { sessionType: 'running', label: 'Carrera', title: 'Carrera', location: 'outdoor', exerciseId: 'run' },
-  { sessionType: 'swimming', label: 'Natación', title: 'Natación', location: 'pool', exerciseId: 'swim_freestyle' },
+  {
+    sessionType: 'strength',
+    label: 'Fuerza',
+    title: 'Entreno libre',
+    location: 'gym',
+    exerciseId: null,
+  },
+  {
+    sessionType: 'functional',
+    label: 'Functional',
+    title: 'Functional',
+    location: 'gym',
+    exerciseId: null,
+  },
+  {
+    sessionType: 'running',
+    label: 'Carrera',
+    title: 'Carrera',
+    location: 'outdoor',
+    exerciseId: 'run',
+  },
+  {
+    sessionType: 'swimming',
+    label: 'Natación',
+    title: 'Natación',
+    location: 'pool',
+    exerciseId: 'swim_freestyle',
+  },
   { sessionType: 'cycling', label: 'Bici', title: 'Bici', location: 'outdoor', exerciseId: 'bike' },
-  { sessionType: 'spinning', label: 'Spinning', title: 'Spinning', location: 'gym', exerciseId: 'spinning' },
+  {
+    sessionType: 'spinning',
+    label: 'Spinning',
+    title: 'Spinning',
+    location: 'gym',
+    exerciseId: 'spinning',
+  },
 ]
 
 export const CARDIO_TYPES = new Set<SessionType>(['running', 'swimming', 'cycling', 'spinning'])
@@ -36,7 +66,14 @@ export function createSessionOfType(
   newId?: IdFn,
 ): LocalSession {
   const option = START_OPTIONS.find((o) => o.sessionType === sessionType) ?? START_OPTIONS[0]!
-  const session = createSession(userId, now, newId, option.title, option.sessionType, option.location)
+  const session = createSession(
+    userId,
+    now,
+    newId,
+    option.title,
+    option.sessionType,
+    option.location,
+  )
   if (!option.exerciseId) return session
   // Carrera, natación y bici empiezan con un bloque continuo: cronómetro + distancia.
   return addTimedBlock(
@@ -52,9 +89,21 @@ export function createSessionOfType(
 
 export type QuickActivityType = 'yoga' | 'surf' | 'padel_fronton' | 'other'
 
-export const QUICK_ACTIVITIES: { type: QuickActivityType; label: string; emoji: string; exerciseId: string; location: SessionLocation }[] = [
+export const QUICK_ACTIVITIES: {
+  type: QuickActivityType
+  label: string
+  emoji: string
+  exerciseId: string
+  location: SessionLocation
+}[] = [
   { type: 'surf', label: 'Surf', emoji: '🏄', exerciseId: 'surf', location: 'outdoor' },
-  { type: 'padel_fronton', label: 'Frontón', emoji: '🎾', exerciseId: 'fronton', location: 'outdoor' },
+  {
+    type: 'padel_fronton',
+    label: 'Frontón',
+    emoji: '🎾',
+    exerciseId: 'fronton',
+    location: 'outdoor',
+  },
   { type: 'yoga', label: 'Yoga', emoji: '🧘', exerciseId: 'yoga', location: 'home' },
   { type: 'other', label: 'Otro', emoji: '⚡', exerciseId: 'other_activity', location: 'other' },
 ]
@@ -103,7 +152,14 @@ export function createQuickActivity(
       },
     ],
   }
-  const base = createSession(userId, now, newId, input.title.trim() || activity.label, input.type, activity.location)
+  const base = createSession(
+    userId,
+    now,
+    newId,
+    input.title.trim() || activity.label,
+    input.type,
+    activity.location,
+  )
   return {
     ...base,
     startedAt: new Date(started).toISOString(),

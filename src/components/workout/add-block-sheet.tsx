@@ -11,19 +11,16 @@ import { cn } from '@/lib/utils'
 import { ExercisePicker } from './exercise-picker'
 
 export type NewBlockKind =
-  | 'straight'
-  | 'circuit'
-  | 'emom'
-  | 'amrap'
-  | 'tabata'
-  | 'for_time'
-  | 'intervals'
-  | 'free'
+  'straight' | 'circuit' | 'emom' | 'amrap' | 'tabata' | 'for_time' | 'intervals' | 'free'
 
 export type NewBlock =
   | { kind: 'straight' }
   | { kind: 'circuit'; config: CircuitConfig; exercises: Exercise[] }
-  | { kind: 'timed'; config: TimerConfig; exercises: { exercise: Exercise; targetReps: number | null }[] }
+  | {
+      kind: 'timed'
+      config: TimerConfig
+      exercises: { exercise: Exercise; targetReps: number | null }[]
+    }
 
 const OPTIONS: { kind: NewBlockKind; label: string; hint: string }[] = [
   { kind: 'straight', label: 'Ejercicio', hint: 'Series con descanso' },
@@ -36,7 +33,18 @@ const OPTIONS: { kind: NewBlockKind; label: string; hint: string }[] = [
   { kind: 'free', label: 'Cronómetro', hint: 'Continuo o libre' },
 ]
 
-const CARDIO_IDS = ['run', 'swim_freestyle', 'swim_backstroke', 'swim_breaststroke', 'swim_drills', 'bike', 'spinning', 'row_erg', 'skierg', 'air_bike']
+const CARDIO_IDS = [
+  'run',
+  'swim_freestyle',
+  'swim_backstroke',
+  'swim_breaststroke',
+  'swim_drills',
+  'bike',
+  'spinning',
+  'row_erg',
+  'skierg',
+  'air_bike',
+]
 
 export function AddBlockSheet({
   open,
@@ -162,7 +170,9 @@ function BlockForm({
   const byId = new Map(exercises.map((e) => [e.id, e]))
   const cardioDefault = byId.get(defaultCardioId ?? 'run') ?? byId.get('run')
   const [picked, setPicked] = useState<Picked[]>(() =>
-    (kind === 'intervals' || kind === 'free') && cardioDefault ? [{ exercise: cardioDefault, targetReps: '' }] : [],
+    (kind === 'intervals' || kind === 'free') && cardioDefault
+      ? [{ exercise: cardioDefault, targetReps: '' }]
+      : [],
   )
   const [picking, setPicking] = useState(false)
   const [p, setP] = useState({
@@ -188,13 +198,20 @@ function BlockForm({
   const showReps = kind === 'emom' || kind === 'amrap' || kind === 'for_time'
 
   function create() {
-    const inputs = picked.map((x) => ({ exercise: x.exercise, targetReps: parseInteger(x.targetReps) }))
+    const inputs = picked.map((x) => ({
+      exercise: x.exercise,
+      targetReps: parseInteger(x.targetReps),
+    }))
     let config: TimerConfig
     switch (kind) {
       case 'circuit':
         onCreate({
           kind: 'circuit',
-          config: { kind: 'circuit', rounds: n(p.rounds, 3), restBetweenRoundsS: n(p.circuitRestS, 90) },
+          config: {
+            kind: 'circuit',
+            rounds: n(p.rounds, 3),
+            restBetweenRoundsS: n(p.circuitRestS, 90),
+          },
           exercises: picked.map((x) => x.exercise),
         })
         return
@@ -205,7 +222,12 @@ function BlockForm({
         config = { kind: 'amrap', durationS: n(p.amrapMin, 10) * 60 }
         break
       case 'tabata':
-        config = { kind: 'tabata', workS: n(p.workS, 20), restS: n(p.restS, 10), rounds: n(p.rounds, 8) }
+        config = {
+          kind: 'tabata',
+          workS: n(p.workS, 20),
+          restS: n(p.restS, 10),
+          rounds: n(p.rounds, 8),
+        }
         break
       case 'for_time': {
         const cap = parseInteger(p.capMin)
@@ -235,48 +257,118 @@ function BlockForm({
       <div className="grid grid-cols-2 gap-3">
         {kind === 'emom' && (
           <>
-            <NumberField id="emom-min" label="Rondas (minutos)" value={p.minutes} onChange={set('minutes')} />
-            <NumberField id="emom-int" label="Cada" value={p.intervalS} onChange={set('intervalS')} suffix="s" />
+            <NumberField
+              id="emom-min"
+              label="Rondas (minutos)"
+              value={p.minutes}
+              onChange={set('minutes')}
+            />
+            <NumberField
+              id="emom-int"
+              label="Cada"
+              value={p.intervalS}
+              onChange={set('intervalS')}
+              suffix="s"
+            />
           </>
         )}
-        {kind === 'amrap' && <NumberField id="amrap-min" label="Duración" value={p.amrapMin} onChange={set('amrapMin')} suffix="min" />}
+        {kind === 'amrap' && (
+          <NumberField
+            id="amrap-min"
+            label="Duración"
+            value={p.amrapMin}
+            onChange={set('amrapMin')}
+            suffix="min"
+          />
+        )}
         {kind === 'tabata' && (
           <>
-            <NumberField id="tb-work" label="Trabajo" value={p.workS} onChange={set('workS')} suffix="s" />
-            <NumberField id="tb-rest" label="Descanso" value={p.restS} onChange={set('restS')} suffix="s" />
+            <NumberField
+              id="tb-work"
+              label="Trabajo"
+              value={p.workS}
+              onChange={set('workS')}
+              suffix="s"
+            />
+            <NumberField
+              id="tb-rest"
+              label="Descanso"
+              value={p.restS}
+              onChange={set('restS')}
+              suffix="s"
+            />
             <NumberField id="tb-rounds" label="Rondas" value={p.rounds} onChange={set('rounds')} />
           </>
         )}
         {kind === 'for_time' && (
-          <NumberField id="ft-cap" label="Tiempo límite (opcional)" value={p.capMin} onChange={set('capMin')} suffix="min" />
+          <NumberField
+            id="ft-cap"
+            label="Tiempo límite (opcional)"
+            value={p.capMin}
+            onChange={set('capMin')}
+            suffix="min"
+          />
         )}
         {kind === 'circuit' && (
           <>
             <NumberField id="c-rounds" label="Rondas" value={p.rounds} onChange={set('rounds')} />
-            <NumberField id="c-rest" label="Descanso entre rondas" value={p.circuitRestS} onChange={set('circuitRestS')} suffix="s" />
+            <NumberField
+              id="c-rest"
+              label="Descanso entre rondas"
+              value={p.circuitRestS}
+              onChange={set('circuitRestS')}
+              suffix="s"
+            />
           </>
         )}
         {kind === 'intervals' && (
           <>
             <NumberField id="iv-reps" label="Series" value={p.reps} onChange={set('reps')} />
-            <NumberField id="iv-rec" label="Recuperación" value={p.recoveryS} onChange={set('recoveryS')} suffix="s" />
-            <div className="col-span-2 grid grid-cols-2 gap-2" role="group" aria-label="Cada serie por">
+            <NumberField
+              id="iv-rec"
+              label="Recuperación"
+              value={p.recoveryS}
+              onChange={set('recoveryS')}
+              suffix="s"
+            />
+            <div
+              className="col-span-2 grid grid-cols-2 gap-2"
+              role="group"
+              aria-label="Cada serie por"
+            >
               {(['distance', 'time'] as const).map((m) => (
                 <button
                   key={m}
                   type="button"
                   aria-pressed={p.mode === m}
                   onClick={() => setP((prev) => ({ ...prev, mode: m }))}
-                  className={cn('h-11 rounded-lg border font-medium', p.mode === m ? 'bg-primary text-primary-foreground border-primary' : 'bg-background')}
+                  className={cn(
+                    'h-11 rounded-lg border font-medium',
+                    p.mode === m
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background',
+                  )}
                 >
                   {m === 'distance' ? 'Por distancia' : 'Por tiempo'}
                 </button>
               ))}
             </div>
             {p.mode === 'distance' ? (
-              <NumberField id="iv-dist" label="Distancia por serie" value={p.distanceM} onChange={set('distanceM')} suffix="m" />
+              <NumberField
+                id="iv-dist"
+                label="Distancia por serie"
+                value={p.distanceM}
+                onChange={set('distanceM')}
+                suffix="m"
+              />
             ) : (
-              <NumberField id="iv-time" label="Tiempo por serie" value={p.intervalWorkS} onChange={set('intervalWorkS')} suffix="s" />
+              <NumberField
+                id="iv-time"
+                label="Tiempo por serie"
+                value={p.intervalWorkS}
+                onChange={set('intervalWorkS')}
+                suffix="s"
+              />
             )}
           </>
         )}
@@ -285,27 +377,41 @@ function BlockForm({
       <div className="flex flex-col gap-2">
         <p className="text-sm font-medium">
           {single ? 'Actividad' : 'Ejercicios'}
-          {kind === 'emom' && <span className="text-muted-foreground font-normal"> (rotan cada minuto)</span>}
+          {kind === 'emom' && (
+            <span className="text-muted-foreground font-normal"> (rotan cada minuto)</span>
+          )}
         </p>
         {single && (
           <div className="flex flex-wrap gap-1.5">
-            {CARDIO_IDS.map((id) => byId.get(id)).filter((e): e is Exercise => Boolean(e)).map((e) => (
-              <button
-                key={e.id}
-                type="button"
-                aria-pressed={picked[0]?.exercise.id === e.id}
-                onClick={() => setPicked([{ exercise: e, targetReps: '' }])}
-                className={cn('h-9 rounded-full border px-3 text-sm', picked[0]?.exercise.id === e.id ? 'bg-primary text-primary-foreground border-primary' : 'bg-background')}
-              >
-                {e.name}
-              </button>
-            ))}
+            {CARDIO_IDS.map((id) => byId.get(id))
+              .filter((e): e is Exercise => Boolean(e))
+              .map((e) => (
+                <button
+                  key={e.id}
+                  type="button"
+                  aria-pressed={picked[0]?.exercise.id === e.id}
+                  onClick={() => setPicked([{ exercise: e, targetReps: '' }])}
+                  className={cn(
+                    'h-9 rounded-full border px-3 text-sm',
+                    picked[0]?.exercise.id === e.id
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-background',
+                  )}
+                >
+                  {e.name}
+                </button>
+              ))}
             {kind === 'free' && (
               <button
                 type="button"
                 aria-pressed={picked.length === 0}
                 onClick={() => setPicked([])}
-                className={cn('h-9 rounded-full border px-3 text-sm', picked.length === 0 ? 'bg-primary text-primary-foreground border-primary' : 'bg-background')}
+                className={cn(
+                  'h-9 rounded-full border px-3 text-sm',
+                  picked.length === 0
+                    ? 'bg-primary text-primary-foreground border-primary'
+                    : 'bg-background',
+                )}
               >
                 Solo cronómetro
               </button>
@@ -325,7 +431,9 @@ function BlockForm({
                       placeholder="reps"
                       value={x.targetReps}
                       onChange={(e) =>
-                        setPicked((prev) => prev.map((y, j) => (j === i ? { ...y, targetReps: e.target.value } : y)))
+                        setPicked((prev) =>
+                          prev.map((y, j) => (j === i ? { ...y, targetReps: e.target.value } : y)),
+                        )
                       }
                       className="h-10 w-20 text-center"
                     />

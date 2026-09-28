@@ -160,22 +160,20 @@ export function fromServerRows(
             const ex = (order.get(x.exercise_id) ?? 0) - (order.get(y.exercise_id) ?? 0)
             return byRound ? x.set_index - y.set_index || ex : ex || x.set_index - y.set_index
           })
-          .map(
-            (s): SetEntry => ({
-              id: s.id,
-              exerciseId: s.exercise_id,
-              setIndex: s.set_index,
-              isWarmup: s.is_warmup,
-              weightKg: num(s.weight_kg),
-              reps: s.reps,
-              rir: s.rir,
-              durationS: s.duration_s,
-              distanceM: num(s.distance_m),
-              calories: s.calories,
-              completed: s.completed,
-              completedAt: s.completed_at,
-            }),
-          ),
+          .map((s): SetEntry => ({
+            id: s.id,
+            exerciseId: s.exercise_id,
+            setIndex: s.set_index,
+            isWarmup: s.is_warmup,
+            weightKg: num(s.weight_kg),
+            reps: s.reps,
+            rir: s.rir,
+            durationS: s.duration_s,
+            distanceM: num(s.distance_m),
+            calories: s.calories,
+            completed: s.completed,
+            completedAt: s.completed_at,
+          })),
       }
       if (settings) block.settings = settings
       if (b.result) block.result = toCamel(b.result) as BlockResult

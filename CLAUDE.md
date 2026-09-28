@@ -488,7 +488,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **2 escrita pero sin verificar**: el código está en la rama sin haber pasado typecheck, lint, tests ni build (el contenedor no pudo ejecutar comandos). Falta verificarlo, abrir el PR y validar la aceptación en el móvil. Siguiente: Fase 3.
+- Fase actual: **2 verificada** (typecheck, lint, Vitest, build y E2E de Playwright en verde; pantallas revisadas a 375 px). Falta validar la aceptación en un móvil real. Siguiente: Fase 3.
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -515,8 +515,11 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - «Datos del reloj» (FC media, FC máx, calorías) en todas las sesiones (hoja de terminar y registro rápido).
   - Historial y detalle muestran el tipo, distancia y ritmo, y el resultado de cada bloque (minutos de EMOM, rondas de AMRAP, tiempo de For Time, parciales de intervalos con ritmo).
   - Tests: Vitest para ritmos y para el estado de los temporizadores (incluido reanudar desde timestamps tras bloquear/recargar) y los bloques.
+  - E2E de aceptación (`tests/e2e/timers.spec.ts`) con el reloj simulado de Playwright: EMOM de 12 min y 6×400 m rec. 90 s, con «pantalla bloqueada» (segundo plano + reloj adelantado sin ticks) y la app cerrada y reabierta a mitad; comprueba minuto/serie en pantalla, resultado y parciales guardados en el servidor.
 - Pendiente / deuda técnica:
   - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas).
+  - La cabecera de la sesión muestra «series · kg» también en sesiones de cardio; mostrar distancia sería más útil.
+  - Los E2E necesitan `npm run build` antes y, en este contenedor, `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
   - Temporizadores: en iOS con la pantalla bloqueada no suenan (limitación de las PWA); el estado se corrige al volver. No hay notificaciones programadas.
   - El ritmo medio en el historial usa la duración total de la sesión (incluye recuperaciones); el detalle usa el tiempo en movimiento.
   - E2E contra Supabase real: el test usa un mock de PostgREST/Auth (`tests/e2e/mock-supabase.ts`); no cubre RLS reales (eso lo cubren los tests PGlite).

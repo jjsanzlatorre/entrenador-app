@@ -37,14 +37,22 @@ describe('buildSchedule', () => {
   })
 
   it('Intervalos por distancia: trabajo abierto y recuperación fija', () => {
-    const s = buildSchedule({ kind: 'intervals', reps: 6, workDistanceM: 400, workS: null, recoveryS: 90 })
+    const s = buildSchedule({
+      kind: 'intervals',
+      reps: 6,
+      workDistanceM: 400,
+      workS: null,
+      recoveryS: 90,
+    })
     expect(s).toHaveLength(1 + 6 + 5)
     expect(s[1]?.durationMs).toBe(Number.POSITIVE_INFINITY)
     expect(s[2]).toEqual({ kind: 'rest', durationMs: 90 * S, round: 1 })
   })
 
   it('For Time sin cap es abierto', () => {
-    expect(buildSchedule({ kind: 'for_time', capS: null })[1]?.durationMs).toBe(Number.POSITIVE_INFINITY)
+    expect(buildSchedule({ kind: 'for_time', capS: null })[1]?.durationMs).toBe(
+      Number.POSITIVE_INFINITY,
+    )
   })
 })
 
@@ -132,7 +140,13 @@ describe('acciones', () => {
   })
 
   it('vuelta hecha en intervalos por distancia registra el parcial y pasa a recuperación', () => {
-    const intervals = buildSchedule({ kind: 'intervals', reps: 6, workDistanceM: 400, workS: null, recoveryS: 90 })
+    const intervals = buildSchedule({
+      kind: 'intervals',
+      reps: 6,
+      workDistanceM: 400,
+      workS: null,
+      recoveryS: 90,
+    })
     const state = startTimer(createTimerState(), T0, true)
     const lap = endCurrentPhase(intervals, state, T0 + 95 * S)
     expect(lap.durationMs).toBe(95 * S)

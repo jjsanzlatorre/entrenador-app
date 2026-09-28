@@ -8,7 +8,13 @@ import { START_OPTIONS, sessionTypeEmoji } from '@/lib/workout/session-kinds'
 import type { SessionType } from '@/types/database'
 
 // Botones de inicio: «Empezar entreno» (elige tipo) y «Registrar actividad».
-export function StartSessionButtons({ userId, label = 'Empezar entreno' }: { userId: string; label?: string }) {
+export function StartSessionButtons({
+  userId,
+  label = 'Empezar entreno',
+}: {
+  userId: string
+  label?: string
+}) {
   const navigate = useNavigate()
   const [choosing, setChoosing] = useState(false)
 

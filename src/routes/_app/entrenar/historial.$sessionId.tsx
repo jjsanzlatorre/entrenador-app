@@ -176,10 +176,7 @@ function SessionDetailPage() {
         <Stat label="Carga" value={load !== null ? formatInt(load) : '—'} hint="RPE × min" />
         {cardio ? (
           <>
-            <Stat
-              label="Distancia"
-              value={distance ? formatDistance(distance, paceKind) : '—'}
-            />
+            <Stat label="Distancia" value={distance ? formatDistance(distance, paceKind) : '—'} />
             <Stat
               label={paceKind === 'bike' ? 'Velocidad media' : 'Ritmo medio'}
               value={avgPace ?? '—'}
@@ -273,9 +270,7 @@ function SessionDetailPage() {
                           superset={block.blockType === 'superset'}
                           sets={sets}
                           previousTonnage={
-                            prev
-                              ? tonnage(prev.sets.map((s) => ({ ...s, completed: true })))
-                              : null
+                            prev ? tonnage(prev.sets.map((s) => ({ ...s, completed: true }))) : null
                           }
                           previousLoading={previous.isPending && previous.fetchStatus !== 'idle'}
                           previousUnavailable={previous.isError}

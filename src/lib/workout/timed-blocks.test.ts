@@ -62,7 +62,13 @@ describe('EMOM', () => {
 
   it('terminar a mitad cuenta solo los minutos completos', () => {
     const { id, s } = base()
-    let session = addTimedBlock(s, { kind: 'emom', minutes: 12, intervalS: 60 }, [{ exercise: swing, targetReps: 15 }], T0, id)
+    let session = addTimedBlock(
+      s,
+      { kind: 'emom', minutes: 12, intervalS: 60 },
+      [{ exercise: swing, targetReps: 15 }],
+      T0,
+      id,
+    )
     const blockId = session.blocks[0]!.id
     session = applyTimerAction(session, blockId, 'start', T0)
     session = applyTimerAction(session, blockId, 'finish', T0 + PREP_MS + 4 * MIN + 30 * S)
@@ -95,14 +101,22 @@ describe('AMRAP', () => {
     expect(block.result).toEqual({ kind: 'amrap', durationS: 600, rounds: 5, extraReps: 7 })
     expect(block.sets).toHaveLength(10)
     expect(block.sets.every((x) => x.completed)).toBe(true)
-    expect(block.sets.filter((x) => x.exerciseId === 'burpee').every((x) => x.reps === 5)).toBe(true)
+    expect(block.sets.filter((x) => x.exerciseId === 'burpee').every((x) => x.reps === 5)).toBe(
+      true,
+    )
   })
 })
 
 describe('Tabata y For Time', () => {
   it('Tabata: rondas completadas', () => {
     const { id, s } = base()
-    let session = addTimedBlock(s, { kind: 'tabata', workS: 20, restS: 10, rounds: 8 }, [{ exercise: burpee, targetReps: null }], T0, id)
+    let session = addTimedBlock(
+      s,
+      { kind: 'tabata', workS: 20, restS: 10, rounds: 8 },
+      [{ exercise: burpee, targetReps: null }],
+      T0,
+      id,
+    )
     const blockId = session.blocks[0]!.id
     session = applyTimerAction(session, blockId, 'start-now', T0)
     session = applyTimerAction(session, blockId, 'finish', T0 + 95 * S)
@@ -111,7 +125,13 @@ describe('Tabata y For Time', () => {
 
   it('For Time: tiempo final y cap', () => {
     const { id, s } = base()
-    let session = addTimedBlock(s, { kind: 'for_time', capS: 600 }, [{ exercise: burpee, targetReps: 50 }], T0, id)
+    let session = addTimedBlock(
+      s,
+      { kind: 'for_time', capS: 600 },
+      [{ exercise: burpee, targetReps: 50 }],
+      T0,
+      id,
+    )
     const blockId = session.blocks[0]!.id
     session = applyTimerAction(session, blockId, 'start', T0)
     session = applyTimerAction(session, blockId, 'finish', T0 + PREP_MS + 6 * MIN + 41 * S)
@@ -224,6 +244,10 @@ describe('tipos de sesión', () => {
       maxHr: 160,
       calories: 700,
     })
-    expect(session.blocks[0]?.sets[0]).toMatchObject({ exerciseId: 'surf', durationS: 5400, completed: true })
+    expect(session.blocks[0]?.sets[0]).toMatchObject({
+      exerciseId: 'surf',
+      durationS: 5400,
+      completed: true,
+    })
   })
 })

@@ -1,4 +1,5 @@
 // Operaciones puras sobre la sesión local. Cada una devuelve una sesión nueva con `rev` actualizado.
+import { finalizeTimedBlock, isTimedBlock, settleFinishedTimers } from './timed-blocks'
 import type {
   BlockExercise,
   Exercise,
@@ -44,6 +45,12 @@ function mapBlock(
   return bump({ ...session, blocks: reindexBlocks(blocks) }, now)
 }
 
+// Un circuito sigue siéndolo; si no, 1 ejercicio = series normales y varios = superserie.
+function groupedType(block: LocalBlock, exerciseCount: number): LocalBlock['blockType'] {
+  if (block.blockType === 'circuit') return 'circuit'
+  return exerciseCount > 1 ? 'superset' : 'straight'
+}
+
 function emptySet(exerciseId: string, setIndex: number, id: string): SetEntry {
   return {
     id,
@@ -86,12 +93,14 @@ export function createSession(
   now: number,
   newId: IdFn = defaultId,
   title = 'Entreno libre',
+  sessionType: LocalSession['sessionType'] = 'strength',
+  location: LocalSession['location'] = 'gym',
 ): LocalSession {
   return {
     id: newId(),
     userId,
     mode: 'live',
-    sessionType: 'strength',
+    sessionType,
     title,
     startedAt: new Date(now).toISOString(),
     endedAt: null,
@@ -100,8 +109,9 @@ export function createSession(
     avgHr: null,
     maxHr: null,
     calories: null,
-    location: 'gym',
+    location,
     notes: null,
+    distanceM: null,
     blocks: [],
     rest: null,
     rev: now,
@@ -164,7 +174,7 @@ export function removeExercise(
       if (exercises.length === 0) return null
       return {
         ...b,
-        blockType: exercises.length > 1 ? 'superset' : 'straight',
+        blockType: groupedType(b, exercises.length),
         exercises,
         sets: b.sets.filter((s) => s.exerciseId !== exerciseId),
       }
@@ -208,7 +218,7 @@ export function substituteExercise(
       ]
       return {
         ...b,
-        blockType: exercises.length > 1 ? 'superset' : 'straight',
+        blockType: groupedType(b, exercises.length),
         exercises,
         sets: reindexSets(sets),
       }
@@ -353,7 +363,7 @@ export function toggleSetComplete(session: LocalSession, setId: string, now: num
     now,
   )
 
-  if (completed && session.mode === 'live') {
+  if (completed && session.mode === 'live' && !isTimedBlock(block)) {
     const lastExercise = block.exercises[block.exercises.length - 1]
     const startsRest = block.exercises.length === 1 || lastExercise?.exerciseId === set.exerciseId
     const restS = block.exercises.find((e) => e.exerciseId === set.exerciseId)?.restS ?? 90
@@ -374,6 +384,8 @@ export function toggleSetComplete(session: LocalSession, setId: string, now: num
 
 export function nextPendingSetId(session: Pick<LocalSession, 'blocks'>) {
   for (const block of session.blocks) {
+    // Los bloques con temporizador se registran con sus propios controles.
+    if (isTimedBlock(block)) continue
     // En superseries se alterna: primera serie pendiente por índice y luego por ejercicio.
     const pending = block.sets
       .filter((s) => !s.completed)
@@ -447,11 +459,32 @@ export function updateDetails(
   return bump({ ...session, ...patch }, now)
 }
 
+// Distancia total de la sesión: suma de las series completadas con distancia.
+export function totalDistanceM(session: Pick<LocalSession, 'blocks'>) {
+  const total = session.blocks
+    .flatMap((b) => b.sets)
+    .reduce((acc, s) => (s.completed && s.distanceM ? acc + s.distanceM : acc), 0)
+  return total > 0 ? total : null
+}
+
 export function finishSession(
   session: LocalSession,
   details: SessionDetailsPatch,
   now: number,
 ): LocalSession {
   const endedAt = session.endedAt ?? new Date(now).toISOString()
-  return bump({ ...session, ...details, endedAt, rest: null }, now)
+  // Cierra cualquier temporizador que siguiera corriendo.
+  const settled = {
+    ...settleFinishedTimers(session, now),
+  }
+  const blocks = settled.blocks.map((b) =>
+    isTimedBlock(b) && b.timer?.startedAt != null && b.timer.finishedAt === null
+      ? finalizeTimedBlock(b, now)
+      : b,
+  )
+  const closed = { ...settled, blocks }
+  return bump(
+    { ...closed, ...details, distanceM: totalDistanceM(closed), endedAt, rest: null },
+    now,
+  )
 }

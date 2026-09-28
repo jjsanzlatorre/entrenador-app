@@ -17,6 +17,7 @@ import { Route as AppEntrenarRouteImport } from './routes/_app/entrenar'
 import { Route as AppPerfilRouteImport } from './routes/_app/perfil'
 import { Route as AppPlanRouteImport } from './routes/_app/plan'
 import { Route as AppProgresoRouteImport } from './routes/_app/progreso'
+import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AppAdminInvitacionesRouteImport } from './routes/_app/admin/invitaciones'
 
@@ -59,6 +60,11 @@ const AppProgresoRoute = AppProgresoRouteImport.update({
   path: '/progreso',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiHealthRoute = ApiHealthRouteImport.update({
+  id: '/api/health',
+  path: '/api/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
@@ -78,6 +84,7 @@ export interface FileRoutesByFullPath {
   '/perfil': typeof AppPerfilRoute
   '/plan': typeof AppPlanRoute
   '/progreso': typeof AppProgresoRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
 }
@@ -88,6 +95,7 @@ export interface FileRoutesByTo {
   '/perfil': typeof AppPerfilRoute
   '/plan': typeof AppPlanRoute
   '/progreso': typeof AppProgresoRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AppIndexRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
@@ -101,6 +109,7 @@ export interface FileRoutesById {
   '/_app/perfil': typeof AppPerfilRoute
   '/_app/plan': typeof AppPlanRoute
   '/_app/progreso': typeof AppProgresoRoute
+  '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/invitaciones': typeof AppAdminInvitacionesRoute
@@ -115,6 +124,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/plan'
     | '/progreso'
+    | '/api/health'
     | '/auth/callback'
     | '/admin/invitaciones'
   fileRoutesByTo: FileRoutesByTo
@@ -125,6 +135,7 @@ export interface FileRouteTypes {
     | '/perfil'
     | '/plan'
     | '/progreso'
+    | '/api/health'
     | '/auth/callback'
     | '/'
     | '/admin/invitaciones'
@@ -137,6 +148,7 @@ export interface FileRouteTypes {
     | '/_app/perfil'
     | '/_app/plan'
     | '/_app/progreso'
+    | '/api/health'
     | '/auth/callback'
     | '/_app/'
     | '/_app/admin/invitaciones'
@@ -146,6 +158,7 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   BloqueadoRoute: typeof BloqueadoRoute
   LoginRoute: typeof LoginRoute
+  ApiHealthRoute: typeof ApiHealthRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
 }
 
@@ -207,6 +220,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProgresoRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/health': {
+      id: '/api/health'
+      path: '/api/health'
+      fullPath: '/api/health'
+      preLoaderRoute: typeof ApiHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth/callback': {
       id: '/auth/callback'
       path: '/auth/callback'
@@ -248,6 +268,7 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   BloqueadoRoute: BloqueadoRoute,
   LoginRoute: LoginRoute,
+  ApiHealthRoute: ApiHealthRoute,
   AuthCallbackRoute: AuthCallbackRoute,
 }
 export const routeTree = rootRouteImport
@@ -255,10 +276,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

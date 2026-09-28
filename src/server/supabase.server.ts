@@ -6,8 +6,8 @@ import type { Database } from '@/types/database'
 
 // Cliente con la sesión del usuario (cookies de la petición). Respeta RLS.
 export function getSupabaseServerClient() {
-  const { url, anonKey } = getPublicEnv()
-  return createServerClient<Database>(url, anonKey, {
+  const { supabaseUrl, supabaseAnonKey } = getPublicEnv()
+  return createServerClient<Database>(supabaseUrl, supabaseAnonKey, {
     cookies: {
       getAll() {
         return Object.entries(getCookies()).map(([name, value]) => ({ name, value }))
@@ -23,12 +23,12 @@ export function getSupabaseServerClient() {
 
 // Cliente con service role. Salta RLS: usar solo tras comprobar permisos.
 export function getSupabaseAdminClient() {
-  const { url } = getPublicEnv()
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+  const { supabaseUrl } = getPublicEnv()
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY?.trim()
   if (!serviceRoleKey) {
     throw new Error('Falta SUPABASE_SERVICE_ROLE_KEY en el servidor.')
   }
-  return createClient<Database>(url, serviceRoleKey, {
+  return createClient<Database>(supabaseUrl, serviceRoleKey, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }

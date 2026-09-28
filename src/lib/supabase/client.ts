@@ -8,8 +8,8 @@ let browserClient: SupabaseClient<Database> | undefined
 // Cliente de navegador: guarda la sesión en cookies para que el servidor también la lea.
 export function getSupabaseBrowserClient() {
   if (!browserClient) {
-    const { url, anonKey } = getPublicEnv()
-    browserClient = createBrowserClient<Database>(url, anonKey, {
+    const { supabaseUrl, supabaseAnonKey } = getPublicEnv()
+    browserClient = createBrowserClient<Database>(supabaseUrl, supabaseAnonKey, {
       // Los enlaces de invitación y magic link se procesan a mano en /auth/callback.
       auth: { detectSessionInUrl: false },
     })

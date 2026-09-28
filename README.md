@@ -37,7 +37,8 @@ Stack: TanStack Start (React + TypeScript) · Tailwind + shadcn/ui · Supabase �
    | `VITE_SUPABASE_ANON_KEY`    | clave `anon` / publishable                                    |
    | `SUPABASE_SERVICE_ROLE_KEY` | clave `service_role` / secret (**nunca** con prefijo `VITE_`) |
 
-4. Deploy. Si cambias variables `VITE_*` después, haz **Redeploy** (se incrustan en el build).
+4. Deploy. Tras cambiar variables, haz **Redeploy**.
+5. Comprueba `https://TU-APP.vercel.app/api/health`: debe devolver `"ok": true`. Muestra qué variables existen (solo `true`/`false`, nunca los valores).
 
 ## Desarrollo (lo hace Claude Code en la nube)
 

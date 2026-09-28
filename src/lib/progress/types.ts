@@ -20,6 +20,8 @@ export type SessionLogEntry = {
 export type ActivityDay = { day: DateKey; sessionType: SessionType; minutes: number | null }
 
 export type Commitment = {
+  // Id en la base de datos (opcional: los tests y la caché antigua pueden no tenerlo).
+  id?: string
   validFrom: DateKey
   validTo: DateKey | null
   sessionsPerWeek: number

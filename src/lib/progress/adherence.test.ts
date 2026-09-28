@@ -4,6 +4,7 @@ import {
   adherenceLevel,
   averagePct,
   commitmentForWeek,
+  currentCommitment,
   monthAdherence,
   monthValue,
   streaks,
@@ -114,6 +115,28 @@ describe('historial de compromisos', () => {
     const next: Commitment = { ...base, validFrom: '2026-09-07', sessionsPerWeek: 5 }
     expect(commitmentForWeek([old, next], '2026-08-31')?.sessionsPerWeek).toBe(3)
     expect(commitmentForWeek([old, next], W)?.sessionsPerWeek).toBe(5)
+  })
+
+  it('quitar el compromiso a mitad de semana deja esa semana y las siguientes sin él', () => {
+    // Vigente desde el 31/08, quitado el miércoles 09/09 (semana del 07/09).
+    const ended: Commitment = { ...base, validTo: '2026-09-09' }
+    expect(commitmentForWeek([ended], '2026-08-31')?.sessionsPerWeek).toBe(3)
+    expect(commitmentForWeek([ended], '2026-09-07')).toBeNull()
+    expect(weekAdherence([ended], [day('2026-09-08')], '2026-09-07').pct).toBeNull()
+    expect(currentCommitment([ended], '2026-09-09')).toBeNull()
+    expect(currentCommitment([ended], '2026-09-15')).toBeNull()
+  })
+
+  it('quitado el domingo: la semana cuenta en el historial, pero hoy ya no hay compromiso', () => {
+    const ended: Commitment = { ...base, validTo: '2026-09-13' }
+    expect(commitmentForWeek([ended], '2026-09-07')?.sessionsPerWeek).toBe(3)
+    expect(currentCommitment([ended], '2026-09-13')).toBeNull()
+    expect(currentCommitment([ended], '2026-09-12')?.sessionsPerWeek).toBe(3)
+  })
+
+  it('compromiso abierto: vigente', () => {
+    expect(currentCommitment([base], '2026-09-10')?.sessionsPerWeek).toBe(3)
+    expect(currentCommitment([], '2026-09-10')).toBeNull()
   })
 })
 

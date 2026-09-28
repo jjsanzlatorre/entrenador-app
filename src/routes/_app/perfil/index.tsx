@@ -20,7 +20,8 @@ import { Label } from '@/components/ui/label'
 import { Page } from '@/components/page'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState, signOut } from '@/lib/auth'
-import { updateProfileSettings } from '@/lib/progress/api'
+import { notifyError, notifySaved } from '@/lib/notify'
+import { updateOwnProfile, updateProfileSettings } from '@/lib/progress/api'
 
 export const Route = createFileRoute('/_app/perfil/')({
   component: ProfilePage,
@@ -139,19 +140,23 @@ function DisplayNameForm({ initial }: { initial: string }) {
   const [name, setName] = useState(initial)
   const [status, setStatus] = useState<string | null>(null)
 
+  const [saving, setSaving] = useState(false)
+
   async function save(e: FormEvent) {
     e.preventDefault()
-    const { error } = await getSupabaseBrowserClient()
-      .from('profiles')
-      .update({ display_name: name.trim() || null })
-      .eq('id', auth.userId)
-    if (error) {
+    setSaving(true)
+    try {
+      await updateOwnProfile(auth.userId, { display_name: name.trim() || null })
+      setStatus('Guardado')
+      notifySaved('Nombre guardado')
+      await resetAuthState(queryClient)
+      await router.invalidate()
+    } catch (error) {
       setStatus('No se pudo guardar')
-      return
+      notifyError(error, 'guardar el nombre')
+    } finally {
+      setSaving(false)
     }
-    setStatus('Guardado')
-    await resetAuthState(queryClient)
-    await router.invalidate()
   }
 
   return (
@@ -167,7 +172,7 @@ function DisplayNameForm({ initial }: { initial: string }) {
             setStatus(null)
           }}
         />
-        <Button type="submit" size="lg">
+        <Button type="submit" size="lg" disabled={saving}>
           Guardar
         </Button>
       </div>
@@ -180,11 +185,23 @@ function PasswordForm() {
   const [password, setPassword] = useState('')
   const [status, setStatus] = useState<string | null>(null)
 
+  const [saving, setSaving] = useState(false)
+
   async function save(e: FormEvent) {
     e.preventDefault()
-    const { error } = await getSupabaseBrowserClient().auth.updateUser({ password })
-    setStatus(error ? `No se pudo guardar: ${error.message}` : 'Contraseña guardada')
-    if (!error) setPassword('')
+    setSaving(true)
+    try {
+      const { error } = await getSupabaseBrowserClient().auth.updateUser({ password })
+      if (error) throw new Error(passwordError(error.message))
+      setStatus('Contraseña guardada')
+      notifySaved('Contraseña guardada')
+      setPassword('')
+    } catch (error) {
+      setStatus(`No se pudo guardar: ${error instanceof Error ? error.message : String(error)}`)
+      notifyError(error, 'guardar la contraseña')
+    } finally {
+      setSaving(false)
+    }
   }
 
   return (
@@ -200,13 +217,21 @@ function PasswordForm() {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
         />
-        <Button type="submit" size="lg">
+        <Button type="submit" size="lg" disabled={saving}>
           Guardar
         </Button>
       </div>
       {status && <p className="text-muted-foreground text-sm">{status}</p>}
     </form>
   )
+}
+
+// Mensajes de Supabase Auth más habituales al cambiar la contraseña.
+function passwordError(message: string) {
+  if (/different from the old/i.test(message)) return 'tiene que ser distinta de la actual'
+  if (/at least|should be|weak/i.test(message)) return 'es demasiado corta o débil'
+  if (/reauthent/i.test(message)) return 'vuelve a entrar en la app e inténtalo de nuevo'
+  return message
 }
 
 // Pop-ups de logros (fin de sesión y resumen del mes): show_equivalence_popups.
@@ -224,8 +249,10 @@ function PopupsToggle({ enabled }: { enabled: boolean }) {
       await updateProfileSettings(auth.userId, { showPopups: !enabled })
       await resetAuthState(queryClient)
       await router.invalidate()
+      notifySaved(enabled ? 'Pop-ups de logros desactivados' : 'Pop-ups de logros activados')
     } catch (error) {
       setStatus(error instanceof Error ? error.message : 'No se pudo guardar')
+      notifyError(error, 'guardar la preferencia')
     } finally {
       setSaving(false)
     }

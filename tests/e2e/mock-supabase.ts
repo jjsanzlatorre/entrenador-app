@@ -106,6 +106,8 @@ type Seed = {
   commitments: Record<string, unknown>[]
   partnerLinks: Record<string, unknown>[]
   partnerDays: Record<string, { day: string; session_type: string }[]>
+  // Simula que la RLS impide el UPDATE del perfil (PostgREST devuelve 0 filas, sin error).
+  profileUpdateBlocked?: boolean
 }
 let progressSeed: Seed = { commitments: [], partnerLinks: [], partnerDays: {} }
 
@@ -244,7 +246,28 @@ export function startMockSupabase(port: number) {
       }
       return send(res, 200, milestones)
     }
+    if (path === '/rest/v1/rpc/end_commitment') {
+      const { p_today } = (await readBody(req)) as { p_today: string }
+      let n = 0
+      for (const c of progressSeed.commitments) {
+        if (c.user_id === MOCK_USER_ID && (c.valid_to === null || String(c.valid_to) > p_today)) {
+          c.valid_to = p_today
+          n++
+        }
+      }
+      return send(res, 200, n)
+    }
     if (table === 'commitments') {
+      if (req.method === 'DELETE') {
+        const id = eqParam(url, 'id')
+        const removed = progressSeed.commitments.filter((c) => c.id === id)
+        progressSeed.commitments = progressSeed.commitments.filter((c) => c.id !== id)
+        return send(
+          res,
+          200,
+          removed.map((c) => ({ id: c.id })),
+        )
+      }
       const uid = eqParam(url, 'user_id')
       return send(
         res,
@@ -256,7 +279,11 @@ export function startMockSupabase(port: number) {
       return send(res, 200, rows(req, []))
     }
     if (table === 'profiles') {
-      if (req.method === 'PATCH') profile = { ...profile, ...((await readBody(req)) as object) }
+      if (req.method === 'PATCH') {
+        const patch = (await readBody(req)) as object
+        if (progressSeed.profileUpdateBlocked) return send(res, 200, [])
+        profile = { ...profile, ...patch }
+      }
       return send(res, 200, rows(req, [profile]))
     }
     if (table === 'exercises') return send(res, 200, rows(req, exercises))

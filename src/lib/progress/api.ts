@@ -47,6 +47,7 @@ export async function fetchSessionLog(userId: string): Promise<SessionLogEntry[]
 // ── Compromiso ──────────────────────────────────────────────
 
 type CommitmentRowLite = {
+  id: string
   valid_from: string
   valid_to: string | null
   sessions_per_week: number
@@ -57,6 +58,7 @@ type CommitmentRowLite = {
 
 function toCommitment(r: CommitmentRowLite): Commitment {
   return {
+    id: r.id,
     validFrom: r.valid_from,
     validTo: r.valid_to,
     sessionsPerWeek: r.sessions_per_week,
@@ -75,7 +77,7 @@ export async function fetchCommitments(userId: string): Promise<Commitment[]> {
       db()
         .from('commitments')
         .select(
-          'valid_from, valid_to, sessions_per_week, minutes_per_week, by_type, counts_free_activities',
+          'id, valid_from, valid_to, sessions_per_week, minutes_per_week, by_type, counts_free_activities',
         )
         .eq('user_id', userId)
         .order('valid_from'),
@@ -105,6 +107,20 @@ export async function saveCommitment(input: CommitmentInput) {
       }),
     ),
   )
+}
+
+// Quitar el compromiso: cierra el vigente hoy (valid_to = today) y conserva el historial.
+export async function endCommitment(today: string) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para quitar el compromiso')
+  const closed = check(await withTimeout(db().rpc('end_commitment', { p_today: today })))
+  if (closed === 0) throw new Error('No tienes ningún compromiso vigente que quitar')
+}
+
+// Borrar una entrada del historial (creada por error).
+export async function deleteCommitment(id: string) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para borrar el compromiso')
+  const rows = check(await withTimeout(db().from('commitments').delete().eq('id', id).select('id')))
+  if (rows.length === 0) throw new Error('No se ha podido borrar: el compromiso ya no existe')
 }
 
 // ── Récords ─────────────────────────────────────────────────
@@ -392,7 +408,7 @@ export async function updateSharing(
   partnerId: string,
   patch: { adherence?: boolean; sessions?: boolean; metrics?: boolean },
 ) {
-  await rpcOrThrow(
+  const rows = await rpcOrThrow(
     db()
       .from('partner_links')
       .update({
@@ -401,8 +417,10 @@ export async function updateSharing(
         can_view_metrics: patch.metrics,
       })
       .eq('user_id', userId)
-      .eq('partner_id', partnerId),
+      .eq('partner_id', partnerId)
+      .select('user_id'),
   )
+  if (!rows || rows.length === 0) throw new Error('el vínculo ya no existe')
 }
 
 // Cumplimiento de una persona vinculada: sus compromisos y los días/tipos con sesión.
@@ -497,7 +515,6 @@ export async function updateProfileSettings(
   userId: string,
   patch: { home?: Home | null; showPopups?: boolean },
 ) {
-  if (!isOnline()) throw new OfflineError('Necesitas conexión para guardar el perfil')
   const update: TablesUpdate<'profiles'> = {}
   if (patch.home !== undefined) {
     update.home_city = patch.home?.city ?? null
@@ -505,5 +522,15 @@ export async function updateProfileSettings(
     update.home_lng = patch.home?.lng ?? null
   }
   if (patch.showPopups !== undefined) update.show_equivalence_popups = patch.showPopups
-  check(await withTimeout(db().from('profiles').update(update).eq('id', userId)))
+  await updateOwnProfile(userId, update)
+}
+
+// Actualiza el perfil propio y comprueba que se ha guardado de verdad: si la RLS o los
+// permisos lo impiden, PostgREST no devuelve error sino 0 filas.
+export async function updateOwnProfile(userId: string, update: TablesUpdate<'profiles'>) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para guardar el perfil')
+  const rows = check(
+    await withTimeout(db().from('profiles').update(update).eq('id', userId).select('id')),
+  )
+  if (rows.length === 0) throw new Error('No se ha podido guardar el perfil (sin permiso)')
 }

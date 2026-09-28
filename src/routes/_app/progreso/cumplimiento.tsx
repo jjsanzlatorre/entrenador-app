@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   adherenceLevel,
   averagePct,
+  currentCommitment,
   formatPct,
   monthAdherence,
   monthValue,
@@ -45,17 +46,23 @@ function AdherencePage() {
 
   if (isPending) return <p className="text-muted-foreground p-6 text-center">Cargando…</p>
 
-  if (commitments.length === 0) {
+  if (!currentCommitment(commitments, today)) {
+    const hadOne = commitments.length > 0
     return (
       <div className="flex flex-col gap-4 p-4">
         <BackLink />
         <h1 className="text-2xl font-bold">Cumplimiento</h1>
         <p className="text-muted-foreground">
-          Aún no has definido tu compromiso: cuántas sesiones quieres hacer cada semana.
+          {hadOne
+            ? 'Ahora mismo no tienes compromiso. Tu historial se conserva: crea uno nuevo cuando quieras y volverás a ver tus barras.'
+            : 'Aún no has definido tu compromiso: cuántas sesiones quieres hacer cada semana.'}
         </p>
         <Button asChild size="lg">
-          <Link to="/perfil/compromiso">Definir mi compromiso</Link>
+          <Link to="/perfil/compromiso">
+            {hadOne ? 'Crear un compromiso' : 'Definir mi compromiso'}
+          </Link>
         </Button>
+        <UsCard userId={auth.userId} myName={auth.profile.display_name ?? 'Yo'} />
       </div>
     )
   }

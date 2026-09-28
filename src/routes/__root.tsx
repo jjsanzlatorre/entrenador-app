@@ -2,6 +2,7 @@ import { useEffect, type ReactNode } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
 import { RootError, logError } from '@/components/root-error'
+import { Toaster } from '@/components/ui/sonner'
 import { ensureAuthState } from '@/lib/auth'
 import { ConfigError, readPublicEnv } from '@/lib/env'
 import { registerServiceWorker } from '@/lib/pwa'
@@ -76,6 +77,7 @@ function RootComponent() {
   return (
     <QueryClientProvider client={queryClient}>
       <Outlet />
+      <Toaster />
     </QueryClientProvider>
   )
 }

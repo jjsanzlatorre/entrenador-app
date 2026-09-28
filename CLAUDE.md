@@ -488,7 +488,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **2 verificada** (typecheck, lint, Vitest, build y E2E de Playwright en verde; pantallas revisadas a 375 px). Falta validar la aceptación en un móvil real. Siguiente: Fase 3.
+- Fase actual: **3A hecha** (typecheck, lint, Vitest, build y E2E de Playwright en verde; pantallas revisadas a 375 px). Falta validar en móvil real con dos usuarios. Siguiente: **Fase 3B** (acumulados y equivalencias, §10B).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -516,9 +516,23 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Historial y detalle muestran el tipo, distancia y ritmo, y el resultado de cada bloque (minutos de EMOM, rondas de AMRAP, tiempo de For Time, parciales de intervalos con ritmo).
   - Tests: Vitest para ritmos y para el estado de los temporizadores (incluido reanudar desde timestamps tras bloquear/recargar) y los bloques.
   - E2E de aceptación (`tests/e2e/timers.spec.ts`) con el reloj simulado de Playwright: EMOM de 12 min y 6×400 m rec. 90 s, con «pantalla bloqueada» (segundo plano + reloj adelantado sin ticks) y la app cerrada y reabierta a mitad; comprueba minuto/serie en pantalla, resultado y parciales guardados en el servidor.
+- Hecho (Fase 3A):
+  - Migraciones `0008_personal_records.sql` (tabla + `recompute_personal_records` + triggers de sentencia en `exercise_sets`), `0009_body_metrics_photos.sql`, `0010_storage_progress_photos.sql` (bucket privado `progress-photos`, 3 MB, JPEG/WebP, políticas por carpeta `{user_id}/`), `0011_commitments.sql` (+ RPC `set_commitment`), `0012_partner_links.sql` (tabla, `shares_with_me`, políticas de lectura de pareja y RPC `invite_partner`, `respond_partner_link`, `revoke_partner_link`, `list_partner_links`, `partner_adherence_days`).
+  - Cabecera de sesión de carrera/natación/bici: distancia y ritmo (o velocidad) siempre, también antes de la primera serie.
+  - PRs calculados en la base de datos (1RM Epley, peso máximo, reps con un peso, mejor tiempo, distancia más larga, mejor ritmo). Resumen de sesión con «🏆 Nuevo récord»; `/progreso/records` (lista con buscador) y `/progreso/ejercicio/$id` (récords vigentes, historial de récords y gráficas Recharts: 1RM, peso máx. y volumen; en cardio distancia y ritmo/velocidad).
+  - `/progreso/medidas` (peso, % grasa y 5 perímetros, un registro por día, gráfica por medida) y `/progreso/fotos` (compresión a 1600 px JPEG 80 % en el cliente, URLs firmadas de 1 h, comparativa antes/después por postura).
+  - `/progreso/resumen`: semana/mes con navegación, sesiones, horas, carga sRPE y distancia, por deporte y frente al periodo anterior.
+  - Cumplimiento (§10A): `/perfil/compromiso` (sesiones, minutos, reparto por tipo, actividades libres; historial), barra de la semana en «Hoy» y en Progreso, `/progreso/cumplimiento` (semana, mes prorrateado, 12 semanas, racha actual y mejor, media de 3 meses), mensajes de ánimo y colores < 50 / 50–99 / ≥ 100 %. El compromiso se cachea en IndexedDB y la barra cuenta también las sesiones pendientes de subir (funciona sin conexión).
+  - Vínculos: `/perfil/vinculos` (invitar por email a un usuario registrado, aceptar/rechazar, cancelar, deshacer, permisos por dirección) y tarjeta «Nosotros» en «Hoy» y «Cumplimiento».
+  - Tests: Vitest de cumplimiento, resúmenes, series de gráficas, récords, compresión y cabecera; PGlite de PRs (mejoras, borrado, cardio), compromisos, medidas/fotos/storage y RLS de vínculos (sin permiso no se ven sesiones, series, pesos, récords, medidas ni fotos; con permiso sí, salvo fotos; ver no es editar; revocar corta el acceso). E2E `tests/e2e/adherence.spec.ts`: 2 de 3 → 67 % en «Hoy» y en «Nosotros».
 - Pendiente / deuda técnica:
-  - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas).
-  - La cabecera de la sesión muestra «series · kg» también en sesiones de cardio; mostrar distancia sería más útil.
+  - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas; cámara y compresión de fotos HEIC).
+  - Fase 3B: acumulados y equivalencias (§10B), «Mis logros», pop-up de fin de sesión y resumen del mes.
+  - Reacciones rápidas (👏 🔥 💪) sobre la semana de la pareja: no hechas (opcionales; fase 7).
+  - Ver las sesiones de la pareja (`can_view_sessions`) y sus medidas (`can_view_metrics`): la RLS ya lo permite, falta la UI (fase 7).
+  - «Usar como compromiso las sesiones del plan» y adherencia al plan: fase 5.
+  - Los récords solo se ven con conexión y tras sincronizar (se calculan en el servidor); el resumen lo indica.
+  - Medidas y fotos requieren conexión (sin cola offline).
   - Los E2E necesitan `npm run build` antes y, en este contenedor, `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
   - Temporizadores: en iOS con la pantalla bloqueada no suenan (limitación de las PWA); el estado se corrige al volver. No hay notificaciones programadas.
   - El ritmo medio en el historial usa la duración total de la sesión (incluye recuperaciones); el detalle usa el tiempo en movimiento.
@@ -544,6 +558,10 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - `session_blocks` y `exercise_sets` llevan `user_id` (regla general de tablas de usuario) y su RLS exige además que la sesión sea propia.
   - Cardio y deportes no tienen músculos en la semilla: el mapa usará la aproximación por tipo de sesión (§6) en la fase 4.
   - Series de peso corporal (dominadas, fondos, flexiones) se registran solo con reps y no suman tonelaje (v1).
+  - PRs en SQL (trigger de sentencia que rehace el historial del ejercicio afectado): así editar o borrar una sesión antigua deja los récords correctos. Cada fila es un evento de récord; `previous_value = null` es la primera marca (referencia, no se celebra). «Reps con un peso»: récord si ninguna serie anterior tiene ≥ peso y ≥ reps. «Mejor ritmo» solo con series de ≥ 1 km (≥ 100 m en natación); en bici se muestra como km/h.
+  - Compromiso: `valid_from` siempre es el lunes de la semana en que se guarda (la semana en curso ya se mide con el nuevo); cambiarlo dos veces en la misma semana sustituye el de esa semana. Con reparto por tipo, cada tipo solo llena sus huecos y lo que sobra llena los huecos libres (sesiones/semana − suma del reparto); el resto es «+N extra». El % semanal de la barra es hasta 100 % + extra; el mensual (hechas / comprometidas prorrateadas por días) sí puede pasar de 100 %. Minutos: suma de todas las sesiones de la semana (sin mínimo de 15 min). Media de 3 meses: 13 semanas terminadas, cada una hasta 100 %.
+  - Vínculos: una fila por dirección (`user_id` = quien comparte, `partner_id` = quien ve). El estado solo cambia por RPC; el usuario solo puede actualizar los permisos de su propia fila (GRANT por columnas). El cumplimiento de la pareja llega por `partner_adherence_days` (solo días y tipos de sesión ≥ 15 min, en la zona horaria del que mira), nunca por lectura directa de sesiones. Los nombres de la otra persona salen de `list_partner_links` (security definer); `profiles` sigue siendo solo propio.
+  - Todas las consultas de datos propios filtran por `user_id` (con permisos de pareja la RLS también devolvería filas ajenas).
   - Diagnóstico: `/api/health` (qué variables existen en runtime y en build, solo true/false), `errorComponent` raíz en español renderizado en servidor y logs `console.error` con stack (root `beforeLoad`, `onCatch`, middleware global en `src/start.ts`).
 
 ---

@@ -12,7 +12,7 @@ import {
 import { unlockAudio } from '@/lib/workout/alerts'
 import { getLastPerformance } from '@/lib/workout/api'
 import { elapsedMinutes, sessionStats } from '@/lib/workout/calc'
-import { formatClock, formatInt } from '@/lib/workout/format'
+import { formatClock } from '@/lib/workout/format'
 import {
   useCatalog,
   useEquipment,
@@ -20,7 +20,7 @@ import {
   useNow,
   useWakeLock,
 } from '@/lib/workout/hooks'
-import { formatDistance, formatPace, paceKindForSession } from '@/lib/workout/pace'
+import { sessionHeaderStats } from '@/lib/workout/summary'
 import * as ops from '@/lib/workout/session-ops'
 import { cardioExerciseFor } from '@/lib/workout/session-kinds'
 import * as timed from '@/lib/workout/timed-blocks'
@@ -214,18 +214,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   const restExercise = session.rest ? catalog.byId.get(session.rest.exerciseId) : undefined
   const elapsedS = Math.max(0, (now - new Date(session.startedAt).getTime()) / 1000)
 
-  // Cabecera: en cardio, distancia y ritmo; en el resto, series y volumen.
-  const paceKind = paceKindForSession(session.sessionType)
-  const distance = ops.totalDistanceM(session)
-  const cardioTime = session.blocks
-    .flatMap((b) => b.sets)
-    .reduce((acc, s) => (s.completed && s.distanceM && s.durationS ? acc + s.durationS : acc), 0)
-  const headerStats =
-    paceKind && distance
-      ? [formatDistance(distance, paceKind), formatPace(paceKind, distance, cardioTime)]
-          .filter(Boolean)
-          .join(' · ')
-      : `${stats.completedSets} series · ${formatInt(stats.tonnageKg)} kg`
+  const headerStats = sessionHeaderStats(session, stats)
 
   return (
     <div className="flex flex-col pb-40">

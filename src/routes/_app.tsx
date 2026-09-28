@@ -39,6 +39,10 @@ function AppLayout() {
     warmPageCache()
     return onSessionsSynced((ids) => {
       void queryClient.invalidateQueries({ queryKey: historyQueryKey(userId) })
+      // Récords y cumplimiento dependen de las sesiones del servidor.
+      for (const key of ['session-log', 'records', 'exercise-samples', 'session-prs']) {
+        void queryClient.invalidateQueries({ queryKey: [key] })
+      }
       for (const id of ids) void queryClient.invalidateQueries({ queryKey: ['session', id] })
     })
   }, [auth.userId, queryClient])

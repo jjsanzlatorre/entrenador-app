@@ -285,13 +285,15 @@ export type HistoryItem = {
   exerciseIds: string[]
 }
 
-export async function fetchHistory(limit = 50): Promise<HistoryItem[]> {
+// Solo las propias: con un vínculo que comparte sesiones, la RLS también deja ver las de la pareja.
+export async function fetchHistory(userId: string, limit = 50): Promise<HistoryItem[]> {
   const { data, error } = await withTimeout(
     db()
       .from('workout_sessions')
       .select(
         'id, title, session_type, started_at, ended_at, duration_min, rpe, distance_m, exercise_sets(exercise_id, weight_kg, reps, completed, is_warmup)',
       )
+      .eq('user_id', userId)
       .order('started_at', { ascending: false })
       .limit(limit),
   )

@@ -6,6 +6,7 @@ import type {
   ExerciseCategory,
   ExerciseRow,
   MuscleRole,
+  SessionType,
   TrackingType,
   WorkoutSessionRow,
 } from '@/types/database'
@@ -273,10 +274,12 @@ export async function deleteSessionRemote(sessionId: string) {
 export type HistoryItem = {
   id: string
   title: string
+  sessionType: SessionType
   startedAt: string
   endedAt: string | null
   durationMin: number | null
   rpe: number | null
+  distanceM: number | null
   completedSets: number
   tonnageKg: number
   exerciseIds: string[]
@@ -287,7 +290,7 @@ export async function fetchHistory(limit = 50): Promise<HistoryItem[]> {
     db()
       .from('workout_sessions')
       .select(
-        'id, title, started_at, ended_at, duration_min, rpe, exercise_sets(exercise_id, weight_kg, reps, completed, is_warmup)',
+        'id, title, session_type, started_at, ended_at, duration_min, rpe, distance_m, exercise_sets(exercise_id, weight_kg, reps, completed, is_warmup)',
       )
       .order('started_at', { ascending: false })
       .limit(limit),
@@ -295,7 +298,14 @@ export async function fetchHistory(limit = 50): Promise<HistoryItem[]> {
   if (error) throw new Error(error.message)
   type Row = Pick<
     WorkoutSessionRow,
-    'id' | 'title' | 'started_at' | 'ended_at' | 'duration_min' | 'rpe'
+    | 'id'
+    | 'title'
+    | 'session_type'
+    | 'started_at'
+    | 'ended_at'
+    | 'duration_min'
+    | 'rpe'
+    | 'distance_m'
   > & {
     exercise_sets: {
       exercise_id: string
@@ -310,10 +320,12 @@ export async function fetchHistory(limit = 50): Promise<HistoryItem[]> {
     return {
       id: row.id,
       title: row.title ?? 'Entreno',
+      sessionType: row.session_type,
       startedAt: row.started_at,
       endedAt: row.ended_at,
       durationMin: row.duration_min,
       rpe: row.rpe,
+      distanceM: row.distance_m === null ? null : Number(row.distance_m),
       completedSets: effective.length,
       tonnageKg: effective.reduce(
         (acc, s) => acc + (s.weight_kg && s.reps ? Number(s.weight_kg) * s.reps : 0),

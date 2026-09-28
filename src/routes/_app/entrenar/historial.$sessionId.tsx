@@ -14,8 +14,21 @@ import { setFields } from '@/lib/workout/fields'
 import { formatClock, formatDateLong, formatInt, formatKg, formatTime } from '@/lib/workout/format'
 import { historyQueryKey, useCatalog } from '@/lib/workout/hooks'
 import { muscleName } from '@/lib/workout/labels'
+import {
+  formatDistance,
+  formatPace,
+  paceKindForExercise,
+  paceKindForSession,
+} from '@/lib/workout/pace'
+import { totalDistanceM } from '@/lib/workout/session-ops'
+import { CARDIO_TYPES, sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
+import { isTimedBlock } from '@/lib/workout/timed-blocks'
 import type { Exercise, SetEntry } from '@/lib/workout/types'
+import { BLOCK_LABELS, describeTimer, resultSummary } from '@/components/workout/timed-block-card'
 import { cn } from '@/lib/utils'
+import type { SessionType } from '@/types/database'
+
+const QUICK_TYPES = new Set<SessionType>(['yoga', 'surf', 'padel_fronton', 'other'])
 
 export const Route = createFileRoute('/_app/entrenar/historial/$sessionId')({
   ssr: false,
@@ -88,6 +101,18 @@ function SessionDetailPage() {
   )
   const maxMuscle = Math.max(1, ...muscles.map((m) => m.sets))
   const load = session.rpe && session.durationMin ? session.rpe * session.durationMin : null
+  const paceKind = paceKindForSession(session.sessionType)
+  const cardio = CARDIO_TYPES.has(session.sessionType)
+  const quick = QUICK_TYPES.has(session.sessionType)
+  const distance = session.distanceM ?? totalDistanceM(session)
+  // Ritmo medio sobre el tiempo en movimiento (series con distancia), sin recuperaciones.
+  const movingS = session.blocks
+    .flatMap((b) => b.sets)
+    .reduce((acc, s) => (s.completed && s.distanceM && s.durationS ? acc + s.durationS : acc), 0)
+  const avgPace =
+    paceKind && distance
+      ? formatPace(paceKind, distance, movingS || (session.durationMin ?? 0) * 60)
+      : null
 
   async function handleEdit() {
     if (!session) return
@@ -123,9 +148,14 @@ function SessionDetailPage() {
       ) : null}
 
       <div>
-        <h1 className="text-2xl font-bold">{session.title || 'Entreno'}</h1>
-        <p className="text-muted-foreground text-sm first-letter:uppercase">
-          {formatDateLong(session.startedAt)} · {formatTime(session.startedAt)}
+        <h1 className="text-2xl font-bold">
+          <span aria-hidden>{sessionTypeEmoji(session.sessionType)} </span>
+          {session.title || 'Entreno'}
+        </h1>
+        <p className="text-muted-foreground text-sm">
+          {sessionTypeLabel(session.sessionType)} ·{' '}
+          <span className="first-letter:uppercase">{formatDateLong(session.startedAt)}</span> ·{' '}
+          {formatTime(session.startedAt)}
         </p>
         <div className="mt-1 flex items-center gap-2">
           {query.data?.pending && (
@@ -144,9 +174,25 @@ function SessionDetailPage() {
         />
         <Stat label="RPE" value={session.rpe?.toString() ?? '—'} />
         <Stat label="Carga" value={load !== null ? formatInt(load) : '—'} hint="RPE × min" />
-        <Stat label="Volumen" value={`${formatInt(stats.tonnageKg)} kg`} />
-        <Stat label="Series" value={String(stats.completedSets)} />
-        <Stat label="Reps" value={formatInt(stats.totalReps)} />
+        {cardio ? (
+          <>
+            <Stat
+              label="Distancia"
+              value={distance ? formatDistance(distance, paceKind) : '—'}
+            />
+            <Stat
+              label={paceKind === 'bike' ? 'Velocidad media' : 'Ritmo medio'}
+              value={avgPace ?? '—'}
+            />
+            <Stat label="FC media" value={session.avgHr?.toString() ?? '—'} />
+          </>
+        ) : quick ? null : (
+          <>
+            <Stat label="Volumen" value={`${formatInt(stats.tonnageKg)} kg`} />
+            <Stat label="Series" value={String(stats.completedSets)} />
+            <Stat label="Reps" value={formatInt(stats.totalReps)} />
+          </>
+        )}
       </div>
 
       {muscles.length > 0 && (
@@ -180,37 +226,69 @@ function SessionDetailPage() {
         </Card>
       )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Ejercicios</CardTitle>
-        </CardHeader>
-        <CardContent className="flex flex-col gap-4">
-          {session.blocks.length === 0 && (
-            <p className="text-muted-foreground text-sm">Sin ejercicios.</p>
-          )}
-          {session.blocks.map((block) =>
-            block.exercises.map((be) => {
-              const exercise = catalog.byId.get(be.exerciseId)
-              const sets = block.sets.filter((s) => s.exerciseId === be.exerciseId)
-              const prev = previous.data?.get(be.exerciseId)
+      {!quick && (
+        <Card>
+          <CardHeader>
+            <CardTitle>{cardio ? 'Bloques' : 'Ejercicios'}</CardTitle>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {session.blocks.length === 0 && (
+              <p className="text-muted-foreground text-sm">Sin ejercicios.</p>
+            )}
+            {session.blocks.map((block) => {
+              const special = block.blockType !== 'straight' && block.blockType !== 'superset'
+              const summary = resultSummary(block)
               return (
-                <ExerciseSummary
-                  key={`${block.id}-${be.exerciseId}`}
-                  name={exercise?.name ?? be.exerciseId}
-                  exercise={exercise}
-                  superset={block.exercises.length > 1}
-                  sets={sets}
-                  previousTonnage={
-                    prev ? tonnage(prev.sets.map((s) => ({ ...s, completed: true }))) : null
-                  }
-                  previousLoading={previous.isPending && previous.fetchStatus !== 'idle'}
-                  previousUnavailable={previous.isError}
-                />
+                <div key={block.id} className={cn(special && 'rounded-xl border p-3')}>
+                  {special && (
+                    <p className="mb-2 text-sm font-semibold">
+                      {BLOCK_LABELS[block.blockType]}
+                      {isTimedBlock(block) && (
+                        <span className="text-muted-foreground font-normal">
+                          {' '}
+                          · {describeTimer(block.settings)}
+                        </span>
+                      )}
+                      {block.settings?.kind === 'circuit' && (
+                        <span className="text-muted-foreground font-normal">
+                          {' '}
+                          · {block.settings.rounds} rondas
+                        </span>
+                      )}
+                      {summary && (
+                        <span className="text-primary block text-base font-bold">{summary}</span>
+                      )}
+                    </p>
+                  )}
+                  <div className="flex flex-col gap-4">
+                    {block.exercises.map((be) => {
+                      const exercise = catalog.byId.get(be.exerciseId)
+                      const sets = block.sets.filter((s) => s.exerciseId === be.exerciseId)
+                      const prev = previous.data?.get(be.exerciseId)
+                      return (
+                        <ExerciseSummary
+                          key={`${block.id}-${be.exerciseId}`}
+                          name={exercise?.name ?? be.exerciseId}
+                          exercise={exercise}
+                          superset={block.blockType === 'superset'}
+                          sets={sets}
+                          previousTonnage={
+                            prev
+                              ? tonnage(prev.sets.map((s) => ({ ...s, completed: true })))
+                              : null
+                          }
+                          previousLoading={previous.isPending && previous.fetchStatus !== 'idle'}
+                          previousUnavailable={previous.isError}
+                        />
+                      )
+                    })}
+                  </div>
+                </div>
               )
-            }),
-          )}
-        </CardContent>
-      </Card>
+            })}
+          </CardContent>
+        </Card>
+      )}
 
       {session.notes && (
         <Card>
@@ -287,6 +365,11 @@ function formatSet(set: SetEntry, exercise: Exercise | undefined) {
     .join(' × ')
 }
 
+function paceText(set: SetEntry) {
+  const kind = paceKindForExercise(set.exerciseId)
+  return kind ? formatPace(kind, set.distanceM, set.durationS) : null
+}
+
 function ExerciseSummary({
   name,
   exercise,
@@ -327,6 +410,7 @@ function ExerciseSummary({
           >
             <span className="w-6 text-right tabular-nums">{s.isWarmup ? 'C' : s.setIndex + 1}</span>
             <span className="tabular-nums">{formatSet(s, exercise)}</span>
+            {paceText(s) && <span className="text-muted-foreground">{paceText(s)}</span>}
             {s.rir !== null && <span className="text-muted-foreground">RIR {s.rir}</span>}
           </li>
         ))}

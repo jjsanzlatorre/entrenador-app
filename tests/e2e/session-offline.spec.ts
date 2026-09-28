@@ -89,7 +89,8 @@ test('registrar 5 ejercicios × 3 series en modo avión y sincronizar al volver'
     { timeout: 30_000 },
   )
 
-  await page.getByRole('button', { name: 'Empezar entreno libre' }).click()
+  await page.getByRole('button', { name: 'Empezar entreno' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: /Fuerza/ }).click()
   await expect(page).toHaveURL(/\/entrenar\/sesion$/)
 
   // Dos ejercicios con conexión.

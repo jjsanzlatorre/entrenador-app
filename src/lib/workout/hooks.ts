@@ -139,10 +139,12 @@ export function useHistory(userId: string) {
         byId.set(s.id, {
           id: s.id,
           title: s.title || 'Entreno',
+          sessionType: s.sessionType,
           startedAt: s.startedAt,
           endedAt: s.endedAt,
           durationMin: s.durationMin,
           rpe: s.rpe,
+          distanceM: s.distanceM ?? null,
           completedSets: stats.completedSets,
           tonnageKg: stats.tonnageKg,
           exerciseIds: [...new Set(s.blocks.flatMap((b) => b.exercises.map((e) => e.exerciseId)))],

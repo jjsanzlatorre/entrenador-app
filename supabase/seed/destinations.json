@@ -1,0 +1,462 @@
+{
+  "_note": "Destinos para las equivalencias de distancia «en línea recta» (haversine) desde la ciudad de referencia. water_route = true: se puede llegar nadando cruzando el mar (islas, el Estrecho, Londres y Dublín por el canal, Nueva York por el Atlántico). Coordenadas aproximadas del centro urbano.",
+  "source": "Coordenadas del centro de la ciudad (Wikipedia / GeoNames), redondeadas a 4 decimales.",
+  "destinations": [
+    {
+      "id": "madrid",
+      "name": "Madrid",
+      "lat": 40.4168,
+      "lng": -3.7038,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "barcelona",
+      "name": "Barcelona",
+      "lat": 41.3874,
+      "lng": 2.1686,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "valencia",
+      "name": "Valencia",
+      "lat": 39.4699,
+      "lng": -0.3763,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "sevilla",
+      "name": "Sevilla",
+      "lat": 37.3891,
+      "lng": -5.9845,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "zaragoza",
+      "name": "Zaragoza",
+      "lat": 41.6488,
+      "lng": -0.8891,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "malaga",
+      "name": "Málaga",
+      "lat": 36.7213,
+      "lng": -4.4214,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "murcia",
+      "name": "Murcia",
+      "lat": 37.9922,
+      "lng": -1.1307,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "bilbao",
+      "name": "Bilbao",
+      "lat": 43.263,
+      "lng": -2.935,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "alicante",
+      "name": "Alicante",
+      "lat": 38.3452,
+      "lng": -0.481,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "cordoba",
+      "name": "Córdoba",
+      "lat": 37.8882,
+      "lng": -4.7794,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "valladolid",
+      "name": "Valladolid",
+      "lat": 41.6523,
+      "lng": -4.7245,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "vigo",
+      "name": "Vigo",
+      "lat": 42.2406,
+      "lng": -8.7207,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "a_coruna",
+      "name": "A Coruña",
+      "lat": 43.3623,
+      "lng": -8.4115,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "granada",
+      "name": "Granada",
+      "lat": 37.1773,
+      "lng": -3.5986,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "pamplona",
+      "name": "Pamplona",
+      "lat": 42.8125,
+      "lng": -1.6458,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "san_sebastian",
+      "name": "San Sebastián",
+      "lat": 43.3183,
+      "lng": -1.9812,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "santander",
+      "name": "Santander",
+      "lat": 43.4623,
+      "lng": -3.8099,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "salamanca",
+      "name": "Salamanca",
+      "lat": 40.9701,
+      "lng": -5.6635,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "santiago",
+      "name": "Santiago de Compostela",
+      "lat": 42.8782,
+      "lng": -8.5448,
+      "type": "landmark",
+      "water_route": false
+    },
+    {
+      "id": "toledo",
+      "name": "Toledo",
+      "lat": 39.8628,
+      "lng": -4.0273,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "cadiz",
+      "name": "Cádiz",
+      "lat": 36.5271,
+      "lng": -6.2886,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "girona",
+      "name": "Girona",
+      "lat": 41.9794,
+      "lng": 2.8214,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "palma",
+      "name": "Palma (Mallorca)",
+      "lat": 39.5696,
+      "lng": 2.6502,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "mahon",
+      "name": "Mahón (Menorca)",
+      "lat": 39.8885,
+      "lng": 4.2658,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "ibiza",
+      "name": "Ibiza",
+      "lat": 38.9067,
+      "lng": 1.4206,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "formentera",
+      "name": "Formentera",
+      "lat": 38.7349,
+      "lng": 1.4163,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "las_palmas",
+      "name": "Las Palmas de Gran Canaria",
+      "lat": 28.1235,
+      "lng": -15.4363,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "santa_cruz_tenerife",
+      "name": "Santa Cruz de Tenerife",
+      "lat": 28.4636,
+      "lng": -16.2518,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "lanzarote",
+      "name": "Arrecife (Lanzarote)",
+      "lat": 28.963,
+      "lng": -13.5477,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "fuerteventura",
+      "name": "Puerto del Rosario (Fuerteventura)",
+      "lat": 28.5004,
+      "lng": -13.8627,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "tarifa",
+      "name": "Tarifa (Estrecho de Gibraltar)",
+      "lat": 36.0143,
+      "lng": -5.6044,
+      "type": "landmark",
+      "water_route": false
+    },
+    {
+      "id": "gibraltar",
+      "name": "Peñón de Gibraltar",
+      "lat": 36.1408,
+      "lng": -5.3536,
+      "type": "landmark",
+      "water_route": false
+    },
+    {
+      "id": "ceuta",
+      "name": "Ceuta",
+      "lat": 35.8894,
+      "lng": -5.3213,
+      "type": "city",
+      "water_route": true
+    },
+    {
+      "id": "tanger",
+      "name": "Tánger",
+      "lat": 35.7595,
+      "lng": -5.834,
+      "type": "city",
+      "water_route": true
+    },
+    {
+      "id": "lisboa",
+      "name": "Lisboa",
+      "lat": 38.7223,
+      "lng": -9.1393,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "oporto",
+      "name": "Oporto",
+      "lat": 41.1579,
+      "lng": -8.6291,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "andorra",
+      "name": "Andorra la Vella",
+      "lat": 42.5063,
+      "lng": 1.5218,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "paris",
+      "name": "París",
+      "lat": 48.8566,
+      "lng": 2.3522,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "londres",
+      "name": "Londres",
+      "lat": 51.5074,
+      "lng": -0.1278,
+      "type": "city",
+      "water_route": true
+    },
+    {
+      "id": "roma",
+      "name": "Roma",
+      "lat": 41.9028,
+      "lng": 12.4964,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "berlin",
+      "name": "Berlín",
+      "lat": 52.52,
+      "lng": 13.405,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "amsterdam",
+      "name": "Ámsterdam",
+      "lat": 52.3676,
+      "lng": 4.9041,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "bruselas",
+      "name": "Bruselas",
+      "lat": 50.8503,
+      "lng": 4.3517,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "viena",
+      "name": "Viena",
+      "lat": 48.2082,
+      "lng": 16.3738,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "praga",
+      "name": "Praga",
+      "lat": 50.0755,
+      "lng": 14.4378,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "dublin",
+      "name": "Dublín",
+      "lat": 53.3498,
+      "lng": -6.2603,
+      "type": "city",
+      "water_route": true
+    },
+    {
+      "id": "copenhague",
+      "name": "Copenhague",
+      "lat": 55.6761,
+      "lng": 12.5683,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "estocolmo",
+      "name": "Estocolmo",
+      "lat": 59.3293,
+      "lng": 18.0686,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "atenas",
+      "name": "Atenas",
+      "lat": 37.9838,
+      "lng": 23.7275,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "ajaccio",
+      "name": "Ajaccio (Córcega)",
+      "lat": 41.9192,
+      "lng": 8.7386,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "cagliari",
+      "name": "Cagliari (Cerdeña)",
+      "lat": 39.2238,
+      "lng": 9.1217,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "malta",
+      "name": "La Valeta (Malta)",
+      "lat": 35.8989,
+      "lng": 14.5146,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "marrakech",
+      "name": "Marrakech",
+      "lat": 31.6295,
+      "lng": -7.9811,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "estambul",
+      "name": "Estambul",
+      "lat": 41.0082,
+      "lng": 28.9784,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "el_cairo",
+      "name": "El Cairo",
+      "lat": 30.0444,
+      "lng": 31.2357,
+      "type": "city",
+      "water_route": false
+    },
+    {
+      "id": "reikiavik",
+      "name": "Reikiavik (Islandia)",
+      "lat": 64.1466,
+      "lng": -21.9426,
+      "type": "island",
+      "water_route": true
+    },
+    {
+      "id": "nueva_york",
+      "name": "Nueva York",
+      "lat": 40.7128,
+      "lng": -74.006,
+      "type": "city",
+      "water_route": true
+    }
+  ]
+}

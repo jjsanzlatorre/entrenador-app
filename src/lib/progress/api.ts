@@ -2,7 +2,8 @@
 // con los vínculos, la RLS también deja leer datos que la pareja comparte.
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { isOnline, OfflineError, withTimeout } from '@/lib/workout/api'
-import type { Json, PhotoPose, SessionType } from '@/types/database'
+import type { Json, PhotoPose, SessionType, TablesUpdate } from '@/types/database'
+import type { EquivalenceCatalog, Home } from './equivalences'
 import type { ExerciseSetSample } from './exercise-progress'
 import type { PersonalRecord } from './records'
 import type { ActivityDay, Commitment, SessionLogEntry } from './types'
@@ -419,4 +420,90 @@ export async function fetchPartnerAdherence(partnerId: string) {
     minutes: null,
   }))
   return { days: activity, commitments }
+}
+
+// ── Acumulados y equivalencias ──────────────────────────────
+
+// Tonelaje y repeticiones por sesión (RPC session_totals, solo sesiones propias).
+export async function fetchSessionTotals() {
+  const rows = check(await withTimeout(db().rpc('session_totals')))
+  return Object.fromEntries(
+    (rows ?? []).map((r) => [
+      r.session_id,
+      { tonnageKg: Number(r.tonnage_kg), totalReps: Number(r.total_reps) },
+    ]),
+  ) as Record<string, { tonnageKg: number; totalReps: number }>
+}
+
+export async function fetchEquivalenceCatalog(): Promise<EquivalenceCatalog> {
+  const [objects, destinations] = await Promise.all([
+    withTimeout(db().from('equivalence_objects').select('*')),
+    withTimeout(db().from('destinations').select('*').order('name')),
+  ])
+  return {
+    objects: check(objects).map((o) => ({
+      id: o.id,
+      kind: o.kind,
+      label: o.label,
+      labelPlural: o.label_plural,
+      article: o.article,
+      emoji: o.emoji,
+      value: Number(o.value),
+      phraseTemplate: o.phrase_template,
+      minValue: Number(o.min_value),
+    })),
+    destinations: check(destinations).map((d) => ({
+      id: d.id,
+      name: d.name,
+      lat: Number(d.lat),
+      lng: Number(d.lng),
+      type: d.type,
+      waterRoute: d.water_route,
+    })),
+  }
+}
+
+export type ShownMilestone = { key: string; shownAt: string }
+
+export async function fetchShownMilestones(userId: string): Promise<ShownMilestone[]> {
+  const rows = check(
+    await withTimeout(
+      db()
+        .from('milestones_shown')
+        .select('milestone_key, shown_at')
+        .eq('user_id', userId)
+        .order('shown_at', { ascending: false }),
+    ),
+  )
+  return rows.map((r) => ({ key: r.milestone_key, shownAt: r.shown_at }))
+}
+
+export async function insertShownMilestones(userId: string, items: ShownMilestone[]) {
+  if (items.length === 0) return
+  check(
+    await withTimeout(
+      db()
+        .from('milestones_shown')
+        .upsert(
+          items.map((i) => ({ user_id: userId, milestone_key: i.key, shown_at: i.shownAt })),
+          { onConflict: 'user_id,milestone_key', ignoreDuplicates: true },
+        ),
+    ),
+  )
+}
+
+// Ciudad de referencia (null = borrarla) y pop-ups de logros.
+export async function updateProfileSettings(
+  userId: string,
+  patch: { home?: Home | null; showPopups?: boolean },
+) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para guardar el perfil')
+  const update: TablesUpdate<'profiles'> = {}
+  if (patch.home !== undefined) {
+    update.home_city = patch.home?.city ?? null
+    update.home_lat = patch.home?.lat ?? null
+    update.home_lng = patch.home?.lng ?? null
+  }
+  if (patch.showPopups !== undefined) update.show_equivalence_popups = patch.showPopups
+  check(await withTimeout(db().from('profiles').update(update).eq('id', userId)))
 }

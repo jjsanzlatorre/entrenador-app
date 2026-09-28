@@ -5,6 +5,7 @@ import {
   averagePct,
   commitmentForWeek,
   monthAdherence,
+  monthValue,
   streaks,
   weekAdherence,
   weekHistory,
@@ -129,6 +130,47 @@ describe('monthAdherence', () => {
     const m = monthAdherence([c], [day('2026-09-02'), day('2026-09-29')], '2026-09-01')
     expect(m.committed).toBeCloseTo(1.3, 1)
     expect(m.done).toBe(1)
+  })
+
+  it('compromiso creado a final de mes: la barra se llena al 100 % y lo demás es extra', () => {
+    // Antes: 2 hechas / 1,3 prorrateadas = 154 %.
+    const c: Commitment = { ...base, validFrom: '2026-09-28' }
+    const m = monthAdherence([c], [day('2026-09-28'), day('2026-09-29')], '2026-09-01')
+    expect(m.target).toBe(1)
+    expect(m.counted).toBe(1)
+    expect(m.extra).toBe(1)
+    expect(m.pct).toBe(1)
+    expect(m.partial).toBe(false)
+    expect(monthValue(m)).toBe('1/1 · 100 %')
+  })
+
+  it('objetivo prorrateado < 1 sesión: «Mes parcial» sin porcentaje', () => {
+    const c: Commitment = { ...base, sessionsPerWeek: 1, validFrom: '2026-09-28' }
+    const m = monthAdherence([c], [day('2026-09-29'), day('2026-09-30')], '2026-09-01')
+    expect(m.committed).toBeCloseTo(0.4, 1)
+    expect(m.partial).toBe(true)
+    expect(m.pct).toBeNull()
+    expect(monthValue(m)).toBe('Mes parcial · 2 sesiones')
+  })
+
+  it('mes completo: nunca pasa de 100 %', () => {
+    const days = ['2026-09-01', '2026-09-02', '2026-09-03', '2026-09-04'].map((d) => day(d))
+    const c: Commitment = { ...base, sessionsPerWeek: 1 }
+    const m = monthAdherence([c], days, '2026-09-01')
+    expect(m.target).toBe(4)
+    expect(m.pct).toBe(1)
+    expect(m.extra).toBe(0)
+    const more = monthAdherence([c], [...days, day('2026-09-05')], '2026-09-01')
+    expect(more.pct).toBe(1)
+    expect(more.extra).toBe(1)
+  })
+
+  it('sin compromiso en el mes', () => {
+    const c: Commitment = { ...base, validFrom: '2026-10-05' }
+    const m = monthAdherence([c], [], '2026-09-01')
+    expect(m.pct).toBeNull()
+    expect(m.target).toBe(0)
+    expect(monthValue(m)).toBe('—')
   })
 })
 

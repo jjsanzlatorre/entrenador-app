@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { ChevronRight, Play } from 'lucide-react'
 import { ComingSoon, Page } from '@/components/page'
 import { UsCard, WeekAdherenceCard } from '@/components/progress/adherence'
+import { MonthSummaryPopup } from '@/components/progress/achievements'
 import { StartSessionButtons } from '@/components/workout/start-session'
 import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
@@ -42,6 +43,7 @@ function TodayPage() {
       )}
       <UsCard userId={auth.userId} myName={name ?? 'Yo'} />
       <ComingSoon phase={5}>La sesión planificada para hoy.</ComingSoon>
+      {!session && <MonthSummaryPopup profile={auth.profile} />}
     </Page>
   )
 }

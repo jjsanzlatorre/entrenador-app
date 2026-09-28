@@ -27,6 +27,7 @@ import type { Exercise, SetEntry } from '@/lib/workout/types'
 import { BLOCK_LABELS, describeTimer, resultSummary } from '@/components/workout/timed-block-card'
 import { cn } from '@/lib/utils'
 import { fetchSessionRecords } from '@/lib/progress/api'
+import { HomeCityPrompt, SessionMilestonePopup } from '@/components/progress/achievements'
 import {
   formatPrevious,
   formatRecordValue,
@@ -162,6 +163,16 @@ function SessionDetailPage() {
               : 'Guardada y sincronizada.'}
           </p>
         </div>
+      ) : null}
+      {nueva && session.endedAt ? (
+        <SessionMilestonePopup
+          profile={auth.profile}
+          sessionId={session.id}
+          startedAt={session.startedAt}
+        />
+      ) : null}
+      {nueva && cardio && distance && !auth.profile.home_city ? (
+        <HomeCityPrompt from="sesion" />
       ) : null}
 
       <div>

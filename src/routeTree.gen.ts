@@ -22,11 +22,13 @@ import { Route as AppEntrenarActividadRouteImport } from './routes/_app/entrenar
 import { Route as AppEntrenarEjerciciosRouteImport } from './routes/_app/entrenar/ejercicios'
 import { Route as AppEntrenarSesionRouteImport } from './routes/_app/entrenar/sesion'
 import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
+import { Route as AppPerfilCiudadRouteImport } from './routes/_app/perfil/ciudad'
 import { Route as AppPerfilCompromisoRouteImport } from './routes/_app/perfil/compromiso'
 import { Route as AppPerfilVinculosRouteImport } from './routes/_app/perfil/vinculos'
 import { Route as AppProgresoIndexRouteImport } from './routes/_app/progreso/index'
 import { Route as AppProgresoCumplimientoRouteImport } from './routes/_app/progreso/cumplimiento'
 import { Route as AppProgresoFotosRouteImport } from './routes/_app/progreso/fotos'
+import { Route as AppProgresoLogrosRouteImport } from './routes/_app/progreso/logros'
 import { Route as AppProgresoMedidasRouteImport } from './routes/_app/progreso/medidas'
 import { Route as AppProgresoRecordsRouteImport } from './routes/_app/progreso/records'
 import { Route as AppProgresoResumenRouteImport } from './routes/_app/progreso/resumen'
@@ -97,6 +99,11 @@ const AppPerfilIndexRoute = AppPerfilIndexRouteImport.update({
   path: '/perfil/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPerfilCiudadRoute = AppPerfilCiudadRouteImport.update({
+  id: '/perfil/ciudad',
+  path: '/perfil/ciudad',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPerfilCompromisoRoute = AppPerfilCompromisoRouteImport.update({
   id: '/perfil/compromiso',
   path: '/perfil/compromiso',
@@ -120,6 +127,11 @@ const AppProgresoCumplimientoRoute = AppProgresoCumplimientoRouteImport.update({
 const AppProgresoFotosRoute = AppProgresoFotosRouteImport.update({
   id: '/progreso/fotos',
   path: '/progreso/fotos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppProgresoLogrosRoute = AppProgresoLogrosRouteImport.update({
+  id: '/progreso/logros',
+  path: '/progreso/logros',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProgresoMedidasRoute = AppProgresoMedidasRouteImport.update({
@@ -161,10 +173,12 @@ export interface FileRoutesByFullPath {
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
+  '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/vinculos': typeof AppPerfilVinculosRoute
   '/progreso/cumplimiento': typeof AppProgresoCumplimientoRoute
   '/progreso/fotos': typeof AppProgresoFotosRoute
+  '/progreso/logros': typeof AppProgresoLogrosRoute
   '/progreso/medidas': typeof AppProgresoMedidasRoute
   '/progreso/records': typeof AppProgresoRecordsRoute
   '/progreso/resumen': typeof AppProgresoResumenRoute
@@ -185,10 +199,12 @@ export interface FileRoutesByTo {
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
+  '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/vinculos': typeof AppPerfilVinculosRoute
   '/progreso/cumplimiento': typeof AppProgresoCumplimientoRoute
   '/progreso/fotos': typeof AppProgresoFotosRoute
+  '/progreso/logros': typeof AppProgresoLogrosRoute
   '/progreso/medidas': typeof AppProgresoMedidasRoute
   '/progreso/records': typeof AppProgresoRecordsRoute
   '/progreso/resumen': typeof AppProgresoResumenRoute
@@ -211,10 +227,12 @@ export interface FileRoutesById {
   '/_app/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/_app/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/_app/entrenar/sesion': typeof AppEntrenarSesionRoute
+  '/_app/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/_app/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/_app/perfil/vinculos': typeof AppPerfilVinculosRoute
   '/_app/progreso/cumplimiento': typeof AppProgresoCumplimientoRoute
   '/_app/progreso/fotos': typeof AppProgresoFotosRoute
+  '/_app/progreso/logros': typeof AppProgresoLogrosRoute
   '/_app/progreso/medidas': typeof AppProgresoMedidasRoute
   '/_app/progreso/records': typeof AppProgresoRecordsRoute
   '/_app/progreso/resumen': typeof AppProgresoResumenRoute
@@ -237,10 +255,12 @@ export interface FileRouteTypes {
     | '/entrenar/actividad'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
+    | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/vinculos'
     | '/progreso/cumplimiento'
     | '/progreso/fotos'
+    | '/progreso/logros'
     | '/progreso/medidas'
     | '/progreso/records'
     | '/progreso/resumen'
@@ -261,10 +281,12 @@ export interface FileRouteTypes {
     | '/entrenar/actividad'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
+    | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/vinculos'
     | '/progreso/cumplimiento'
     | '/progreso/fotos'
+    | '/progreso/logros'
     | '/progreso/medidas'
     | '/progreso/records'
     | '/progreso/resumen'
@@ -286,10 +308,12 @@ export interface FileRouteTypes {
     | '/_app/entrenar/actividad'
     | '/_app/entrenar/ejercicios'
     | '/_app/entrenar/sesion'
+    | '/_app/perfil/ciudad'
     | '/_app/perfil/compromiso'
     | '/_app/perfil/vinculos'
     | '/_app/progreso/cumplimiento'
     | '/_app/progreso/fotos'
+    | '/_app/progreso/logros'
     | '/_app/progreso/medidas'
     | '/_app/progreso/records'
     | '/_app/progreso/resumen'
@@ -401,6 +425,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/perfil/ciudad': {
+      id: '/_app/perfil/ciudad'
+      path: '/perfil/ciudad'
+      fullPath: '/perfil/ciudad'
+      preLoaderRoute: typeof AppPerfilCiudadRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/perfil/compromiso': {
       id: '/_app/perfil/compromiso'
       path: '/perfil/compromiso'
@@ -434,6 +465,13 @@ declare module '@tanstack/react-router' {
       path: '/progreso/fotos'
       fullPath: '/progreso/fotos'
       preLoaderRoute: typeof AppProgresoFotosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/progreso/logros': {
+      id: '/_app/progreso/logros'
+      path: '/progreso/logros'
+      fullPath: '/progreso/logros'
+      preLoaderRoute: typeof AppProgresoLogrosRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/progreso/medidas': {
@@ -481,10 +519,12 @@ interface AppRouteChildren {
   AppEntrenarActividadRoute: typeof AppEntrenarActividadRoute
   AppEntrenarEjerciciosRoute: typeof AppEntrenarEjerciciosRoute
   AppEntrenarSesionRoute: typeof AppEntrenarSesionRoute
+  AppPerfilCiudadRoute: typeof AppPerfilCiudadRoute
   AppPerfilCompromisoRoute: typeof AppPerfilCompromisoRoute
   AppPerfilVinculosRoute: typeof AppPerfilVinculosRoute
   AppProgresoCumplimientoRoute: typeof AppProgresoCumplimientoRoute
   AppProgresoFotosRoute: typeof AppProgresoFotosRoute
+  AppProgresoLogrosRoute: typeof AppProgresoLogrosRoute
   AppProgresoMedidasRoute: typeof AppProgresoMedidasRoute
   AppProgresoRecordsRoute: typeof AppProgresoRecordsRoute
   AppProgresoResumenRoute: typeof AppProgresoResumenRoute
@@ -502,10 +542,12 @@ const AppRouteChildren: AppRouteChildren = {
   AppEntrenarActividadRoute: AppEntrenarActividadRoute,
   AppEntrenarEjerciciosRoute: AppEntrenarEjerciciosRoute,
   AppEntrenarSesionRoute: AppEntrenarSesionRoute,
+  AppPerfilCiudadRoute: AppPerfilCiudadRoute,
   AppPerfilCompromisoRoute: AppPerfilCompromisoRoute,
   AppPerfilVinculosRoute: AppPerfilVinculosRoute,
   AppProgresoCumplimientoRoute: AppProgresoCumplimientoRoute,
   AppProgresoFotosRoute: AppProgresoFotosRoute,
+  AppProgresoLogrosRoute: AppProgresoLogrosRoute,
   AppProgresoMedidasRoute: AppProgresoMedidasRoute,
   AppProgresoRecordsRoute: AppProgresoRecordsRoute,
   AppProgresoResumenRoute: AppProgresoResumenRoute,

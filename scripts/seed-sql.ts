@@ -20,6 +20,27 @@ type SeedExercise = {
   secondary: string[]
 }
 
+type SeedObject = {
+  id: string
+  kind: string
+  label: string
+  label_plural: string
+  article: string
+  emoji: string
+  value: number
+  phrase_template: string
+  min_value: number
+  source: string
+}
+type SeedDestination = {
+  id: string
+  name: string
+  lat: number
+  lng: number
+  type: string
+  water_route: boolean
+}
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 function lit(value: string | null) {
@@ -81,6 +102,47 @@ function exercisesSql(file: string, description: string, exercises: SeedExercise
   return { file, sql }
 }
 
+// Una línea de comentario (la fuente) antes de cada fila.
+function comment(text: string) {
+  return `  -- ${text.replace(/\s+/g, ' ')}`
+}
+
+function equivalencesSql(objects: SeedObject[], destinations: SeedDestination[], source: string) {
+  const file = '0014_seed_equivalences.sql'
+  const objectRows = objects
+    .map(
+      (o) =>
+        `${comment(`Fuente: ${o.source}`)}\n` +
+        `  (${lit(o.id)}, ${lit(o.kind)}, ${lit(o.label)}, ${lit(o.label_plural)}, ${lit(o.article)}, ` +
+        `${lit(o.emoji)}, ${o.value}, ${lit(o.phrase_template)}, ${o.min_value})`,
+    )
+    .join(',\n')
+  const destinationRows = destinations
+    .map(
+      (d) =>
+        `  (${lit(d.id)}, ${lit(d.name)}, ${d.lat}, ${d.lng}, ${lit(d.type)}, ${d.water_route})`,
+    )
+    .join(',\n')
+  return {
+    file,
+    sql:
+      header(
+        file,
+        'Semilla: objetos de equivalencia y destinos (CLAUDE.md §10B). Valores aproximados. Requiere 0013.',
+      ) +
+      `insert into public.equivalence_objects (\n  id, kind, label, label_plural, article, emoji, value, phrase_template, min_value\n) values\n${objectRows}\n` +
+      `on conflict (id) do update set\n` +
+      `  kind = excluded.kind,\n  label = excluded.label,\n  label_plural = excluded.label_plural,\n` +
+      `  article = excluded.article,\n  emoji = excluded.emoji,\n  value = excluded.value,\n` +
+      `  phrase_template = excluded.phrase_template,\n  min_value = excluded.min_value;\n\n` +
+      `-- Destinos. Fuente: ${source}\n` +
+      `insert into public.destinations (id, name, lat, lng, type, water_route) values\n${destinationRows}\n` +
+      `on conflict (id) do update set\n` +
+      `  name = excluded.name,\n  lat = excluded.lat,\n  lng = excluded.lng,\n` +
+      `  type = excluded.type,\n  water_route = excluded.water_route;\n`,
+  }
+}
+
 export function buildSeedFiles() {
   const muscles = JSON.parse(
     readFileSync(join(root, 'supabase/seed/muscles.json'), 'utf8'),
@@ -88,6 +150,13 @@ export function buildSeedFiles() {
   const { exercises } = JSON.parse(
     readFileSync(join(root, 'supabase/seed/exercises.json'), 'utf8'),
   ) as { exercises: SeedExercise[] }
+
+  const { objects } = JSON.parse(
+    readFileSync(join(root, 'supabase/seed/equivalences.json'), 'utf8'),
+  ) as { objects: SeedObject[] }
+  const places = JSON.parse(
+    readFileSync(join(root, 'supabase/seed/destinations.json'), 'utf8'),
+  ) as { source: string; destinations: SeedDestination[] }
 
   return [
     musclesSql(muscles),
@@ -101,6 +170,7 @@ export function buildSeedFiles() {
       'Semilla: ejercicios functional/Hyrox/Deka, cardio y deportes (CLAUDE.md §6). Requiere 0005.',
       exercises.filter((e) => e.category !== 'strength'),
     ),
+    equivalencesSql(objects, places.destinations, places.source),
   ]
 }
 

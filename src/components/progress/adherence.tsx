@@ -5,6 +5,7 @@ import {
   adherenceLevel,
   formatPct,
   monthAdherence,
+  monthValue,
   streaks,
   weekAdherence,
   weekMessage,
@@ -114,7 +115,7 @@ export function WeekAdherenceCard({ userId }: { userId: string }) {
       <p className="mt-2 text-sm font-medium">{weekMessage(week, today)}</p>
       {current > 0 && (
         <p className="text-muted-foreground mt-1 text-xs">
-          🔥 Racha: {current} {current === 1 ? 'semana' : 'semanas'} completas
+          🔥 Racha: {current} {current === 1 ? 'semana completa' : 'semanas completas'}
         </p>
       )}
     </Link>
@@ -153,7 +154,13 @@ function PersonRow({
             value={weekValue(week)}
             extra={week.extra}
           />
-          <AdherenceBar size="sm" pct={month.pct} label="Mes" value={formatPct(month.pct)} />
+          <AdherenceBar
+            size="sm"
+            pct={month.pct}
+            label="Mes"
+            value={monthValue(month)}
+            extra={month.extra}
+          />
         </>
       )}
     </li>

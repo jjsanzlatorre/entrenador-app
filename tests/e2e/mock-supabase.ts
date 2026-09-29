@@ -117,6 +117,8 @@ type Seed = {
   commitments: Record<string, unknown>[]
   partnerLinks: Record<string, unknown>[]
   partnerDays: Record<string, { day: string; session_type: string }[]>
+  // Fase 7A: invitaciones a entrenar juntos recibidas.
+  pairInvites?: (Record<string, unknown> & { id: string; status: string })[]
   // Simula que la RLS impide el UPDATE del perfil (PostgREST devuelve 0 filas, sin error).
   profileUpdateBlocked?: boolean
 }
@@ -154,6 +156,8 @@ let chatMessages: Record<string, unknown>[] = []
 let chatSeq = 0
 let geminiQueue: unknown[] = []
 let geminiRequests: { model: string; key: string | undefined; body: unknown }[] = []
+// Fase 7A: cambios de permisos (PATCH partner_links) y respuestas a invitaciones.
+let partnerPatches: Record<string, unknown>[] = []
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
@@ -185,7 +189,7 @@ function sessionRow(p: Payload) {
     user_id: MOCK_USER_ID,
     planned_session_id: p.session.planned_session_id ?? null,
     distance_m: p.session.distance_m ?? null,
-    pair_group_id: null,
+    pair_group_id: p.session.pair_group_id ?? null,
     created_at: '',
     updated_at: '',
   }
@@ -215,6 +219,8 @@ export function startMockSupabase(port: number) {
         aiInteractions,
         chatMessages,
         geminiRequests,
+        partnerPatches,
+        pairInvites: progressSeed.pairInvites ?? [],
       })
     }
     if (path === '/__seed') {
@@ -256,6 +262,7 @@ export function startMockSupabase(port: number) {
       chatSeq = 0
       geminiQueue = []
       geminiRequests = []
+      partnerPatches = []
       return send(res, 200, { ok: true })
     }
 
@@ -601,7 +608,44 @@ export function startMockSupabase(port: number) {
     }
 
     // Fase 3: sin datos de progreso ni vínculos en el mock.
-    if (path === '/rest/v1/rpc/list_partner_links') return send(res, 200, progressSeed.partnerLinks)
+    if (path === '/rest/v1/rpc/list_partners') return send(res, 200, progressSeed.partnerLinks)
+    // ── Fase 7A ──
+    if (path === '/rest/v1/partner_links' && req.method === 'PATCH') {
+      const patch = (await readBody(req)) as Record<string, unknown>
+      const partner = eqParam(url, 'partner_id')
+      partnerPatches.push({ partner_id: partner, ...patch })
+      for (const l of progressSeed.partnerLinks.filter((x) => x.partner_id === partner)) {
+        for (const [k, v] of Object.entries(patch)) {
+          if (v !== undefined) l[k.replace('can_view_', 'i_share_')] = v
+        }
+      }
+      return send(res, 200, [{ user_id: MOCK_USER_ID }])
+    }
+    if (
+      ['partner_session_log', 'partner_exercise_sets', 'partner_home'].some(
+        (fn) => path === `/rest/v1/rpc/${fn}`,
+      )
+    ) {
+      return send(res, 200, [])
+    }
+    if (path === '/rest/v1/pair_invites') {
+      const status = eqParam(url, 'status')
+      const group = eqParam(url, 'pair_group_id')
+      return send(
+        res,
+        200,
+        (progressSeed.pairInvites ?? []).filter(
+          (i) => (!status || i.status === status) && (!group || i.pair_group_id === group),
+        ),
+      )
+    }
+    if (path === '/rest/v1/rpc/respond_pair_invite') {
+      const b = (await readBody(req)) as { p_invite: string; p_accept: boolean }
+      for (const i of (progressSeed.pairInvites ?? []).filter((x) => x.id === b.p_invite)) {
+        i.status = b.p_accept ? 'accepted' : 'declined'
+      }
+      return send(res, 200, null)
+    }
     if (path === '/rest/v1/rpc/partner_adherence_days') {
       const { p_partner } = (await readBody(req)) as { p_partner: string }
       return send(res, 200, progressSeed.partnerDays[p_partner] ?? [])
@@ -800,7 +844,7 @@ export function startMockSupabase(port: number) {
         progressSeed.commitments.filter((c) => !uid || c.user_id === uid),
       )
     }
-    if (['personal_records', 'body_metrics', 'progress_photos'].includes(table)) {
+    if (['personal_records', 'body_metrics', 'progress_photos', 'reactions'].includes(table)) {
       return send(res, 200, rows(req, []))
     }
     if (table === 'profiles') {

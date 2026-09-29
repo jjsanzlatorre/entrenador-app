@@ -1,13 +1,16 @@
 import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Dumbbell, Zap } from 'lucide-react'
+import { Dumbbell, Users, Zap } from 'lucide-react'
+import { PartnerPickerSheet, useAcceptedPartners, usePairStart } from '@/components/partners/pair'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
+import type { PartnerLink } from '@/lib/progress/api'
 import { startNewSession } from '@/lib/workout/active-session'
 import { START_OPTIONS, sessionTypeEmoji } from '@/lib/workout/session-kinds'
 import type { SessionType } from '@/types/database'
 
-// Botones de inicio: «Empezar entreno» (elige tipo) y «Registrar actividad».
+// Botones de inicio: «Empezar entreno» (elige tipo), «Registrar actividad» y, si hay personas
+// vinculadas, «Entrenar con…» (entreno en pareja, §7).
 export function StartSessionButtons({
   userId,
   label = 'Empezar entreno',
@@ -17,9 +20,18 @@ export function StartSessionButtons({
 }) {
   const navigate = useNavigate()
   const [choosing, setChoosing] = useState(false)
+  const partners = useAcceptedPartners(userId)
+  const pair = usePairStart(userId)
+  const [picking, setPicking] = useState(false)
+  const [partner, setPartner] = useState<PartnerLink | null>(null)
 
   async function start(type: SessionType) {
     setChoosing(false)
+    if (partner) {
+      await pair.startFree(type, partner)
+      setPartner(null)
+      return
+    }
     await startNewSession(userId, type)
     await navigate({ to: '/entrenar/sesion' })
   }
@@ -36,7 +48,35 @@ export function StartSessionButtons({
           </Link>
         </Button>
       </div>
-      <Sheet open={choosing} onClose={() => setChoosing(false)} title="¿Qué vas a entrenar?">
+      {partners.length > 0 && (
+        <Button
+          variant="outline"
+          size="lg"
+          disabled={pair.busy}
+          onClick={() => setPicking(true)}
+          className="-mt-1"
+        >
+          <Users /> Entrenar con…
+        </Button>
+      )}
+      <PartnerPickerSheet
+        open={picking}
+        partners={partners}
+        onClose={() => setPicking(false)}
+        onPick={(p) => {
+          setPicking(false)
+          setPartner(p)
+          setChoosing(true)
+        }}
+      />
+      <Sheet
+        open={choosing}
+        onClose={() => {
+          setChoosing(false)
+          setPartner(null)
+        }}
+        title={partner ? `¿Qué entrenáis ${partner.displayName} y tú?` : '¿Qué vas a entrenar?'}
+      >
         <div className="grid grid-cols-2 gap-2 pb-2">
           {START_OPTIONS.map((o) => (
             <button
@@ -52,6 +92,11 @@ export function StartSessionButtons({
             </button>
           ))}
         </div>
+        {partner ? (
+          <p className="text-muted-foreground pb-2 text-center text-sm">
+            Añade los ejercicios en la sesión y envíale la estructura desde allí.
+          </p>
+        ) : null}
         <p className="text-muted-foreground pb-2 text-center text-sm">
           ¿Surf, frontón o yoga?{' '}
           <Link to="/entrenar/actividad" className="text-primary underline">

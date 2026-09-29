@@ -26,7 +26,6 @@ import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
 import { Route as AppPerfilCiudadRouteImport } from './routes/_app/perfil/ciudad'
 import { Route as AppPerfilCompromisoRouteImport } from './routes/_app/perfil/compromiso'
 import { Route as AppPerfilCreditosRouteImport } from './routes/_app/perfil/creditos'
-import { Route as AppPerfilVinculosRouteImport } from './routes/_app/perfil/vinculos'
 import { Route as AppPlanIndexRouteImport } from './routes/_app/plan/index'
 import { Route as AppPlanElegirRouteImport } from './routes/_app/plan/elegir'
 import { Route as AppPlanRevisionRouteImport } from './routes/_app/plan/revision'
@@ -40,7 +39,12 @@ import { Route as AppProgresoMusculosRouteImport } from './routes/_app/progreso/
 import { Route as AppProgresoRecordsRouteImport } from './routes/_app/progreso/records'
 import { Route as AppProgresoResumenRouteImport } from './routes/_app/progreso/resumen'
 import { Route as AppEntrenarHistorialSessionIdRouteImport } from './routes/_app/entrenar/historial.$sessionId'
+import { Route as AppParejaPartnerIdIndexRouteImport } from './routes/_app/pareja/$partnerId/index'
+import { Route as AppPerfilVinculosIndexRouteImport } from './routes/_app/perfil/vinculos.index'
+import { Route as AppPerfilVinculosPartnerIdRouteImport } from './routes/_app/perfil/vinculos.$partnerId'
 import { Route as AppProgresoEjercicioExerciseIdRouteImport } from './routes/_app/progreso/ejercicio.$exerciseId'
+import { Route as AppParejaPartnerIdEjercicioExerciseIdRouteImport } from './routes/_app/pareja/$partnerId/ejercicio.$exerciseId'
+import { Route as AppParejaPartnerIdSesionSessionIdRouteImport } from './routes/_app/pareja/$partnerId/sesion.$sessionId'
 
 const AppRoute = AppRouteImport.update({
   id: '/_app',
@@ -126,11 +130,6 @@ const AppPerfilCreditosRoute = AppPerfilCreditosRouteImport.update({
   path: '/perfil/creditos',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPerfilVinculosRoute = AppPerfilVinculosRouteImport.update({
-  id: '/perfil/vinculos',
-  path: '/perfil/vinculos',
-  getParentRoute: () => AppRoute,
-} as any)
 const AppPlanIndexRoute = AppPlanIndexRouteImport.update({
   id: '/plan/',
   path: '/plan/',
@@ -197,10 +196,38 @@ const AppEntrenarHistorialSessionIdRoute =
     path: '/entrenar/historial/$sessionId',
     getParentRoute: () => AppRoute,
   } as any)
+const AppParejaPartnerIdIndexRoute = AppParejaPartnerIdIndexRouteImport.update({
+  id: '/pareja/$partnerId/',
+  path: '/pareja/$partnerId/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilVinculosIndexRoute = AppPerfilVinculosIndexRouteImport.update({
+  id: '/perfil/vinculos/',
+  path: '/perfil/vinculos/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilVinculosPartnerIdRoute =
+  AppPerfilVinculosPartnerIdRouteImport.update({
+    id: '/perfil/vinculos/$partnerId',
+    path: '/perfil/vinculos/$partnerId',
+    getParentRoute: () => AppRoute,
+  } as any)
 const AppProgresoEjercicioExerciseIdRoute =
   AppProgresoEjercicioExerciseIdRouteImport.update({
     id: '/progreso/ejercicio/$exerciseId',
     path: '/progreso/ejercicio/$exerciseId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppParejaPartnerIdEjercicioExerciseIdRoute =
+  AppParejaPartnerIdEjercicioExerciseIdRouteImport.update({
+    id: '/pareja/$partnerId/ejercicio/$exerciseId',
+    path: '/pareja/$partnerId/ejercicio/$exerciseId',
+    getParentRoute: () => AppRoute,
+  } as any)
+const AppParejaPartnerIdSesionSessionIdRoute =
+  AppParejaPartnerIdSesionSessionIdRouteImport.update({
+    id: '/pareja/$partnerId/sesion/$sessionId',
+    path: '/pareja/$partnerId/sesion/$sessionId',
     getParentRoute: () => AppRoute,
   } as any)
 
@@ -219,7 +246,6 @@ export interface FileRoutesByFullPath {
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
-  '/perfil/vinculos': typeof AppPerfilVinculosRoute
   '/plan/elegir': typeof AppPlanElegirRoute
   '/plan/revision': typeof AppPlanRevisionRoute
   '/progreso/carga': typeof AppProgresoCargaRoute
@@ -235,7 +261,12 @@ export interface FileRoutesByFullPath {
   '/plan/': typeof AppPlanIndexRoute
   '/progreso/': typeof AppProgresoIndexRoute
   '/entrenar/historial/$sessionId': typeof AppEntrenarHistorialSessionIdRoute
+  '/perfil/vinculos/$partnerId': typeof AppPerfilVinculosPartnerIdRoute
   '/progreso/ejercicio/$exerciseId': typeof AppProgresoEjercicioExerciseIdRoute
+  '/pareja/$partnerId/': typeof AppParejaPartnerIdIndexRoute
+  '/perfil/vinculos/': typeof AppPerfilVinculosIndexRoute
+  '/pareja/$partnerId/ejercicio/$exerciseId': typeof AppParejaPartnerIdEjercicioExerciseIdRoute
+  '/pareja/$partnerId/sesion/$sessionId': typeof AppParejaPartnerIdSesionSessionIdRoute
 }
 export interface FileRoutesByTo {
   '/bloqueado': typeof BloqueadoRoute
@@ -252,7 +283,6 @@ export interface FileRoutesByTo {
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
-  '/perfil/vinculos': typeof AppPerfilVinculosRoute
   '/plan/elegir': typeof AppPlanElegirRoute
   '/plan/revision': typeof AppPlanRevisionRoute
   '/progreso/carga': typeof AppProgresoCargaRoute
@@ -268,7 +298,12 @@ export interface FileRoutesByTo {
   '/plan': typeof AppPlanIndexRoute
   '/progreso': typeof AppProgresoIndexRoute
   '/entrenar/historial/$sessionId': typeof AppEntrenarHistorialSessionIdRoute
+  '/perfil/vinculos/$partnerId': typeof AppPerfilVinculosPartnerIdRoute
   '/progreso/ejercicio/$exerciseId': typeof AppProgresoEjercicioExerciseIdRoute
+  '/pareja/$partnerId': typeof AppParejaPartnerIdIndexRoute
+  '/perfil/vinculos': typeof AppPerfilVinculosIndexRoute
+  '/pareja/$partnerId/ejercicio/$exerciseId': typeof AppParejaPartnerIdEjercicioExerciseIdRoute
+  '/pareja/$partnerId/sesion/$sessionId': typeof AppParejaPartnerIdSesionSessionIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -287,7 +322,6 @@ export interface FileRoutesById {
   '/_app/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/_app/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/_app/perfil/creditos': typeof AppPerfilCreditosRoute
-  '/_app/perfil/vinculos': typeof AppPerfilVinculosRoute
   '/_app/plan/elegir': typeof AppPlanElegirRoute
   '/_app/plan/revision': typeof AppPlanRevisionRoute
   '/_app/progreso/carga': typeof AppProgresoCargaRoute
@@ -303,7 +337,12 @@ export interface FileRoutesById {
   '/_app/plan/': typeof AppPlanIndexRoute
   '/_app/progreso/': typeof AppProgresoIndexRoute
   '/_app/entrenar/historial/$sessionId': typeof AppEntrenarHistorialSessionIdRoute
+  '/_app/perfil/vinculos/$partnerId': typeof AppPerfilVinculosPartnerIdRoute
   '/_app/progreso/ejercicio/$exerciseId': typeof AppProgresoEjercicioExerciseIdRoute
+  '/_app/pareja/$partnerId/': typeof AppParejaPartnerIdIndexRoute
+  '/_app/perfil/vinculos/': typeof AppPerfilVinculosIndexRoute
+  '/_app/pareja/$partnerId/ejercicio/$exerciseId': typeof AppParejaPartnerIdEjercicioExerciseIdRoute
+  '/_app/pareja/$partnerId/sesion/$sessionId': typeof AppParejaPartnerIdSesionSessionIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -322,7 +361,6 @@ export interface FileRouteTypes {
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
-    | '/perfil/vinculos'
     | '/plan/elegir'
     | '/plan/revision'
     | '/progreso/carga'
@@ -338,7 +376,12 @@ export interface FileRouteTypes {
     | '/plan/'
     | '/progreso/'
     | '/entrenar/historial/$sessionId'
+    | '/perfil/vinculos/$partnerId'
     | '/progreso/ejercicio/$exerciseId'
+    | '/pareja/$partnerId/'
+    | '/perfil/vinculos/'
+    | '/pareja/$partnerId/ejercicio/$exerciseId'
+    | '/pareja/$partnerId/sesion/$sessionId'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/bloqueado'
@@ -355,7 +398,6 @@ export interface FileRouteTypes {
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
-    | '/perfil/vinculos'
     | '/plan/elegir'
     | '/plan/revision'
     | '/progreso/carga'
@@ -371,7 +413,12 @@ export interface FileRouteTypes {
     | '/plan'
     | '/progreso'
     | '/entrenar/historial/$sessionId'
+    | '/perfil/vinculos/$partnerId'
     | '/progreso/ejercicio/$exerciseId'
+    | '/pareja/$partnerId'
+    | '/perfil/vinculos'
+    | '/pareja/$partnerId/ejercicio/$exerciseId'
+    | '/pareja/$partnerId/sesion/$sessionId'
   id:
     | '__root__'
     | '/_app'
@@ -389,7 +436,6 @@ export interface FileRouteTypes {
     | '/_app/perfil/ciudad'
     | '/_app/perfil/compromiso'
     | '/_app/perfil/creditos'
-    | '/_app/perfil/vinculos'
     | '/_app/plan/elegir'
     | '/_app/plan/revision'
     | '/_app/progreso/carga'
@@ -405,7 +451,12 @@ export interface FileRouteTypes {
     | '/_app/plan/'
     | '/_app/progreso/'
     | '/_app/entrenar/historial/$sessionId'
+    | '/_app/perfil/vinculos/$partnerId'
     | '/_app/progreso/ejercicio/$exerciseId'
+    | '/_app/pareja/$partnerId/'
+    | '/_app/perfil/vinculos/'
+    | '/_app/pareja/$partnerId/ejercicio/$exerciseId'
+    | '/_app/pareja/$partnerId/sesion/$sessionId'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -537,13 +588,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilCreditosRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/perfil/vinculos': {
-      id: '/_app/perfil/vinculos'
-      path: '/perfil/vinculos'
-      fullPath: '/perfil/vinculos'
-      preLoaderRoute: typeof AppPerfilVinculosRouteImport
-      parentRoute: typeof AppRoute
-    }
     '/_app/plan/': {
       id: '/_app/plan/'
       path: '/plan'
@@ -635,11 +679,46 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppEntrenarHistorialSessionIdRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/pareja/$partnerId/': {
+      id: '/_app/pareja/$partnerId/'
+      path: '/pareja/$partnerId'
+      fullPath: '/pareja/$partnerId/'
+      preLoaderRoute: typeof AppParejaPartnerIdIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/perfil/vinculos/': {
+      id: '/_app/perfil/vinculos/'
+      path: '/perfil/vinculos'
+      fullPath: '/perfil/vinculos/'
+      preLoaderRoute: typeof AppPerfilVinculosIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/perfil/vinculos/$partnerId': {
+      id: '/_app/perfil/vinculos/$partnerId'
+      path: '/perfil/vinculos/$partnerId'
+      fullPath: '/perfil/vinculos/$partnerId'
+      preLoaderRoute: typeof AppPerfilVinculosPartnerIdRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/progreso/ejercicio/$exerciseId': {
       id: '/_app/progreso/ejercicio/$exerciseId'
       path: '/progreso/ejercicio/$exerciseId'
       fullPath: '/progreso/ejercicio/$exerciseId'
       preLoaderRoute: typeof AppProgresoEjercicioExerciseIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pareja/$partnerId/ejercicio/$exerciseId': {
+      id: '/_app/pareja/$partnerId/ejercicio/$exerciseId'
+      path: '/pareja/$partnerId/ejercicio/$exerciseId'
+      fullPath: '/pareja/$partnerId/ejercicio/$exerciseId'
+      preLoaderRoute: typeof AppParejaPartnerIdEjercicioExerciseIdRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/pareja/$partnerId/sesion/$sessionId': {
+      id: '/_app/pareja/$partnerId/sesion/$sessionId'
+      path: '/pareja/$partnerId/sesion/$sessionId'
+      fullPath: '/pareja/$partnerId/sesion/$sessionId'
+      preLoaderRoute: typeof AppParejaPartnerIdSesionSessionIdRouteImport
       parentRoute: typeof AppRoute
     }
   }
@@ -656,7 +735,6 @@ interface AppRouteChildren {
   AppPerfilCiudadRoute: typeof AppPerfilCiudadRoute
   AppPerfilCompromisoRoute: typeof AppPerfilCompromisoRoute
   AppPerfilCreditosRoute: typeof AppPerfilCreditosRoute
-  AppPerfilVinculosRoute: typeof AppPerfilVinculosRoute
   AppPlanElegirRoute: typeof AppPlanElegirRoute
   AppPlanRevisionRoute: typeof AppPlanRevisionRoute
   AppProgresoCargaRoute: typeof AppProgresoCargaRoute
@@ -672,7 +750,12 @@ interface AppRouteChildren {
   AppPlanIndexRoute: typeof AppPlanIndexRoute
   AppProgresoIndexRoute: typeof AppProgresoIndexRoute
   AppEntrenarHistorialSessionIdRoute: typeof AppEntrenarHistorialSessionIdRoute
+  AppPerfilVinculosPartnerIdRoute: typeof AppPerfilVinculosPartnerIdRoute
   AppProgresoEjercicioExerciseIdRoute: typeof AppProgresoEjercicioExerciseIdRoute
+  AppParejaPartnerIdIndexRoute: typeof AppParejaPartnerIdIndexRoute
+  AppPerfilVinculosIndexRoute: typeof AppPerfilVinculosIndexRoute
+  AppParejaPartnerIdEjercicioExerciseIdRoute: typeof AppParejaPartnerIdEjercicioExerciseIdRoute
+  AppParejaPartnerIdSesionSessionIdRoute: typeof AppParejaPartnerIdSesionSessionIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
@@ -686,7 +769,6 @@ const AppRouteChildren: AppRouteChildren = {
   AppPerfilCiudadRoute: AppPerfilCiudadRoute,
   AppPerfilCompromisoRoute: AppPerfilCompromisoRoute,
   AppPerfilCreditosRoute: AppPerfilCreditosRoute,
-  AppPerfilVinculosRoute: AppPerfilVinculosRoute,
   AppPlanElegirRoute: AppPlanElegirRoute,
   AppPlanRevisionRoute: AppPlanRevisionRoute,
   AppProgresoCargaRoute: AppProgresoCargaRoute,
@@ -702,7 +784,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppPlanIndexRoute: AppPlanIndexRoute,
   AppProgresoIndexRoute: AppProgresoIndexRoute,
   AppEntrenarHistorialSessionIdRoute: AppEntrenarHistorialSessionIdRoute,
+  AppPerfilVinculosPartnerIdRoute: AppPerfilVinculosPartnerIdRoute,
   AppProgresoEjercicioExerciseIdRoute: AppProgresoEjercicioExerciseIdRoute,
+  AppParejaPartnerIdIndexRoute: AppParejaPartnerIdIndexRoute,
+  AppPerfilVinculosIndexRoute: AppPerfilVinculosIndexRoute,
+  AppParejaPartnerIdEjercicioExerciseIdRoute:
+    AppParejaPartnerIdEjercicioExerciseIdRoute,
+  AppParejaPartnerIdSesionSessionIdRoute:
+    AppParejaPartnerIdSesionSessionIdRoute,
 }
 
 const AppRouteWithChildren = AppRoute._addFileChildren(AppRouteChildren)

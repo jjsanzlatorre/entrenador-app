@@ -38,6 +38,9 @@ export type PrType =
   'est_1rm' | 'max_weight' | 'max_reps_at_weight' | 'best_time' | 'longest_distance' | 'best_pace'
 export type PhotoPose = 'front' | 'side' | 'back'
 export type PartnerLinkStatus = 'pending' | 'accepted' | 'revoked'
+export type PairInviteStatus = 'pending' | 'accepted' | 'declined' | 'cancelled'
+export type ReactionKind = 'week' | 'session'
+export type ReactionEmoji = 'clap' | 'fire' | 'muscle'
 export type EquivalenceKind = 'weight' | 'distance_route' | 'time'
 export type DestinationType = 'city' | 'island' | 'landmark'
 export type PlanFamily = 'running' | 'swimming' | 'strength' | 'hyrox' | 'deka' | 'hybrid'
@@ -532,6 +535,9 @@ export type Database = {
           status: PartnerLinkStatus
           can_view_adherence: boolean
           can_view_sessions: boolean
+          // 0027: mapa muscular y carga; logros. Las fotos nunca se comparten.
+          can_view_muscles: boolean
+          can_view_achievements: boolean
           can_view_metrics: boolean
           created_at: string
           updated_at: string
@@ -543,11 +549,15 @@ export type Database = {
           status?: PartnerLinkStatus
           can_view_adherence?: boolean
           can_view_sessions?: boolean
+          can_view_muscles?: boolean
+          can_view_achievements?: boolean
           can_view_metrics?: boolean
         }
         Update: {
           can_view_adherence?: boolean
           can_view_sessions?: boolean
+          can_view_muscles?: boolean
+          can_view_achievements?: boolean
           can_view_metrics?: boolean
         }
         Relationships: []
@@ -815,6 +825,37 @@ export type Database = {
         Relationships: []
       }
       // 0025_ai_coach_review_chat.sql
+      // 0027_partner_sharing.sql (escritura solo por RPC)
+      pair_invites: {
+        Row: {
+          id: string
+          pair_group_id: string
+          from_user: string
+          to_user: string
+          payload: Json
+          status: PairInviteStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: { [_ in never]: never }
+        Update: { [_ in never]: never }
+        Relationships: []
+      }
+      reactions: {
+        Row: {
+          id: string
+          from_user: string
+          to_user: string
+          target_kind: ReactionKind
+          target_key: string
+          emoji: ReactionEmoji
+          created_at: string
+          seen_at: string | null
+        }
+        Insert: { [_ in never]: never }
+        Update: { [_ in never]: never }
+        Relationships: []
+      }
       ai_chat_messages: {
         Row: {
           id: string
@@ -875,10 +916,12 @@ export type Database = {
       // 0015_profile_settings_commitment_end.sql
       end_commitment: { Args: { p_today: string }; Returns: number }
       shares_with_me: { Args: { p_owner: string; p_perm: string }; Returns: boolean }
+      are_linked: { Args: { p_a: string; p_b: string }; Returns: boolean }
       invite_partner: { Args: { p_email: string }; Returns: string }
       respond_partner_link: { Args: { p_partner: string; p_accept: boolean }; Returns: undefined }
       revoke_partner_link: { Args: { p_partner: string }; Returns: undefined }
-      list_partner_links: {
+      // 0027: sustituye a list_partner_links (0012)
+      list_partners: {
         Args: Record<PropertyKey, never>
         Returns: {
           partner_id: string
@@ -886,9 +929,13 @@ export type Database = {
           status: 'sent' | 'received' | 'accepted'
           i_share_adherence: boolean
           i_share_sessions: boolean
+          i_share_muscles: boolean
+          i_share_achievements: boolean
           i_share_metrics: boolean
           they_share_adherence: boolean
           they_share_sessions: boolean
+          they_share_muscles: boolean
+          they_share_achievements: boolean
           they_share_metrics: boolean
           created_at: string
         }[]
@@ -897,6 +944,41 @@ export type Database = {
         Args: { p_partner: string; p_from: string; p_tz?: string }
         Returns: { day: string; session_type: SessionType }[]
       }
+      // 0027_partner_sharing.sql
+      partner_session_log: {
+        Args: { p_partner: string }
+        Returns: {
+          id: string
+          session_type: SessionType
+          started_at: string
+          ended_at: string
+          duration_min: number | null
+          rpe: number | null
+          distance_m: number | null
+          tonnage_kg: number | null
+          total_reps: number | null
+        }[]
+      }
+      partner_exercise_sets: {
+        Args: { p_partner: string; p_from: string; p_to: string }
+        Returns: { session_id: string; exercise_id: string; sets: number }[]
+      }
+      partner_home: {
+        Args: { p_partner: string }
+        Returns: { home_city: string | null; home_lat: number | null; home_lng: number | null }[]
+      }
+      create_pair_invite: {
+        Args: { p_partner: string; p_pair_group_id: string; p_payload: Json }
+        Returns: string
+      }
+      update_pair_invite: { Args: { p_invite: string; p_payload: Json }; Returns: undefined }
+      respond_pair_invite: { Args: { p_invite: string; p_accept: boolean }; Returns: undefined }
+      cancel_pair_invite: { Args: { p_invite: string }; Returns: undefined }
+      toggle_reaction: {
+        Args: { p_to: string; p_kind: ReactionKind; p_key: string; p_emoji: ReactionEmoji }
+        Returns: boolean
+      }
+      mark_reactions_seen: { Args: Record<PropertyKey, never>; Returns: number }
       session_totals: {
         Args: Record<PropertyKey, never>
         Returns: { session_id: string; tonnage_kg: number; total_reps: number }[]
@@ -1011,3 +1093,5 @@ export type PlannedSessionRow = Tables<'planned_sessions'>
 export type DailyCheckinRow = Tables<'daily_checkins'>
 export type AiInteractionRow = Tables<'ai_interactions'>
 export type AiChatMessageRow = Tables<'ai_chat_messages'>
+export type PairInviteRow = Tables<'pair_invites'>
+export type ReactionRow = Tables<'reactions'>

@@ -42,9 +42,10 @@ async function loadSessionTotals(userId: string): Promise<Totals> {
 
 // Sesiones terminadas: las del servidor + las terminadas en el móvil pendientes de subir,
 // para que la barra de la semana se actualice al momento aunque no haya conexión.
-export function useSessionLog(userId: string) {
+export function useSessionLog(userId: string, enabled = true) {
   return useQuery({
     queryKey: sessionLogKey(userId),
+    enabled,
     networkMode: 'always',
     // Se recalcula al volver a «Hoy» tras terminar una sesión (aunque sea sin conexión).
     staleTime: 0,
@@ -174,7 +175,7 @@ export function useShownMilestones(userId: string) {
   })
 }
 
-const localMidnight = (key: DateKey) => {
+export const localMidnight = (key: DateKey) => {
   const [y, m, d] = key.split('-').map(Number) as [number, number, number]
   return new Date(y, m - 1, d)
 }
@@ -182,9 +183,10 @@ const localMidnight = (key: DateKey) => {
 // Series efectivas por sesión y ejercicio de las sesiones empezadas entre `from` y `to`
 // (días incluidos). Del servidor, con copia en el dispositivo, y las sesiones terminadas en el
 // móvil pendientes de subir (o todas las locales si no hay conexión) sustituyen a las del servidor.
-export function useExerciseSetCounts(userId: string, from: DateKey, to: DateKey) {
+export function useExerciseSetCounts(userId: string, from: DateKey, to: DateKey, enabled = true) {
   return useQuery({
     queryKey: ['exercise-set-counts', userId, from, to],
+    enabled,
     networkMode: 'always',
     staleTime: 0,
     queryFn: async () => {

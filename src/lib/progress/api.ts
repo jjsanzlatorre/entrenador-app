@@ -353,16 +353,21 @@ export async function deletePhoto(photo: Pick<ProgressPhoto, 'id' | 'storagePath
 
 // ── Vínculos ────────────────────────────────────────────────
 
+// Lo que cada persona decide compartir con cada vínculo (§4). Las fotos nunca.
+export const SHARE_PERMS = ['adherence', 'sessions', 'muscles', 'achievements', 'metrics'] as const
+export type SharePerm = (typeof SHARE_PERMS)[number]
+export type SharePerms = Record<SharePerm, boolean>
+
 export type PartnerLink = {
   partnerId: string
   displayName: string
   status: 'sent' | 'received' | 'accepted'
-  iShare: { adherence: boolean; sessions: boolean; metrics: boolean }
-  theyShare: { adherence: boolean; sessions: boolean; metrics: boolean }
+  iShare: SharePerms
+  theyShare: SharePerms
 }
 
 export async function fetchPartnerLinks(): Promise<PartnerLink[]> {
-  const rows = check(await withTimeout(db().rpc('list_partner_links')))
+  const rows = check(await withTimeout(db().rpc('list_partners')))
   return (rows ?? []).map((r) => ({
     partnerId: r.partner_id,
     displayName: r.display_name ?? 'Sin nombre',
@@ -370,11 +375,15 @@ export async function fetchPartnerLinks(): Promise<PartnerLink[]> {
     iShare: {
       adherence: r.i_share_adherence,
       sessions: r.i_share_sessions,
+      muscles: r.i_share_muscles,
+      achievements: r.i_share_achievements,
       metrics: r.i_share_metrics,
     },
     theyShare: {
       adherence: r.they_share_adherence,
       sessions: r.they_share_sessions,
+      muscles: r.they_share_muscles,
+      achievements: r.they_share_achievements,
       metrics: r.they_share_metrics,
     },
   }))
@@ -406,18 +415,17 @@ export function revokePartner(partnerId: string) {
   return rpcOrThrow(db().rpc('revoke_partner_link', { p_partner: partnerId }))
 }
 
-// Cambia lo que YO comparto con esa persona (mi fila del vínculo).
-export async function updateSharing(
-  userId: string,
-  partnerId: string,
-  patch: { adherence?: boolean; sessions?: boolean; metrics?: boolean },
-) {
+// Cambia lo que YO comparto con esa persona (mi fila del vínculo). Efecto inmediato: la RLS
+// lo comprueba en cada consulta.
+export async function updateSharing(userId: string, partnerId: string, patch: Partial<SharePerms>) {
   const rows = await rpcOrThrow(
     db()
       .from('partner_links')
       .update({
         can_view_adherence: patch.adherence,
         can_view_sessions: patch.sessions,
+        can_view_muscles: patch.muscles,
+        can_view_achievements: patch.achievements,
         can_view_metrics: patch.metrics,
       })
       .eq('user_id', userId)

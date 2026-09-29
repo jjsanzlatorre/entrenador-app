@@ -26,6 +26,7 @@ import { suggestionFor } from '@/lib/workout/suggestion'
 import { cardioExerciseFor } from '@/lib/workout/session-kinds'
 import * as timed from '@/lib/workout/timed-blocks'
 import type { Exercise, LocalSession } from '@/lib/workout/types'
+import { PairBanner } from '@/components/partners/pair'
 import { AddBlockSheet, type NewBlock } from './add-block-sheet'
 import { BlockCard, type BlockActions } from './block-card'
 import { ExercisePicker, type PickerMode } from './exercise-picker'
@@ -275,6 +276,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       </header>
 
       <div className="flex flex-col gap-3 p-3">
+        {session.pairGroupId && <PairBanner session={session} />}
         {catalog.isError && catalog.byId.size === 0 && (
           <p className="text-destructive rounded-lg border p-3 text-sm">{catalog.error.message}</p>
         )}

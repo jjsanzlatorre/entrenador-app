@@ -109,6 +109,8 @@ export type LocalSession = {
   distanceM?: number | null
   // Sesión planificada de la que sale (fase 5). Al guardarla terminada, el servidor la marca hecha.
   plannedSessionId?: string | null
+  // Entreno en pareja (fase 7A): enlaza esta sesión con la de la otra persona.
+  pairGroupId?: string | null
   blocks: LocalBlock[]
   rest: RestTimer | null
   // Versión creciente para que el servidor descarte copias antiguas.

@@ -115,7 +115,16 @@ Todas las tablas de usuario llevan `user_id uuid references auth.users` y una po
 
 ### IA y social
 - **ai_interactions**: `id`, `user_id`, `kind` (`plan_generation|daily_adjust|weekly_review|chat|exercise_swap`), `input_summary` jsonb, `output` jsonb, `accepted` bool nullable, `tokens_in`, `tokens_out`, `created_at`
-- **partner_links**: `id`, `user_id`, `partner_id`, `status` (`pending|accepted|revoked`), `can_view_adherence` bool (por defecto `true` al aceptar), `can_view_sessions` bool (por defecto `false`), `can_view_metrics` bool (por defecto `false`). El vínculo es **mutuo**: se crea por invitación y la otra persona acepta. Cada usuario controla qué comparte con un permiso por dirección. Políticas RLS de lectura adicionales basadas en esta tabla: cumplimiento y compromisos si `can_view_adherence`, sesiones y sets si `can_view_sessions` y métricas corporales si `can_view_metrics` (las fotos **nunca** se comparten).
+- **partner_links**: `id`, `user_id` (quien comparte), `partner_id` (quien ve), `status` (`pending|accepted|revoked`) y un permiso por dirección y persona (se pueden tener varias personas vinculadas: pareja o amigos):
+  - `can_view_adherence` (por defecto `true` al aceptar): cumplimiento y compromisos.
+  - `can_view_sessions` (por defecto `false`): **Entrenos**: historial y detalle de sesiones (con notas), bloques, series con pesos, récords, gráficas por ejercicio y sus ejercicios propios.
+  - `can_view_muscles` (por defecto `false`): **mapa muscular y carga**: series efectivas por sesión y ejercicio y RPE × minutos, sin pesos (RPC `partner_session_log` / `partner_exercise_sets`).
+  - `can_view_achievements` (por defecto `false`): **logros**: distancias, tonelaje, reps y horas acumulados, equivalencias, su ciudad de referencia (`partner_home`) e historial de hitos (`milestones_shown`).
+  - `can_view_metrics` (por defecto `false`): peso y perímetros (`body_metrics`).
+  - Las **fotos de progreso son siempre privadas**: no existe permiso ni política para compartirlas.
+  - El vínculo es **mutuo**: se crea por invitación y la otra persona acepta. Cada usuario solo cambia su fila (lo que él comparte); revocar o quitar un permiso tiene efecto inmediato (la RLS lo comprueba en cada consulta y la app no guarda en el móvil datos de otra persona). Todo pasa por `shares_with_me(owner, perm)`.
+- **pair_invites**: `id`, `pair_group_id`, `from_user`, `to_user`, `payload` jsonb (estructura de la sesión: bloques, ejercicios globales, series con reps/tiempo/distancia objetivo; sin pesos ni notas), `status` (`pending|accepted|declined|cancelled`). Solo por RPC y con el vínculo aceptado en las dos direcciones.
+- **reactions**: `id`, `from_user`, `to_user`, `target_kind` (`week|session`), `target_key` (lunes de la semana o id de sesión), `emoji` (`clap|fire|muscle`), `seen_at`. Una por emoji, persona y objetivo; a la semana si me comparte el cumplimiento y a una sesión si me comparte sus entrenos. Solo por RPC (`toggle_reaction`, `mark_reactions_seen`).
 - **equivalence_objects** (global, semilla): `id`, `kind` (`weight|distance_route|time`), `label`, `emoji`, `value` (kg, metros o minutos), `phrase_template` (p. ej. «Has levantado el peso de {n} {label}»), `min_value` (a partir de cuánto se puede mostrar)
 - **destinations** (global, semilla): `id`, `name`, `lat`, `lng`, `type` (`city|island|landmark`), `water_route` bool (válido para equivalencias de natación)
 - **milestones_shown**: `user_id`, `milestone_key` (p. ej. `swim_total_route_mallorca`, `tonnage_month_2026-10_tractor`), `shown_at`. Evita repetir el mismo pop-up.
@@ -230,8 +239,10 @@ Flujo:
 - Estado de la sesión en curso persistido localmente (IndexedDB) y cola de escritura con reintentos.
 - La sesión nunca se pierde si se cierra la app o se va la conexión.
 
-### Entreno en pareja (Fase 7)
-- «Entrenar con…» crea dos sesiones enlazadas por `pair_group_id` con la misma estructura; cada uno registra sus propios pesos desde su móvil.
+### Entreno en pareja (Fase 7A)
+- «Entrenar con…» (en «Empezar entreno» o en una sesión planificada) elige una persona vinculada: mi sesión empieza con un `pair_group_id` nuevo y le llega una invitación en «Hoy» con la misma estructura (sin pesos). Al unirse, su móvil crea su propia sesión con esa estructura, el mismo `pair_group_id` y los pesos de **su** última vez; cada uno registra sus pesos.
+- Mientras no se haya unido, quien invita puede reenviar la estructura actual (p. ej. tras añadir ejercicios a un entreno libre) o cancelar. Los ejercicios propios no se mandan.
+- En el resumen, comparación lado a lado (duración, volumen, series y mejor serie por ejercicio) si los dos os compartís «Entrenos».
 
 ---
 
@@ -322,10 +333,11 @@ Las actividades fijas del usuario (surf, frontón) se cuentan como carga y el pl
 - Colores: < 50 % neutro, 50–99 % intermedio, ≥ 100 % logro. Sin mensajes de culpa: el tono es de ánimo («2 de 3, ¡una más y semana completa!»).
 
 ### Compartido con la pareja o amigos vinculados
-- En **Hoy** y en **Cumplimiento** aparece la tarjeta «Nosotros»: la barra semanal y mensual de cada persona vinculada con `can_view_adherence`, junto a la tuya, con su racha.
-- La visibilidad es recíproca por defecto al aceptar el vínculo, pero cada uno puede dejar de compartir la suya en cualquier momento.
-- Solo se comparten los porcentajes, las rachas y el nº de sesiones por tipo; nunca pesos, notas ni métricas salvo los permisos correspondientes.
-- Opcional: reacción rápida (👏 🔥 💪) sobre la semana del otro.
+- En **Hoy** y en **Cumplimiento** aparece la tarjeta «Nosotros»: la barra semanal y mensual de cada persona vinculada con `can_view_adherence`, junto a la tuya, con su racha. Su nombre lleva a «Evolución de {nombre}».
+- La visibilidad del cumplimiento es recíproca por defecto al aceptar el vínculo; el resto de permisos (Entrenos, Mapa muscular y carga, Logros, Medidas) está desactivado hasta que cada uno lo active, persona a persona, en Perfil → «Pareja y amigos» → persona. Se puede dejar de compartir en cualquier momento, con efecto inmediato. Las fotos nunca.
+- El cumplimiento solo comparte porcentajes, rachas y nº de sesiones por tipo; nunca pesos, notas ni métricas salvo los permisos correspondientes.
+- **Evolución de {nombre}**: vista de solo lectura con una sección por permiso concedido (cumplimiento; historial, detalle, récords y gráficas; mapa muscular y carga; logros; medidas). Las secciones sin permiso no aparecen.
+- Reacciones 👏 🔥 💪 (una por tipo y persona) sobre la semana de cumplimiento del otro y sobre sus sesiones compartidas; las recibidas salen en un aviso discreto en «Hoy».
 
 ---
 
@@ -483,9 +495,16 @@ Las frases se generan con plantillas deterministas; el **dato y la equivalencia 
 
 **Aceptación**: el detalle de Press banca muestra dos imágenes, pasos, errores, vídeo y fuente; en una sesión, abrir la técnica durante el descanso no lo para.
 
-### Fase 7 — Pareja y extras
-- Vista de las sesiones de la pareja en solo lectura (si `can_view_sessions`) y reacciones a su semana.
-- Entreno en pareja con `pair_group_id`.
+### Fase 7A — Compartir y entrenar en pareja
+- Permisos por persona vinculada (cumplimiento, entrenos, mapa muscular y carga, logros, medidas; fotos nunca) con RLS exacta y tests de base de datos de cada permiso activado y desactivado.
+- Perfil → «Pareja y amigos» → persona → interruptores.
+- «Evolución de {nombre}» en solo lectura, reutilizando los componentes de Progreso.
+- Entreno en pareja con `pair_group_id` y comparación lado a lado.
+- Reacciones 👏 🔥 💪 sobre la semana y las sesiones compartidas, con aviso en «Hoy».
+
+**Aceptación**: con dos usuarios, activar y desactivar cada permiso cambia al momento lo que ve el otro (y las fotos nunca se ven); un entreno en pareja deja dos sesiones enlazadas y el resumen las compara si los dos comparten Entrenos.
+
+### Fase 7B — Extras
 - Sustitución de ejercicios con reglas + IA (hecha en la Fase 6B).
 - Recordatorios (notificaciones push de la PWA donde el sistema lo permita).
 - Exportar los datos del usuario en CSV/JSON.
@@ -498,7 +517,7 @@ Las frases se generan con plantillas deterministas; el **dato y la equivalencia 
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **6C hecha** (técnica de ejercicios; typecheck, lint, Vitest, build y E2E completa en verde; hojas revisadas a 375 px). Fase 6 (6A + 6B) hecha; falta validar en móvil real con una clave de Gemini. Siguiente: **Fase 7**.
+- Fase actual: **7A hecha** (compartir y entrenar en pareja; typecheck, lint, Vitest + PGlite, build y E2E completa en verde; pantallas revisadas a 375 px). Falta validar en dos móviles reales. Siguiente: **Fase 7B** (recordatorios, exportar, imagen compartible, pulido).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -612,6 +631,20 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Perfil → «Créditos» (`/perfil/creditos`): fuente, autoría y licencia de las imágenes; nota sobre los vídeos de YouTube.
   - Copias del catálogo en IndexedDB anteriores a 6C se normalizan (pasos y errores vacíos hasta refrescar con conexión).
   - Tests: Vitest (`src/lib/workout/exercise-images.test.ts`: cobertura de técnica 3–4/2–3, todos los ejercicios mapeados o en `unmatched`, archivos WebP ≤ 50 KB sin sobrantes, rutas, URL de vídeo, exclusión de la precarga); PGlite `tests/db/technique.test.ts` (dos pasadas, lectura autenticada, propios intactos al reaplicar, límite de elementos); E2E `tests/e2e/technique.spec.ts` (biblioteca sin peticiones de imágenes en la lista, detalle con imágenes/pasos/vídeo/fuente, caché tras verlas, ejercicio sin imagen; en sesión, la hoja se abre con el descanso en marcha y este sigue corriendo al cerrar). `E2E_SCREENSHOTS=<dir>` guarda capturas a 375 px.
+- Hecho (Fase 7A):
+  - Migración `0027_partner_sharing.sql`: `partner_links.can_view_muscles` y `can_view_achievements` (se borra `can_view_photos` si existiera); `shares_with_me` con los 5 permisos (cualquier otro, p. ej. `photos`, es false) y `are_linked`; políticas de lectura de pareja en `personal_records` (entrenos), `exercises` propios (entrenos o músculos; `exercise_muscles` hereda) y `milestones_shown` (logros); se quitan posibles políticas de pareja en fotos. RPC security definer por permiso: `partner_session_log` (RPE solo con músculos; distancia, tonelaje y reps solo con logros), `partner_exercise_sets` (músculos), `partner_home` (logros). `invite_partner`/`respond_partner_link` dejan todo lo nuevo desactivado. `list_partners()` sustituye a `list_partner_links()` (otro nombre para que 0012 se pueda volver a ejecutar). Tablas `pair_invites` (RPC `create_pair_invite`, `update_pair_invite`, `respond_pair_invite`, `cancel_pair_invite`) y `reactions` (`toggle_reaction`, `mark_reactions_seen`).
+  - Mi biblioteca filtra `owner_id is null or = yo` (con permisos la RLS también devuelve los propios de la otra persona).
+  - Perfil → «Pareja y amigos»: lista de personas (lo que compartes y te comparte) → `/perfil/vinculos/$partnerId` con 5 interruptores (`role="switch"`), aviso de fotos siempre privadas, «Ver la evolución» y «Deshacer vínculo». Toast en cada cambio.
+  - `/pareja/$partnerId` «Evolución de {nombre}»: pestañas solo de lo compartido (`?ver=`); cumplimiento (`AdherenceOverview` + reacción a su semana), entrenos (historial → `/pareja/$partnerId/sesion/$sessionId`, récords → `/pareja/$partnerId/ejercicio/$exerciseId`), músculos (`MuscleMapView` + `LoadView`), logros (`AchievementsView` con su ciudad y frases en tercera persona) y medidas (`MetricsChart` + lista). Componentes extraídos de las pantallas propias con un «owner» (`src/lib/partners/hooks.ts`): `SessionBody`, `RecordsList`, `ExerciseProgressView`, `MuscleMapView`, `LoadView`, `AchievementsView`, `MetricsChart`. Los datos de otra persona no se copian en IndexedDB.
+  - Entreno en pareja (`src/lib/partners/pair.ts`, `src/components/partners/pair.tsx`): «Entrenar con…» en «Empezar entreno» (elige persona y tipo), en la planificada de «Hoy» y en Plan; invitación en «Hoy» (caduca a las 12 h) con «Unirme» / «Ahora no»; aviso en la sesión en curso («Esperando a que… se una», reenviar la estructura actual, cancelar; «Entrenando con…»); `LocalSession.pairGroupId` viaja en `save_workout_session`; comparación lado a lado en el resumen con reacción a su sesión.
+  - Reacciones (`src/components/partners/reactions.tsx`): botones en «Nosotros», en su cumplimiento, en sus sesiones y en la comparación; recibidas bajo mi fila de «Nosotros» y en el detalle de mi sesión; aviso discreto en «Hoy» que se cierra con un toque.
+  - Tests: PGlite `tests/db/partner-sharing.test.ts` (cada permiso activado y desactivado y sin fugas entre permisos, fotos nunca ni con todo activado, tercero sin acceso, solo la fila propia, efecto inmediato, invitaciones a entrenar, pair_group_id y reacciones, revocar y volver a vincular); Vitest `src/lib/partners/pair.test.ts`; E2E `tests/e2e/partners.spec.ts` (secciones según permisos, interruptores, unirse a un entreno en pareja). `E2E_SCREENSHOTS=<dir>` guarda capturas a 375 px.
+- Pendiente / deuda técnica (Fase 7A):
+  - Invitar a entrenar juntos, unirse y reaccionar necesitan conexión; la evolución de otra persona también (no se precachea ni se copia en el móvil, a propósito).
+  - La estructura de un entreno libre no se sincroniza sola: quien invita pulsa «Enviarle la estructura actual» mientras la otra persona no se ha unido. Después, cada sesión va por su cuenta.
+  - Con «Entrenos» la otra persona ve también las notas de la sesión (se avisa en el interruptor).
+  - Nombres de las personas desvinculadas: sus reacciones antiguas dejan de mostrarse.
+  - No hay notificación push de la invitación: aparece al abrir «Hoy» (se consulta cada minuto con la app abierta).
 - Pendiente / deuda técnica (Fase 6C):
   - Imágenes de wger: si se quieren, permitir `wger.de` en la red del entorno y respetar CC BY-SA (atribución por imagen). Con free-exercise-db no hay más candidatos fiables para HYROX/DEKA.
   - Las imágenes solo se ven sin conexión si se han abierto antes con conexión.
@@ -641,8 +674,6 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - «Mis logros» solo muestra el periodo en curso (sin navegar a semanas o meses anteriores).
   - Si no hay conexión ni copia local de `milestones_shown` (primer uso sin red), no se enseñan pop-ups para no repetir alguno.
   - Los valores de las semillas de equivalencias son aproximados: revisarlos si se quiere más precisión.
-  - Reacciones rápidas (👏 🔥 💪) sobre la semana de la pareja: no hechas (opcionales; fase 7).
-  - Ver las sesiones de la pareja (`can_view_sessions`) y sus medidas (`can_view_metrics`): la RLS ya lo permite, falta la UI (fase 7).
   - Los récords solo se ven con conexión y tras sincronizar (se calculan en el servidor); el resumen lo indica.
   - Medidas y fotos requieren conexión (sin cola offline).
   - Los E2E necesitan `npm run build` antes y, en este contenedor, `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
@@ -671,6 +702,7 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - PRs en SQL (trigger de sentencia que rehace el historial del ejercicio afectado): así editar o borrar una sesión antigua deja los récords correctos. Cada fila es un evento de récord; `previous_value = null` es la primera marca (referencia, no se celebra). «Reps con un peso»: récord si ninguna serie anterior tiene ≥ peso y ≥ reps. «Mejor ritmo» solo con series de ≥ 1 km (≥ 100 m en natación); en bici se muestra como km/h.
   - Compromiso de una semana = el que la cubre entera (lunes a domingo). «Quitar» pone `valid_to` = hoy: la semana en que se quita a medias queda sin compromiso y desde ese día no hay compromiso vigente (`currentCommitment`). Borrar una entrada del historial es un DELETE directo (RLS propia); esas semanas quedan sin compromiso.
   - Compromiso: `valid_from` siempre es el lunes de la semana en que se guarda (la semana en curso ya se mide con el nuevo); cambiarlo dos veces en la misma semana sustituye el de esa semana. Con reparto por tipo, cada tipo solo llena sus huecos y lo que sobra llena los huecos libres (sesiones/semana − suma del reparto); el resto es «+N extra». El % semanal de la barra es hasta 100 % + extra; el mensual también: objetivo = comprometidas prorrateadas por días y redondeadas (mínimo 1), hasta 100 % + extra, y «Mes parcial» si el prorrateo es < 1. Minutos: suma de todas las sesiones de la semana (sin mínimo de 15 min). Media de 3 meses: 13 semanas terminadas, cada una hasta 100 %.
+  - Fase 7A: permisos por persona en la fila de cada dirección; lo que no es tabla propia de la otra persona (mapa, carga, logros) llega por RPC security definer que devuelven solo las columnas de ese permiso, no por RLS sobre sus sesiones. Entreno en pareja por invitación con la estructura (la otra persona crea su propia sesión con su propio id), en vez de escribir en las tablas de otro usuario.
   - Vínculos: una fila por dirección (`user_id` = quien comparte, `partner_id` = quien ve). El estado solo cambia por RPC; el usuario solo puede actualizar los permisos de su propia fila (GRANT por columnas). El cumplimiento de la pareja llega por `partner_adherence_days` (solo días y tipos de sesión ≥ 15 min, en la zona horaria del que mira), nunca por lectura directa de sesiones. Los nombres de la otra persona salen de `list_partner_links` (security definer); `profiles` sigue siendo solo propio.
   - Todas las consultas de datos propios filtran por `user_id` (con permisos de pareja la RLS también devolvería filas ajenas).
   - Equivalencias: `equivalence_objects` añade `label_plural` y `article` (para «un tractor» / «3,4 tractores» / «la Torre Eiffel»); `phrase_template` usa `{qty}`. Las rutas a nado son objetos `distance_route`; la natación usa esas rutas + destinos `water_route` desde casa. Tonelaje: solo ejercicios `weight_reps`. Claves de hito `{métrica}_{periodo}[_{clave}]_{id}` (métricas `run|swim|bike|dist|tonnage|time`).

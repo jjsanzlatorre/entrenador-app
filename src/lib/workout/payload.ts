@@ -50,6 +50,7 @@ export function toPayload(session: LocalSession) {
       calories: session.calories,
       location: session.location,
       notes: session.notes?.trim() || null,
+      pair_group_id: session.pairGroupId ?? null,
       client_rev: session.rev,
     },
     blocks: session.blocks.map((b) => ({
@@ -198,6 +199,7 @@ export function fromServerRows(
     notes: session.notes,
     distanceM: num(session.distance_m),
     plannedSessionId: session.planned_session_id,
+    pairGroupId: session.pair_group_id,
     blocks: localBlocks,
     rest: null,
     rev: session.client_rev,

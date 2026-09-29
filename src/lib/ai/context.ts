@@ -293,7 +293,8 @@ function recent(input: AiContextInput) {
       withoutNulls({
         date: s.date,
         type: activityKey(s),
-        activity: s.sessionType === 'custom' ? (activities.get(activityKey(s))?.name ?? null) : null,
+        activity:
+          s.sessionType === 'custom' ? (activities.get(activityKey(s))?.name ?? null) : null,
         title: s.title,
         min: s.durationMin,
         rpe: s.rpe,

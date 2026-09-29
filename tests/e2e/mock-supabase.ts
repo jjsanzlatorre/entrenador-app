@@ -26,6 +26,9 @@ type SeedExercise = {
 const seed = JSON.parse(readFileSync(join(root, 'supabase/seed/exercises.json'), 'utf8')) as {
   exercises: SeedExercise[]
 }
+const { technique } = JSON.parse(
+  readFileSync(join(root, 'supabase/seed/exercise_technique.json'), 'utf8'),
+) as { technique: Record<string, { steps: string[]; mistakes: string[] }> }
 const exercises = seed.exercises.map((e) => ({
   id: e.id,
   name: e.name,
@@ -37,6 +40,8 @@ const exercises = seed.exercises.map((e) => ({
   is_compound: e.is_compound,
   default_rest_s: e.default_rest_s,
   technique_notes: e.technique_notes,
+  technique_steps: technique[e.id]?.steps ?? [],
+  technique_mistakes: technique[e.id]?.mistakes ?? [],
   owner_id: null,
   created_at: '2026-01-01T00:00:00Z',
   exercise_muscles: [

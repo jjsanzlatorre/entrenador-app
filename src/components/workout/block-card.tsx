@@ -1,6 +1,7 @@
 import {
   ArrowDown,
   ArrowUp,
+  BookOpen,
   Info,
   Lightbulb,
   Link2,
@@ -18,6 +19,7 @@ import type { SetPatch } from '@/lib/workout/session-ops'
 import type { Exercise, LastPerformance, LocalBlock } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
 import { primaryMusclesText } from './exercise-list-item'
+import { ExerciseTechniqueSheet } from './exercise-technique'
 import { SetRow } from './set-row'
 
 export type BlockActions = {
@@ -76,6 +78,7 @@ export function BlockCard({
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const isSuperset = block.exercises.length > 1
   const menuExercise = menuFor ? exercisesById.get(menuFor) : undefined
+  const [techniqueFor, setTechniqueFor] = useState<string | null>(null)
 
   return (
     <section
@@ -102,7 +105,16 @@ export function BlockCard({
                 </span>
                 <div className="min-w-0 flex-1">
                   <h3 className="text-lg leading-tight font-semibold">
-                    {exercise?.name ?? be.exerciseId}
+                    <button
+                      type="button"
+                      disabled={!exercise}
+                      onClick={() => setTechniqueFor(be.exerciseId)}
+                      title="Ver técnica"
+                      className="inline-flex items-start gap-1.5 text-left"
+                    >
+                      {exercise?.name ?? be.exerciseId}
+                      <Info className="text-muted-foreground mt-1 size-4 shrink-0" />
+                    </button>
                   </h3>
                   <p className="text-muted-foreground text-xs">
                     {last ? `Última vez ${last}` : 'Primera vez con este ejercicio'}
@@ -181,11 +193,18 @@ export function BlockCard({
               <p className="flex items-center gap-1 font-medium">
                 <Info className="size-4" /> {primaryMusclesText(menuExercise)}
               </p>
-              {menuExercise.techniqueNotes && (
-                <p className="text-muted-foreground mt-1">{menuExercise.techniqueNotes}</p>
-              )}
             </div>
           )}
+          <MenuButton
+            icon={BookOpen}
+            disabled={!menuExercise}
+            onClick={() => {
+              setTechniqueFor(menuFor)
+              setMenuFor(null)
+            }}
+          >
+            Ver técnica
+          </MenuButton>
           <MenuButton
             icon={ArrowUp}
             disabled={isFirst}
@@ -239,6 +258,10 @@ export function BlockCard({
           </MenuButton>
         </div>
       </Sheet>
+      <ExerciseTechniqueSheet
+        exercise={techniqueFor ? exercisesById.get(techniqueFor) : null}
+        onClose={() => setTechniqueFor(null)}
+      />
     </section>
   )
 }

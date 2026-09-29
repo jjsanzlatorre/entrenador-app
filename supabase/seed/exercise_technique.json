@@ -1,0 +1,759 @@
+{
+  "_comment": "Técnica de los ejercicios globales (fase 6C): 3–4 pasos clave y 2–3 errores típicos. npm run seed:sql genera supabase/migrations/0026_exercise_technique.sql.",
+  "technique": {
+    "back_squat": {
+      "steps": [
+        "Barra apoyada en la parte alta de la espalda, no en el cuello; saca la barra del rack con los pies bajo ella.",
+        "Pies a la anchura de los hombros, puntas algo abiertas; coge aire y aprieta el abdomen.",
+        "Baja llevando la cadera atrás y abajo, con las rodillas en la dirección de los pies, al menos hasta paralelo.",
+        "Sube empujando el suelo con todo el pie y soltando el aire al final."
+      ],
+      "mistakes": [
+        "Rodillas que se van hacia dentro al subir.",
+        "Talones que se despegan o peso en las puntas.",
+        "Redondear la zona lumbar abajo del todo."
+      ]
+    },
+    "goblet_squat": {
+      "steps": [
+        "Sujeta la mancuerna o kettlebell pegada al pecho, con los codos hacia abajo.",
+        "Pies algo más abiertos que los hombros y puntas ligeramente hacia fuera.",
+        "Baja con el torso erguido hasta que los codos pasen entre las rodillas.",
+        "Sube empujando con todo el pie, sin separar el peso del pecho."
+      ],
+      "mistakes": [
+        "Separar el peso del cuerpo e inclinarse hacia delante.",
+        "Rodillas hacia dentro.",
+        "Quedarse corto de profundidad."
+      ]
+    },
+    "leg_press": {
+      "steps": [
+        "Siéntate con la espalda y la cadera bien apoyadas en el respaldo.",
+        "Pies en el centro de la plataforma a la anchura de la cadera.",
+        "Quita los seguros y baja controlando hasta unos 90° de rodilla, sin que se levante la cadera.",
+        "Empuja con todo el pie hasta casi extender, sin bloquear las rodillas."
+      ],
+      "mistakes": [
+        "Bajar tanto que la zona lumbar se despega del respaldo.",
+        "Bloquear las rodillas de golpe arriba.",
+        "Empujar solo con las puntas."
+      ]
+    },
+    "deadlift": {
+      "steps": [
+        "Pies a la anchura de la cadera, con la barra sobre la mitad del pie.",
+        "Agarra la barra justo por fuera de las piernas, baja la cadera y pon la espalda neutra con el pecho alto.",
+        "Tensa dorsales y abdomen y empuja el suelo con las piernas, con la barra rozando las piernas.",
+        "Termina de pie con la cadera extendida y baja por el mismo camino."
+      ],
+      "mistakes": [
+        "Redondear la espalda al despegar la barra.",
+        "Barra separada de las piernas.",
+        "Subir la cadera antes que la barra (piernas estiradas y tirón con la espalda)."
+      ]
+    },
+    "romanian_deadlift": {
+      "steps": [
+        "De pie con la barra en las manos, rodillas un poco flexionadas y fijas.",
+        "Lleva la cadera atrás deslizando la barra por los muslos, con la espalda neutra.",
+        "Baja hasta notar tensión en los isquios (normalmente por debajo de la rodilla).",
+        "Vuelve empujando la cadera hacia delante y aprieta el glúteo arriba."
+      ],
+      "mistakes": [
+        "Doblar mucho las rodillas y convertirlo en un peso muerto normal.",
+        "Redondear la espalda para llegar más abajo.",
+        "Separar la barra de las piernas."
+      ]
+    },
+    "hip_thrust": {
+      "steps": [
+        "Parte baja de las escápulas apoyada en el banco y barra sobre la cadera (con protector).",
+        "Pies a la anchura de la cadera y rodillas a unos 90° en la posición alta.",
+        "Sube empujando con los talones hasta alinear hombros, cadera y rodillas.",
+        "Aprieta el glúteo un segundo arriba con la barbilla recogida y baja controlando."
+      ],
+      "mistakes": [
+        "Arquear la zona lumbar en lugar de extender la cadera.",
+        "Pies demasiado lejos o cerca (se carga el isquio o el cuádriceps).",
+        "Echar la cabeza hacia atrás."
+      ]
+    },
+    "lunge": {
+      "steps": [
+        "De pie, con el peso en las manos y el torso erguido.",
+        "Da un paso largo y baja hasta que la rodilla trasera casi toque el suelo.",
+        "Rodilla delantera en la línea del pie y peso en el talón delantero.",
+        "Empuja con la pierna delantera para volver o avanzar."
+      ],
+      "mistakes": [
+        "Paso demasiado corto, con la rodilla muy por delante del pie.",
+        "Rodilla delantera hacia dentro.",
+        "Inclinar el tronco hacia delante."
+      ]
+    },
+    "bulgarian_split_squat": {
+      "steps": [
+        "Empeine del pie trasero sobre el banco y pie delantero a un paso largo.",
+        "Torso erguido o algo inclinado y peso en la pierna delantera.",
+        "Baja en vertical hasta que el muslo delantero quede casi paralelo al suelo.",
+        "Sube empujando con el talón delantero; haz todas las reps y cambia de pierna."
+      ],
+      "mistakes": [
+        "Pie delantero demasiado cerca del banco.",
+        "Empujar con la pierna de atrás.",
+        "Rodilla delantera que se va hacia dentro."
+      ]
+    },
+    "leg_curl": {
+      "steps": [
+        "Ajusta la máquina para que la rodilla quede alineada con el eje y el rodillo sobre el tobillo.",
+        "Agárrate y mantén la cadera pegada al banco o al asiento.",
+        "Flexiona las rodillas llevando los talones hacia el glúteo.",
+        "Baja despacio sin dejar que el peso caiga."
+      ],
+      "mistakes": [
+        "Levantar la cadera para ayudarse.",
+        "Soltar el peso de golpe en la bajada.",
+        "Recorrido a medias."
+      ]
+    },
+    "leg_extension": {
+      "steps": [
+        "Ajusta el respaldo para que la rodilla quede alineada con el eje de la máquina.",
+        "Rodillo sobre la parte baja de la espinilla y espalda apoyada.",
+        "Extiende las rodillas hasta arriba con una pausa breve.",
+        "Baja controlando sin que las placas choquen."
+      ],
+      "mistakes": [
+        "Impulsarse con la cadera o despegar la espalda.",
+        "Dejar caer el peso.",
+        "Rodilla desalineada con el eje."
+      ]
+    },
+    "calf_raise": {
+      "steps": [
+        "Parte delantera del pie sobre el escalón o la plataforma y talones libres.",
+        "Rodillas casi extendidas y cuerpo recto.",
+        "Baja el talón hasta notar el estiramiento y haz una pausa.",
+        "Sube todo lo posible sobre las puntas y aguanta un segundo arriba."
+      ],
+      "mistakes": [
+        "Rebotar abajo sin pausa.",
+        "Recorrido corto.",
+        "Doblar las rodillas para ayudarse."
+      ]
+    },
+    "bench_press": {
+      "steps": [
+        "Túmbate con los ojos bajo la barra, escápulas juntas y hacia abajo, pies firmes en el suelo.",
+        "Agarre algo más ancho que los hombros; saca la barra y colócala sobre los hombros.",
+        "Baja controlando hasta el pecho medio, con los codos a unos 45° del cuerpo.",
+        "Empuja hacia arriba y un poco hacia atrás hasta extender los brazos."
+      ],
+      "mistakes": [
+        "Codos abiertos a 90° (carga el hombro).",
+        "Rebotar la barra en el pecho.",
+        "Despegar el glúteo del banco."
+      ]
+    },
+    "incline_db_press": {
+      "steps": [
+        "Banco a 30–45°; sube las mancuernas apoyándolas en los muslos.",
+        "Escápulas juntas y apoyadas, mancuernas sobre el pecho con los brazos extendidos.",
+        "Baja controlando hasta la altura del pecho, con los codos algo por debajo de los hombros.",
+        "Empuja hacia arriba juntando ligeramente las mancuernas."
+      ],
+      "mistakes": [
+        "Banco demasiado inclinado (se convierte en press de hombro).",
+        "Bajar sin control o con los codos muy abiertos.",
+        "Chocar las mancuernas arriba perdiendo tensión."
+      ]
+    },
+    "dips": {
+      "steps": [
+        "Sube a las paralelas con los brazos extendidos y los hombros lejos de las orejas.",
+        "Inclina un poco el torso hacia delante y cruza o dobla las piernas.",
+        "Baja flexionando los codos hasta unos 90°.",
+        "Empuja hasta extender los brazos sin encoger los hombros."
+      ],
+      "mistakes": [
+        "Bajar demasiado y forzar el hombro.",
+        "Hombros encogidos hacia las orejas.",
+        "Balancearse para subir."
+      ]
+    },
+    "push_up": {
+      "steps": [
+        "Manos algo más anchas que los hombros y cuerpo en línea de la cabeza a los talones.",
+        "Aprieta glúteos y abdomen.",
+        "Baja con los codos a unos 45° hasta que el pecho casi toque el suelo.",
+        "Empuja el suelo hasta extender los brazos manteniendo el bloque."
+      ],
+      "mistakes": [
+        "Cadera hundida o demasiado alta.",
+        "Codos abiertos en cruz.",
+        "Recorrido a medias."
+      ]
+    },
+    "overhead_press": {
+      "steps": [
+        "Barra sobre la parte alta del pecho, agarre algo más ancho que los hombros.",
+        "Pies a la anchura de la cadera; aprieta glúteos y abdomen.",
+        "Empuja la barra en línea recta apartando la cabeza y métela bajo la barra al pasar la frente.",
+        "Termina con los brazos extendidos y la barra sobre la mitad del pie."
+      ],
+      "mistakes": [
+        "Arquear la zona lumbar para empujar.",
+        "Barra que sube por delante de la cara, lejos del cuerpo.",
+        "Ayudarse con las piernas sin querer."
+      ]
+    },
+    "lateral_raise": {
+      "steps": [
+        "De pie con una mancuerna en cada mano y los codos un poco flexionados.",
+        "Torso quieto y ligeramente inclinado hacia delante.",
+        "Sube los brazos hacia los lados hasta la altura de los hombros, guiando con los codos.",
+        "Baja despacio sin apoyar las mancuernas en las piernas."
+      ],
+      "mistakes": [
+        "Balancear el cuerpo para subir.",
+        "Subir por encima de los hombros encogiéndolos.",
+        "Usar demasiado peso."
+      ]
+    },
+    "face_pull": {
+      "steps": [
+        "Polea a la altura de la cara o algo más alta, con la cuerda y agarre por encima.",
+        "Da un paso atrás con los brazos extendidos y el pecho alto.",
+        "Tira de la cuerda hacia la frente separando las manos y con los codos altos.",
+        "Rota los hombros hacia fuera al final y vuelve controlando."
+      ],
+      "mistakes": [
+        "Tirar hacia el cuello con los codos bajos (se convierte en un remo).",
+        "Echar el cuerpo atrás para mover el peso.",
+        "Encoger los hombros."
+      ]
+    },
+    "pull_up": {
+      "steps": [
+        "Cuélgate con los brazos extendidos y agarre algo más ancho que los hombros.",
+        "Baja los hombros (escápulas hacia abajo) antes de tirar.",
+        "Tira llevando los codos hacia las costillas hasta pasar la barbilla sobre la barra.",
+        "Baja controlando hasta extender los brazos."
+      ],
+      "mistakes": [
+        "Balancearse o dar patadas.",
+        "Quedarse a medio recorrido abajo.",
+        "Adelantar la barbilla sin subir el pecho."
+      ]
+    },
+    "lat_pulldown": {
+      "steps": [
+        "Ajusta el rodillo para que los muslos queden fijos; agarre algo más ancho que los hombros.",
+        "Pecho alto e inclinación ligera hacia atrás.",
+        "Tira de la barra hacia la parte alta del pecho llevando los codos abajo y atrás.",
+        "Sube controlando hasta extender los brazos."
+      ],
+      "mistakes": [
+        "Tirar con la inercia del cuerpo echándose atrás.",
+        "Bajar la barra detrás de la nuca.",
+        "Encoger los hombros al tirar."
+      ]
+    },
+    "barbell_row": {
+      "steps": [
+        "Agarre algo más ancho que los hombros; rodillas flexionadas y cadera atrás.",
+        "Torso inclinado a unos 45° o más, con la espalda neutra.",
+        "Lleva la barra hacia el abdomen juntando las escápulas.",
+        "Baja controlando sin cambiar la inclinación del torso."
+      ],
+      "mistakes": [
+        "Redondear la espalda.",
+        "Levantar el torso en cada rep para ayudarse.",
+        "Tirar solo con los brazos."
+      ]
+    },
+    "db_row": {
+      "steps": [
+        "Rodilla y mano del mismo lado sobre el banco; espalda plana.",
+        "Mancuerna colgando con el brazo extendido bajo el hombro.",
+        "Lleva el codo hacia la cadera, cerca del cuerpo.",
+        "Baja controlando hasta estirar el brazo."
+      ],
+      "mistakes": [
+        "Girar el tronco para subir la mancuerna.",
+        "Llevar la mancuerna hacia el pecho en lugar de hacia la cadera.",
+        "Encoger el hombro."
+      ]
+    },
+    "biceps_curl": {
+      "steps": [
+        "De pie, mancuernas o barra con las palmas hacia delante y codos pegados al cuerpo.",
+        "Sube el peso flexionando solo los codos.",
+        "Aprieta arriba sin adelantar los codos.",
+        "Baja despacio hasta extender los brazos."
+      ],
+      "mistakes": [
+        "Balancear el torso para subir.",
+        "Separar o adelantar los codos.",
+        "No extender del todo abajo."
+      ]
+    },
+    "triceps_pushdown": {
+      "steps": [
+        "De cara a la polea alta, agarre en la barra o la cuerda y codos pegados al cuerpo.",
+        "Torso algo inclinado y hombros abajo.",
+        "Extiende los codos hasta abajo del todo.",
+        "Sube controlando hasta unos 90°, sin mover los codos."
+      ],
+      "mistakes": [
+        "Mover los codos hacia delante y atrás.",
+        "Echar el peso del cuerpo encima.",
+        "Recorrido corto."
+      ]
+    },
+    "plank": {
+      "steps": [
+        "Antebrazos en el suelo con los codos bajo los hombros.",
+        "Piernas estiradas y apoyo en las puntas de los pies.",
+        "Cuerpo recto de la cabeza a los talones: aprieta glúteos y abdomen.",
+        "Respira con normalidad y aguanta el tiempo marcado."
+      ],
+      "mistakes": [
+        "Cadera hundida (carga la zona lumbar).",
+        "Cadera demasiado alta.",
+        "Contener la respiración."
+      ]
+    },
+    "ab_wheel": {
+      "steps": [
+        "De rodillas, con la rueda bajo los hombros y los brazos extendidos.",
+        "Aprieta el abdomen y los glúteos; pelvis ligeramente metida.",
+        "Rueda hacia delante despacio hasta donde mantengas la zona lumbar neutra.",
+        "Vuelve tirando con el abdomen, no con la cadera."
+      ],
+      "mistakes": [
+        "Arquear la zona lumbar al avanzar.",
+        "Ir más lejos de lo que se controla.",
+        "Volver subiendo primero la cadera."
+      ]
+    },
+    "pallof_press": {
+      "steps": [
+        "De lado a la polea (a la altura del pecho) o a la goma, con el agarre junto al esternón.",
+        "Pies a la anchura de la cadera, rodillas algo flexionadas y abdomen firme.",
+        "Extiende los brazos al frente sin dejar que el tronco gire.",
+        "Aguanta 1–2 s y vuelve al pecho; haz las reps y cambia de lado."
+      ],
+      "mistakes": [
+        "Dejar que el tronco rote hacia la polea.",
+        "Inclinarse hacia el lado contrario para compensar.",
+        "Hacerlo rápido sin pausa."
+      ]
+    },
+    "kettlebell_swing": {
+      "steps": [
+        "Kettlebell un poco por delante de los pies; bisagra de cadera con la espalda neutra.",
+        "Lánzala hacia atrás entre las piernas como un pase de rugby.",
+        "Extiende la cadera de forma explosiva: la pesa sube por el impulso hasta la altura del pecho.",
+        "Deja que caiga y recíbela con la cadera, no con la espalda."
+      ],
+      "mistakes": [
+        "Hacer una sentadilla en lugar de una bisagra de cadera.",
+        "Subir la pesa con los brazos o los hombros.",
+        "Arquear la espalda arriba en lugar de terminar de pie recto."
+      ]
+    },
+    "thruster": {
+      "steps": [
+        "Peso en posición de sentadilla frontal, con los codos altos.",
+        "Baja a una sentadilla completa con el torso erguido.",
+        "Sube de forma explosiva y aprovecha el impulso para empujar el peso por encima de la cabeza.",
+        "Baja el peso a los hombros mientras vuelves a bajar a la siguiente sentadilla."
+      ],
+      "mistakes": [
+        "Separar la sentadilla y el press en dos movimientos.",
+        "Codos bajos que dejan caer el peso hacia delante.",
+        "Quedarse corto de profundidad."
+      ]
+    },
+    "wall_ball": {
+      "steps": [
+        "De cara a la pared, a unos 50–60 cm, con el balón a la altura del pecho.",
+        "Baja a una sentadilla completa con el balón pegado al cuerpo.",
+        "Sube de forma explosiva y lanza el balón al objetivo usando el impulso de las piernas.",
+        "Recíbelo con los brazos arriba y baja directamente a la siguiente sentadilla."
+      ],
+      "mistakes": [
+        "Lanzar solo con los brazos.",
+        "Ponerse demasiado cerca o lejos de la pared.",
+        "No bajar hasta la profundidad exigida."
+      ]
+    },
+    "burpee": {
+      "steps": [
+        "Desde de pie, pon las manos en el suelo y lleva los pies atrás de un salto.",
+        "Baja el pecho al suelo.",
+        "Empuja, recoge los pies junto a las manos de un salto.",
+        "Ponte de pie y salta con los brazos por encima de la cabeza."
+      ],
+      "mistakes": [
+        "Hundir la zona lumbar al bajar.",
+        "No extender la cadera al final.",
+        "Caer a plomo sobre el pecho."
+      ]
+    },
+    "burpee_broad_jump": {
+      "steps": [
+        "Haz un burpee con el pecho en el suelo.",
+        "Recoge los pies de un salto por detrás de las manos.",
+        "Salta hacia delante con los dos pies a la vez, balanceando los brazos.",
+        "Aterriza suave con las rodillas flexionadas y encadena el siguiente."
+      ],
+      "mistakes": [
+        "Saltar con un pie o dar pasos entre repeticiones.",
+        "Aterrizar con las piernas rígidas.",
+        "Salto demasiado largo que obliga a parar."
+      ]
+    },
+    "box_jump": {
+      "steps": [
+        "De pie frente al cajón, a medio paso, con los pies a la anchura de la cadera.",
+        "Baja un poco la cadera y balancea los brazos atrás.",
+        "Salta con los dos pies y aterriza suave con todo el pie sobre el cajón.",
+        "Extiende la cadera arriba y baja andando, no saltando."
+      ],
+      "mistakes": [
+        "Aterrizar solo con las puntas o el talón fuera del cajón.",
+        "Rodillas hacia dentro al aterrizar.",
+        "Bajar saltando hacia atrás (castiga el tendón de Aquiles)."
+      ]
+    },
+    "box_jump_over": {
+      "steps": [
+        "De frente al cajón con los pies a la anchura de la cadera.",
+        "Salta al cajón con los dos pies (o sube paso a paso si se permite).",
+        "Pasa al otro lado saltando o bajando sin extender la cadera arriba.",
+        "Gírate y repite hacia el otro lado."
+      ],
+      "mistakes": [
+        "Pisar solo el borde del cajón.",
+        "Aterrizar con las piernas rígidas.",
+        "Precipitarse y tropezar cuando llega la fatiga."
+      ]
+    },
+    "sled_push": {
+      "steps": [
+        "Manos en los postes con los brazos extendidos o semiflexionados.",
+        "Cuerpo inclinado a unos 45°, en línea de la cabeza a los talones.",
+        "Empuja con pasos cortos y rápidos sobre la parte delantera del pie.",
+        "Mantén el ritmo constante y la cadera baja."
+      ],
+      "mistakes": [
+        "Cadera demasiado alta y pasos largos.",
+        "Doblar mucho los brazos y empujar con el pecho.",
+        "Parar y arrancar repetidamente."
+      ]
+    },
+    "sled_pull": {
+      "steps": [
+        "De pie frente al trineo con la cuerda tensa y los pies firmes.",
+        "Cadera baja, espalda neutra y core apretado.",
+        "Tira de la cuerda mano sobre mano llevando los codos atrás.",
+        "Usa las piernas y la cadera para dar potencia a cada tirón."
+      ],
+      "mistakes": [
+        "Tirar solo con los brazos y la espalda estirada.",
+        "Redondear la espalda.",
+        "Salir del área o soltar la cuerda de golpe."
+      ]
+    },
+    "farmers_carry": {
+      "steps": [
+        "Recoge las pesas con la espalda neutra, como en un peso muerto.",
+        "De pie con los hombros atrás y abajo y el tronco firme.",
+        "Anda con pasos cortos y rápidos, mirando al frente.",
+        "Para y deja las pesas con la misma técnica que al cogerlas."
+      ],
+      "mistakes": [
+        "Encoger los hombros o encorvarse.",
+        "Inclinarse hacia un lado.",
+        "Pasos largos que hacen balancear las pesas."
+      ]
+    },
+    "sandbag_lunge": {
+      "steps": [
+        "Saco sobre los hombros, detrás del cuello, sujeto con las dos manos.",
+        "Paso adelante y baja hasta que la rodilla trasera toque o casi toque el suelo.",
+        "Torso erguido y rodilla delantera en la línea del pie.",
+        "Sube y adelanta la otra pierna sin pausas largas."
+      ],
+      "mistakes": [
+        "Inclinar el tronco hacia delante bajo el peso.",
+        "Pasos cortos con la rodilla muy por delante del pie.",
+        "No bajar lo suficiente."
+      ]
+    },
+    "med_ball_situp_throw": {
+      "steps": [
+        "Tumbado boca arriba con las rodillas flexionadas y el balón sobre el pecho.",
+        "Lleva el balón por encima de la cabeza hasta tocar el suelo.",
+        "Sube el tronco de forma explosiva con los brazos extendidos.",
+        "Lanza el balón al llegar arriba y recógelo para la siguiente."
+      ],
+      "mistakes": [
+        "Tirar del cuello en lugar de subir con el abdomen.",
+        "Levantar los pies del suelo.",
+        "Lanzar antes de estar arriba."
+      ]
+    },
+    "dead_ball_over": {
+      "steps": [
+        "Bola entre los pies; bisagra de cadera con la espalda neutra.",
+        "Abraza la bola y súbela hasta el regazo.",
+        "Extiende la cadera y pásala por encima del obstáculo.",
+        "Pasa al otro lado y repite desde el suelo."
+      ],
+      "mistakes": [
+        "Recoger la bola con la espalda redondeada.",
+        "Levantarla solo con los brazos.",
+        "Lanzarla girando el tronco con fuerza."
+      ]
+    },
+    "skierg": {
+      "steps": [
+        "De pie frente a la máquina, agarres arriba y brazos casi extendidos.",
+        "Inicia el tirón con el tronco y la cadera, como una bisagra.",
+        "Lleva los agarres hacia abajo y atrás hasta los muslos, doblando un poco las rodillas.",
+        "Vuelve a subir extendiendo el cuerpo antes del siguiente tirón."
+      ],
+      "mistakes": [
+        "Tirar solo con los brazos.",
+        "Doblar tanto las rodillas que parece una sentadilla.",
+        "Encorvar la espalda al final del tirón."
+      ]
+    },
+    "row_erg": {
+      "steps": [
+        "Pies atados, rodillas flexionadas, brazos extendidos y espalda erguida.",
+        "Empuja primero con las piernas.",
+        "Cuando las piernas están casi estiradas, lleva el tronco atrás y tira del agarre hacia el abdomen.",
+        "Vuelve en orden inverso: brazos, tronco y piernas."
+      ],
+      "mistakes": [
+        "Tirar con los brazos antes de empujar con las piernas.",
+        "Encorvar la espalda.",
+        "Doblar las rodillas antes de que las manos pasen por encima."
+      ]
+    },
+    "air_bike": {
+      "steps": [
+        "Ajusta el sillín para que la rodilla quede casi estirada abajo.",
+        "Espalda recta y agarre firme en los brazos de la bici.",
+        "Empuja y tira con brazos y piernas a la vez, con ritmo constante.",
+        "Regula el esfuerzo con la cadencia; mira las calorías o el tiempo en la pantalla."
+      ],
+      "mistakes": [
+        "Salir demasiado fuerte y hundirse a mitad.",
+        "Usar solo las piernas.",
+        "Sillín demasiado bajo."
+      ]
+    },
+    "double_unders": {
+      "steps": [
+        "Cuerda ajustada a tu altura; codos cerca del cuerpo y manos a la altura de la cadera.",
+        "Salta sobre las puntas con las piernas casi rectas.",
+        "Gira la cuerda con las muñecas, no con los brazos.",
+        "Para el double under, salta algo más alto y acelera el giro de muñecas."
+      ],
+      "mistakes": [
+        "Girar con los brazos abiertos.",
+        "Doblar las rodillas hacia atrás (patada de burro).",
+        "Saltar demasiado alto y cansarse pronto."
+      ]
+    },
+    "run": {
+      "steps": [
+        "Calienta 5–10 min trotando suave antes de acelerar.",
+        "Cuerpo erguido y ligeramente inclinado hacia delante desde los tobillos.",
+        "Pasos cortos y rápidos, con el pie cayendo bajo el cuerpo.",
+        "Brazos relajados a unos 90°, moviéndose hacia delante y atrás."
+      ],
+      "mistakes": [
+        "Zancada larga con el talón muy por delante del cuerpo.",
+        "Hombros tensos y subidos.",
+        "Salir demasiado rápido en rodajes que deberían ser suaves."
+      ]
+    },
+    "swim_freestyle": {
+      "steps": [
+        "Cuerpo horizontal, cabeza neutra mirando al fondo.",
+        "Entra la mano delante del hombro y estira el brazo antes de tirar.",
+        "Tira hacia atrás con el codo alto hasta la cadera.",
+        "Respira girando la cabeza con el cuerpo, sin levantarla; patada corta desde la cadera."
+      ],
+      "mistakes": [
+        "Levantar la cabeza para respirar (se hunden las piernas).",
+        "Cruzar la mano por delante de la cabeza.",
+        "Patada desde la rodilla, amplia y lenta."
+      ]
+    },
+    "swim_backstroke": {
+      "steps": [
+        "Boca arriba, cabeza quieta y orejas en el agua.",
+        "Entra la mano estirada por encima del hombro, con el meñique primero.",
+        "Tira por debajo del agua hasta el muslo mientras el cuerpo rota.",
+        "Patada continua desde la cadera, con los pies cerca de la superficie."
+      ],
+      "mistakes": [
+        "Cadera hundida (sentado en el agua).",
+        "Levantar la cabeza para mirar los pies.",
+        "Entrar la mano cruzando por detrás de la cabeza."
+      ]
+    },
+    "swim_breaststroke": {
+      "steps": [
+        "Empieza estirado con los brazos al frente.",
+        "Tira con las manos hacia fuera y hacia atrás hasta los hombros y respira.",
+        "Recoge los talones hacia el glúteo y da la patada hacia atrás juntando las piernas.",
+        "Deslízate estirado antes de la siguiente brazada."
+      ],
+      "mistakes": [
+        "Tirar con los brazos más allá de los hombros.",
+        "Patada con las rodillas muy abiertas.",
+        "No deslizarse y encadenar brazadas sin pausa."
+      ]
+    },
+    "swim_drills": {
+      "steps": [
+        "Elige un ejercicio concreto (brazo alterno, patada con tabla, respiración cada 3…).",
+        "Hazlo despacio, pensando en un solo detalle de la técnica.",
+        "Descansa lo suficiente entre series para repetir con buena forma.",
+        "Termina nadando normal intentando mantener lo trabajado."
+      ],
+      "mistakes": [
+        "Hacerlo con prisa y sin atención al detalle.",
+        "Querer corregir muchas cosas a la vez.",
+        "Hacer técnica cuando ya estás muy cansado."
+      ]
+    },
+    "bike": {
+      "steps": [
+        "Ajusta el sillín: con el pedal abajo, la rodilla queda casi estirada.",
+        "Espalda estable, brazos algo flexionados y hombros relajados.",
+        "Pedalea redondo, con una cadencia de unas 80–95 rpm.",
+        "Cambia de marcha antes de las subidas para mantener la cadencia."
+      ],
+      "mistakes": [
+        "Sillín demasiado bajo (carga la rodilla).",
+        "Ir siempre con desarrollos muy duros.",
+        "Brazos rígidos y hombros tensos."
+      ]
+    },
+    "spinning": {
+      "steps": [
+        "Ajusta el sillín a la altura de la cadera y el manillar a una altura cómoda.",
+        "Espalda recta, abdomen activo y codos algo flexionados.",
+        "Sentado, pedalea con cadencia constante y controla la resistencia.",
+        "De pie, sube la resistencia y mantén la cadera sobre los pedales."
+      ],
+      "mistakes": [
+        "Pedalear a mucha cadencia sin resistencia (rebotas en el sillín).",
+        "Sillín mal ajustado.",
+        "Cargar el peso sobre el manillar."
+      ]
+    },
+    "yoga": {
+      "steps": [
+        "Empieza con respiración tranquila por la nariz.",
+        "Entra en cada postura despacio, hasta una tensión suave, nunca dolor.",
+        "Mantén la postura respirando y alinea la espalda antes de profundizar.",
+        "Sal de la postura con control y termina con unos minutos de relajación."
+      ],
+      "mistakes": [
+        "Forzar el estiramiento o compararte con otros.",
+        "Contener la respiración.",
+        "Perder la alineación por llegar más lejos."
+      ]
+    },
+    "fronton": {
+      "steps": [
+        "Calienta 5–10 min: movilidad de hombro, muñeca y tobillos, y peloteo suave.",
+        "Mantente con las rodillas flexionadas, sobre la parte delantera del pie.",
+        "Golpea girando el tronco y la cadera, no solo con el brazo.",
+        "Recupera el centro de la cancha después de cada golpe."
+      ],
+      "mistakes": [
+        "Empezar a jugar fuerte sin calentar el hombro.",
+        "Golpear solo con el brazo.",
+        "Quedarse clavado con las piernas rectas."
+      ]
+    },
+    "surf": {
+      "steps": [
+        "Calienta en la arena: hombros, cadera y unos cuantos «take-offs» en seco.",
+        "Rema tumbado en el centro de la tabla, con el pecho algo levantado.",
+        "Al coger la ola, levántate de un solo gesto con los pies en la línea de la tabla.",
+        "Rodillas flexionadas, brazos abiertos y mirada hacia donde quieres ir."
+      ],
+      "mistakes": [
+        "Remar demasiado atrás o adelante en la tabla.",
+        "Levantarse en varios pasos (rodilla en la tabla).",
+        "Mirar a los pies en lugar de al frente."
+      ]
+    },
+    "other_activity": {
+      "steps": [
+        "Calienta 5–10 min con movimientos suaves de la actividad.",
+        "Empieza a una intensidad cómoda y súbela poco a poco.",
+        "Bebe agua y escucha al cuerpo durante la actividad.",
+        "Termina con unos minutos suaves y apunta el RPE al acabar."
+      ],
+      "mistakes": [
+        "Empezar a máxima intensidad sin calentar.",
+        "Seguir con dolor o molestias.",
+        "No apuntar la duración ni el esfuerzo."
+      ]
+    },
+    "ram_reverse_lunge": {
+      "steps": [
+        "RAM (o saco) sobre los hombros, sujeto con las dos manos.",
+        "Da un paso largo hacia atrás y baja hasta que la rodilla trasera casi toque el suelo.",
+        "Tronco erguido y peso en el talón de la pierna delantera.",
+        "Vuelve a la posición inicial y alterna piernas."
+      ],
+      "mistakes": [
+        "Paso atrás demasiado corto.",
+        "Inclinar el tronco hacia delante bajo el peso.",
+        "Rodilla delantera hacia dentro."
+      ]
+    },
+    "tank_push_pull": {
+      "steps": [
+        "Empuje: manos en los agarres, cuerpo inclinado y brazos firmes; pasos cortos.",
+        "Lleva el tank hasta la marca de forma continua, con la cadera baja.",
+        "Arrastre: cuerda o agarres, camina hacia atrás con la cadera baja y la espalda neutra.",
+        "Alterna empuje y arrastre según el recorrido marcado."
+      ],
+      "mistakes": [
+        "Cadera alta y pasos largos al empujar.",
+        "Arrastrar tirando solo con los brazos y la espalda redondeada.",
+        "Parar a mitad de tramo."
+      ]
+    },
+    "ram_burpee": {
+      "steps": [
+        "Manos sobre el RAM en el suelo, con los brazos extendidos.",
+        "Salta los pies atrás y baja el pecho hacia el RAM.",
+        "Recoge los pies de un salto junto al RAM.",
+        "Levántate con el RAM y súbelo por encima de la cabeza con los brazos extendidos."
+      ],
+      "mistakes": [
+        "Hundir la zona lumbar al bajar.",
+        "Manos mal colocadas y el RAM que rueda.",
+        "Subir el RAM arqueando la zona lumbar."
+      ]
+    }
+  }
+}

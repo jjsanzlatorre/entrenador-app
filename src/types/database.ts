@@ -154,6 +154,8 @@ export type Database = {
           is_compound: boolean
           default_rest_s: number
           technique_notes: string | null
+          technique_steps: string[]
+          technique_mistakes: string[]
           owner_id: string | null
           created_at: string
         }
@@ -168,6 +170,8 @@ export type Database = {
           is_compound?: boolean
           default_rest_s?: number
           technique_notes?: string | null
+          technique_steps?: string[]
+          technique_mistakes?: string[]
           owner_id?: string | null
           created_at?: string
         }
@@ -181,6 +185,8 @@ export type Database = {
           is_compound?: boolean
           default_rest_s?: number
           technique_notes?: string | null
+          technique_steps?: string[]
+          technique_mistakes?: string[]
         }
         Relationships: []
       }

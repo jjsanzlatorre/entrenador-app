@@ -10,6 +10,12 @@ function listFiles(dir: string): string[] {
   })
 }
 
+// Imágenes de técnica (public/exercises/): no se precargan; el service worker las guarda
+// en caché la primera vez que se ven.
+export function isLazyPublicFile(path: string) {
+  return path.startsWith('/exercises/')
+}
+
 // Sustituye los marcadores del código (no los de los comentarios) de la plantilla.
 export function renderServiceWorker(template: string, version: string, precache: string[]) {
   if (!template.includes("'__VERSION__'") || !template.includes('= __PRECACHE__')) {
@@ -33,7 +39,7 @@ export function serviceWorkerPlugin(options: { template: string; publicDir: stri
         .map((f) => `/${f}`)
       const publicFiles = listFiles(options.publicDir)
         .map((f) => `/${relative(options.publicDir, f).split('\\').join('/')}`)
-        .filter((f) => f !== '/sw.js' && !f.endsWith('.svg'))
+        .filter((f) => f !== '/sw.js' && !f.endsWith('.svg') && !isLazyPublicFile(f))
       const precache = [...new Set([...built, ...publicFiles])].sort()
       const version = createHash('sha256').update(precache.join('\n')).digest('hex').slice(0, 12)
       const source = renderServiceWorker(readFileSync(options.template, 'utf8'), version, precache)

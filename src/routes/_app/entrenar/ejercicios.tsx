@@ -14,6 +14,7 @@ import {
   type FilterState,
 } from '@/components/workout/exercise-filters'
 import { ExerciseListItem } from '@/components/workout/exercise-list-item'
+import { ExerciseTechnique } from '@/components/workout/exercise-technique'
 import { createExercise, deleteExercise, type NewExerciseInput } from '@/lib/workout/api'
 import { formatClock } from '@/lib/workout/format'
 import { catalogQueryKey, useCatalog } from '@/lib/workout/hooks'
@@ -121,12 +122,12 @@ function ExerciseDetail({
             <span className="font-medium">Descanso por defecto:</span>{' '}
             {formatClock(exercise.defaultRestS)}
           </p>
-          {exercise.techniqueNotes && (
-            <p className="bg-muted/50 rounded-lg p-3">{exercise.techniqueNotes}</p>
-          )}
           {exercise.aliases.length > 0 && (
             <p className="text-muted-foreground">También: {exercise.aliases.join(', ')}</p>
           )}
+          <div className="border-t pt-3">
+            <ExerciseTechnique exercise={exercise} />
+          </div>
           {exercise.ownerId === userId && (
             <>
               <Button

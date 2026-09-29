@@ -3,8 +3,8 @@ export const MOCK = 'http://localhost:54321'
 export const USER_ID = '11111111-1111-4111-8111-111111111111'
 
 // Cookie de sesión de @supabase/ssr con un JWT que el mock acepta.
-export function authCookie() {
-  const exp = Math.floor(Date.now() / 1000) + 3600
+// exp: segundos Unix (por defecto, dentro de 1 h; con el reloj simulado, uno lejano).
+export function authCookie(exp = Math.floor(Date.now() / 1000) + 3600) {
   const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
   const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: USER_ID, exp, role: 'authenticated', aud: 'authenticated' })}.sig`
   const session = {

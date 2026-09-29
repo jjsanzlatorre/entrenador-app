@@ -17,6 +17,7 @@ export type ScheduledSession = {
   session_type: PlanSession['session_type']
   title: string
   intensity: PlanSession['intensity']
+  heavy_legs: boolean
   duration_min: number
   notes: string | null
   blocks: PlanBlock[]
@@ -32,7 +33,7 @@ export type ScheduleInput = {
 }
 
 // Actividades fijas que cargan las piernas: no poner pierna pesada el día antes.
-const LEG_LOADING = new Set<FixedActivity['type']>(['padel_fronton', 'surf'])
+export const LEG_LOADING = new Set<FixedActivity['type']>(['padel_fronton', 'surf'])
 
 const COST = {
   notPreferred: 3,
@@ -166,6 +167,7 @@ export function schedulePlan(input: ScheduleInput) {
         session_type: s.session_type,
         title: s.title,
         intensity: s.intensity,
+        heavy_legs: s.heavy_legs,
         duration_min: s.duration_min,
         notes: s.notes ?? null,
         blocks: s.blocks,

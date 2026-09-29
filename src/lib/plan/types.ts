@@ -1,5 +1,6 @@
 // Formato de las plantillas y de las sesiones planificadas (CLAUDE.md §9).
 // Sin imports con alias: lo usa también el script de semillas (Node).
+import type { SexStandard } from './competition'
 
 export type PlanFamily = 'running' | 'swimming' | 'strength' | 'hyrox' | 'deka' | 'hybrid'
 export type PlanLevel = 'beginner' | 'intermediate'
@@ -30,6 +31,8 @@ export type PlanExercise = {
   duration_s?: number
   calories?: number
   note?: string
+  // Estándar de competición (HYROX/DEKA) por sexo; se muestra según profiles.sex.
+  standard?: SexStandard
 }
 
 export type PlanBlock = {

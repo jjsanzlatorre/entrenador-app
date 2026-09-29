@@ -1,5 +1,5 @@
 {
-  "_comment": "GENERADO por scripts/plan-templates.ts (npm run seed:sql). No editar a mano. Datos de HYROX y DEKA: src/lib/plan/competition.ts (pendientes de verificar).",
+  "_comment": "GENERADO por scripts/plan-templates.ts (npm run seed:sql). No editar a mano. Datos de HYROX y DEKA: src/lib/plan/competition.ts.",
   "templates": [
     {
       "id": "running_beginner",
@@ -3350,7 +3350,7 @@
       "level": "beginner",
       "weeks": 4,
       "days_per_week": 4,
-      "description": "Cuatro días: fuerza específica, carrera, compromised running (carrera + estación) y técnica de estaciones. Formato de competición: 8 × (1 km de carrera + estación): SkiErg, Sled push, Sled pull, Burpee broad jumps, Remo, Farmers carry, Sandbag lunges, Wall balls. Distancias y pesos de competición pendientes de verificar con el reglamento oficial.",
+      "description": "Cuatro días: fuerza específica, carrera, compromised running (carrera + estación) y técnica de estaciones. Formato de competición: 8 × (1 km de carrera + estación): SkiErg, Sled push, Sled pull, Burpee broad jumps, Remo, Farmers carry, Sandbag lunges, Wall balls. Pesos de la categoría Open según tu sexo (perfil).",
       "structure": {
         "weeks": [
           {
@@ -3383,7 +3383,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -3395,7 +3398,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -3407,7 +3413,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -3419,7 +3428,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -3475,7 +3487,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg"
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        }
                       }
                     ]
                   }
@@ -3505,12 +3520,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -3548,7 +3569,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -3560,7 +3584,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -3572,7 +3599,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -3584,7 +3614,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -3640,7 +3673,10 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 100,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       }
                     ]
                   }
@@ -3670,12 +3706,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -3713,7 +3755,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -3725,7 +3770,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -3737,7 +3785,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -3749,7 +3800,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -3805,7 +3859,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "50",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -3835,12 +3892,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -3878,7 +3941,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -3890,7 +3956,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -3902,7 +3971,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 2,
                         "rest_s": 60
                       }
@@ -3914,7 +3986,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -3966,12 +4041,18 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg"
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        }
                       },
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg"
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        }
                       }
                     ]
                   }
@@ -4001,12 +4082,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -4025,7 +4112,7 @@
       "level": "intermediate",
       "weeks": 4,
       "days_per_week": 4,
-      "description": "Cuatro días: fuerza específica, carrera, compromised running (carrera + estación) y técnica de estaciones. Formato de competición: 8 × (1 km de carrera + estación): SkiErg, Sled push, Sled pull, Burpee broad jumps, Remo, Farmers carry, Sandbag lunges, Wall balls. Distancias y pesos de competición pendientes de verificar con el reglamento oficial.",
+      "description": "Cuatro días: fuerza específica, carrera, compromised running (carrera + estación) y técnica de estaciones. Formato de competición: 8 × (1 km de carrera + estación): SkiErg, Sled push, Sled pull, Burpee broad jumps, Remo, Farmers carry, Sandbag lunges, Wall balls. Pesos de la categoría Open según tu sexo (perfil).",
       "structure": {
         "weeks": [
           {
@@ -4058,7 +4145,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4070,7 +4160,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4082,7 +4175,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "20",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -4094,7 +4190,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4150,7 +4249,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg"
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        }
                       }
                     ]
                   }
@@ -4180,12 +4282,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -4223,7 +4331,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4235,7 +4346,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4247,7 +4361,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "20",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -4259,7 +4376,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4315,7 +4435,10 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 100,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       }
                     ]
                   }
@@ -4345,12 +4468,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -4388,7 +4517,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4400,7 +4532,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4412,7 +4547,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "20",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -4424,7 +4562,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4480,7 +4621,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "50",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -4510,12 +4654,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -4553,7 +4703,10 @@
                       {
                         "exercise_id": "sled_push",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 102 kg · Open H 152 kg · Pro M 152 kg · Pro H 202 kg",
+                        "standard": {
+                          "men": "152 kg (con el trineo)",
+                          "women": "102 kg (con el trineo)"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -4565,7 +4718,10 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg",
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -4577,7 +4733,10 @@
                       {
                         "exercise_id": "wall_ball",
                         "reps": "20",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg",
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        },
                         "sets": 2,
                         "rest_s": 60
                       }
@@ -4589,7 +4748,10 @@
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg",
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -4641,12 +4803,18 @@
                       {
                         "exercise_id": "sled_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): Open M 78 kg · Open H 103 kg · Pro M 103 kg · Pro H 153 kg"
+                        "standard": {
+                          "men": "103 kg (con el trineo)",
+                          "women": "78 kg (con el trineo)"
+                        }
                       },
                       {
                         "exercise_id": "sandbag_lunge",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 10 kg · Open H 20 kg · Pro M 20 kg · Pro H 30 kg"
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        }
                       }
                     ]
                   }
@@ -4676,12 +4844,18 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): Open M 2 × 16 kg · Open H 2 × 24 kg · Pro M 2 × 24 kg · Pro H 2 × 32 kg"
+                        "standard": {
+                          "men": "2 × 24 kg",
+                          "women": "2 × 16 kg"
+                        }
                       },
                       {
                         "exercise_id": "wall_ball",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): Open M 4 kg · Open H 6 kg · Pro M 6 kg · Pro H 9 kg"
+                        "standard": {
+                          "men": "100 × 6 kg a 3,0 m",
+                          "women": "75 × 4 kg a 2,7 m"
+                        }
                       }
                     ]
                   }
@@ -4700,7 +4874,7 @@
       "level": "beginner",
       "weeks": 4,
       "days_per_week": 4,
-      "description": "Cuatro días: fuerza específica, carrera de 500 m, zonas encadenadas con carrera y técnica de zonas. Formato: 10 zonas con 500 m de carrera entre ellas (Zancadas inversas con RAM, Remo, Box jump overs, Med ball sit-up throws, SkiErg, Farmers carry, Air bike, Dead ball overs, Tank push/pull, Burpees con RAM). Pendiente de verificar con el formato oficial.",
+      "description": "Cuatro días: fuerza específica, carrera de 500 m, zonas encadenadas con carrera y técnica de zonas. Formato: 10 zonas con 500 m de carrera entre ellas (Zancadas inversas con RAM, Remo, Box jump / step over, Med ball sit-up throws, SkiErg, Farmers carry, Air bike, Dead ball overs, Tank push/pull, Burpees con RAM). Pesos de competición según tu sexo (perfil).",
       "structure": {
         "weeks": [
           {
@@ -4721,7 +4895,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4733,7 +4910,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4745,7 +4925,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4757,6 +4940,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -4821,7 +5005,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg"
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        }
                       },
                       {
                         "exercise_id": "row_erg",
@@ -4829,12 +5016,16 @@
                       },
                       {
                         "exercise_id": "box_jump_over",
-                        "reps": "8"
+                        "reps": "8",
+                        "note": "Cajón de 24″ (61 cm)"
                       },
                       {
                         "exercise_id": "med_ball_situp_throw",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 4 kg · H 6 kg"
+                        "standard": {
+                          "men": "9 kg",
+                          "women": "6,5 kg"
+                        }
                       }
                     ]
                   }
@@ -4897,7 +5088,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4909,7 +5103,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -4921,7 +5118,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -4933,6 +5133,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -5001,7 +5202,10 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 40,
-                        "note": "Competición (pendiente de verificar): M 2 × 20 kg · H 2 × 27 kg"
+                        "standard": {
+                          "men": "27 kg por mano",
+                          "women": "18 kg por mano"
+                        }
                       },
                       {
                         "exercise_id": "air_bike",
@@ -5068,7 +5272,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5080,7 +5287,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -5092,7 +5302,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5104,6 +5317,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -5168,17 +5382,26 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "8",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg"
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        }
                       },
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 40,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg"
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        }
                       },
                       {
                         "exercise_id": "ram_burpee",
                         "reps": "8",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg"
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        }
                       }
                     ]
                   }
@@ -5241,7 +5464,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -5253,7 +5479,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -5265,7 +5494,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -5277,6 +5509,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 2,
                         "rest_s": 60
                       }
@@ -5400,7 +5633,7 @@
       "level": "intermediate",
       "weeks": 4,
       "days_per_week": 4,
-      "description": "Cuatro días: fuerza específica, carrera de 500 m, zonas encadenadas con carrera y técnica de zonas. Formato: 10 zonas con 500 m de carrera entre ellas (Zancadas inversas con RAM, Remo, Box jump overs, Med ball sit-up throws, SkiErg, Farmers carry, Air bike, Dead ball overs, Tank push/pull, Burpees con RAM). Pendiente de verificar con el formato oficial.",
+      "description": "Cuatro días: fuerza específica, carrera de 500 m, zonas encadenadas con carrera y técnica de zonas. Formato: 10 zonas con 500 m de carrera entre ellas (Zancadas inversas con RAM, Remo, Box jump / step over, Med ball sit-up throws, SkiErg, Farmers carry, Air bike, Dead ball overs, Tank push/pull, Burpees con RAM). Pesos de competición según tu sexo (perfil).",
       "structure": {
         "weeks": [
           {
@@ -5421,7 +5654,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5433,7 +5669,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -5445,7 +5684,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5457,6 +5699,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -5521,7 +5764,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "15",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg"
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        }
                       },
                       {
                         "exercise_id": "row_erg",
@@ -5529,12 +5775,16 @@
                       },
                       {
                         "exercise_id": "box_jump_over",
-                        "reps": "10"
+                        "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)"
                       },
                       {
                         "exercise_id": "med_ball_situp_throw",
                         "reps": "13",
-                        "note": "Competición (pendiente de verificar): M 4 kg · H 6 kg"
+                        "standard": {
+                          "men": "9 kg",
+                          "women": "6,5 kg"
+                        }
                       }
                     ]
                   }
@@ -5597,7 +5847,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5609,7 +5862,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -5621,7 +5877,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5633,6 +5892,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -5701,7 +5961,10 @@
                       {
                         "exercise_id": "farmers_carry",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): M 2 × 20 kg · H 2 × 27 kg"
+                        "standard": {
+                          "men": "27 kg por mano",
+                          "women": "18 kg por mano"
+                        }
                       },
                       {
                         "exercise_id": "air_bike",
@@ -5768,7 +6031,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5780,7 +6046,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 4,
                         "rest_s": 90
                       }
@@ -5792,7 +6061,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 3,
                         "rest_s": 90
                       }
@@ -5804,6 +6076,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 3,
                         "rest_s": 60
                       }
@@ -5868,17 +6141,26 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg"
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        }
                       },
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 50,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg"
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        }
                       },
                       {
                         "exercise_id": "ram_burpee",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg"
+                        "standard": {
+                          "men": "20 kg",
+                          "women": "10 kg"
+                        }
                       }
                     ]
                   }
@@ -5941,7 +6223,10 @@
                       {
                         "exercise_id": "ram_reverse_lunge",
                         "reps": "12",
-                        "note": "Competición (pendiente de verificar): M 10 kg · H 15 kg",
+                        "standard": {
+                          "men": "25 kg",
+                          "women": "15 kg"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -5953,7 +6238,10 @@
                       {
                         "exercise_id": "tank_push_pull",
                         "distance_m": 25,
-                        "note": "Competición (pendiente de verificar): M ~70 kg · H ~90 kg",
+                        "standard": {
+                          "men": "resistencia 8 (Xebex)",
+                          "women": "resistencia 7 (Xebex)"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -5965,7 +6253,10 @@
                       {
                         "exercise_id": "dead_ball_over",
                         "reps": "10",
-                        "note": "Competición (pendiente de verificar): M 20 kg · H 27 kg",
+                        "standard": {
+                          "men": "27,5 kg",
+                          "women": "17,5 kg"
+                        },
                         "sets": 2,
                         "rest_s": 90
                       }
@@ -5977,6 +6268,7 @@
                       {
                         "exercise_id": "box_jump_over",
                         "reps": "10",
+                        "note": "Cajón de 24″ (61 cm)",
                         "sets": 2,
                         "rest_s": 60
                       }

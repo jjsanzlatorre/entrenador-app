@@ -2,10 +2,13 @@ import { Link } from '@tanstack/react-router'
 import { AlertTriangle, ChevronRight } from 'lucide-react'
 import { localDateKey } from '@/lib/progress/dates'
 import { useSessionLog } from '@/lib/progress/hooks'
+import { useActivePlan } from '@/lib/plan/hooks'
 import { acuteChronicRatio, ACWR_HIGH, ACWR_LOW, type Acwr } from '@/lib/progress/load'
 
-// Plan activo: llega en la fase 5 (user_plans). Hasta entonces no hay aviso de subcarga.
-export const HAS_ACTIVE_PLAN = false
+// El aviso de subcarga (< 0,8) solo tiene sentido con un plan activo (§10).
+export function useHasActivePlan(userId: string) {
+  return Boolean(useActivePlan(userId).data)
+}
 
 export function formatRatio(ratio: number) {
   return ratio.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
@@ -27,10 +30,9 @@ export function acwrMessage(acwr: Acwr) {
 // Aviso compacto (en «Hoy» y Progreso): solo cuando hay algo que avisar.
 export function AcwrAlert({ userId }: { userId: string }) {
   const log = useSessionLog(userId)
+  const hasActivePlan = useHasActivePlan(userId)
   if (!log.data) return null
-  const acwr = acuteChronicRatio(log.data.sessions, localDateKey(new Date()), {
-    hasActivePlan: HAS_ACTIVE_PLAN,
-  })
+  const acwr = acuteChronicRatio(log.data.sessions, localDateKey(new Date()), { hasActivePlan })
   if (acwr.status !== 'high' && acwr.status !== 'low') return null
   return (
     <Link

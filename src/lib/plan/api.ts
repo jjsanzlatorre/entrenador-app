@@ -101,6 +101,7 @@ export type PlannedSession = {
   sessionType: SessionType
   title: string
   intensity: SessionIntensity
+  heavyLegs: boolean
   durationMin: number | null
   notes: string | null
   blocks: PlanBlock[]
@@ -126,6 +127,7 @@ type PlannedRow = {
   session_type: SessionType
   title: string
   intensity: SessionIntensity
+  heavy_legs?: boolean | null
   duration_min: number | null
   notes: string | null
   blocks: Json
@@ -143,6 +145,7 @@ function toPlanned(r: PlannedRow): PlannedSession {
     sessionType: r.session_type,
     title: r.title,
     intensity: r.intensity,
+    heavyLegs: r.heavy_legs ?? false,
     durationMin: r.duration_min,
     notes: r.notes,
     blocks: parseBlocks(r.blocks),

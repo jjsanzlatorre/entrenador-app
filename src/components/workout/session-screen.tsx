@@ -10,7 +10,7 @@ import {
   updateActiveSession,
 } from '@/lib/workout/active-session'
 import { unlockAudio } from '@/lib/workout/alerts'
-import { getLastPerformance } from '@/lib/workout/api'
+import { getExerciseHistory, getLastPerformance } from '@/lib/workout/api'
 import { elapsedMinutes, sessionStats } from '@/lib/workout/calc'
 import { formatClock } from '@/lib/workout/format'
 import {
@@ -22,6 +22,7 @@ import {
 } from '@/lib/workout/hooks'
 import { sessionHeaderStats } from '@/lib/workout/summary'
 import * as ops from '@/lib/workout/session-ops'
+import { suggestionFor } from '@/lib/workout/suggestion'
 import { cardioExerciseFor } from '@/lib/workout/session-kinds'
 import * as timed from '@/lib/workout/timed-blocks'
 import type { Exercise, LocalSession } from '@/lib/workout/types'
@@ -76,12 +77,24 @@ export function SessionScreen({ session }: { session: LocalSession }) {
     setPicker(null)
     if (!mode) return
     const lastPerf = await withLast(exercise)
+    // Sugerencia de peso (§10) solo al registrar en directo, no al editar una sesión pasada.
+    const suggestion = live
+      ? suggestionFor(
+          exercise,
+          exercise.id,
+          (await getExerciseHistory(session.userId, [exercise.id], session.id)).get(exercise.id),
+        )
+      : null
     const t = Date.now()
     updateActiveSession((s) => {
-      if (mode.kind === 'superset') return ops.addToSuperset(s, mode.blockId, exercise, lastPerf, t)
-      if (mode.kind === 'substitute')
-        return ops.substituteExercise(s, mode.blockId, mode.exercise.id, exercise, lastPerf, t)
-      return ops.addExerciseBlock(s, exercise, lastPerf, t)
+      const next =
+        mode.kind === 'superset'
+          ? ops.addToSuperset(s, mode.blockId, exercise, lastPerf, t)
+          : mode.kind === 'substitute'
+            ? ops.substituteExercise(s, mode.blockId, mode.exercise.id, exercise, lastPerf, t)
+            : ops.addExerciseBlock(s, exercise, lastPerf, t)
+      const blockId = mode.kind === 'add' ? next.blocks.at(-1)?.id : mode.blockId
+      return suggestion && blockId ? ops.applyWeightSuggestion(next, blockId, suggestion, t) : next
     })
     setManualSelection(null)
     void last.refetch()
@@ -113,6 +126,8 @@ export function SessionScreen({ session }: { session: LocalSession }) {
     onSubstitute: (blockId, exercise) => setPicker({ kind: 'substitute', blockId, exercise }),
     onRemoveExercise: (blockId, exerciseId) =>
       updateActiveSession((s) => ops.removeExercise(s, blockId, exerciseId, Date.now())),
+    onRevertSuggestion: (blockId, exerciseId) =>
+      updateActiveSession((s) => ops.revertWeightSuggestion(s, blockId, exerciseId, Date.now())),
   }
 
   const skipRest = useCallback(() => updateActiveSession((s) => ops.clearRest(s)), [])

@@ -1,4 +1,5 @@
 // Operaciones puras sobre la sesión local. Cada una devuelve una sesión nueva con `rev` actualizado.
+import type { WeightSuggestion } from './suggestion'
 import { finalizeTimedBlock, isTimedBlock, settleFinishedTimers } from './timed-blocks'
 import type {
   BlockExercise,
@@ -485,6 +486,67 @@ export function finishSession(
   const closed = { ...settled, blocks }
   return bump(
     { ...closed, ...details, distanceM: totalDistanceM(closed), endedAt, rest: null },
+    now,
+  )
+}
+
+// Sugerencia de peso (§10): precarga el peso en las series de trabajo pendientes del ejercicio
+// y guarda la sugerencia (con su motivo) en el bloque para mostrarla.
+export function applyWeightSuggestion(
+  session: LocalSession,
+  blockId: string,
+  suggestion: WeightSuggestion,
+  now: number,
+): LocalSession {
+  return mapBlock(
+    session,
+    blockId,
+    (b) => {
+      if (!b.exercises.some((e) => e.exerciseId === suggestion.exerciseId)) return b
+      return {
+        ...b,
+        exercises: b.exercises.map((e) =>
+          e.exerciseId === suggestion.exerciseId ? { ...e, suggestion } : e,
+        ),
+        sets: b.sets.map((s) =>
+          s.exerciseId === suggestion.exerciseId && !s.completed && !s.isWarmup
+            ? { ...s, weightKg: suggestion.weightKg }
+            : s,
+        ),
+      }
+    },
+    now,
+  )
+}
+
+// «Usar el peso de la última vez»: deshace la sugerencia en las series pendientes.
+export function revertWeightSuggestion(
+  session: LocalSession,
+  blockId: string,
+  exerciseId: string,
+  now: number,
+): LocalSession {
+  return mapBlock(
+    session,
+    blockId,
+    (b) => {
+      const suggestion = b.exercises.find((e) => e.exerciseId === exerciseId)?.suggestion
+      if (!suggestion || suggestion.reverted) return b
+      return {
+        ...b,
+        exercises: b.exercises.map((e) =>
+          e.exerciseId === exerciseId ? { ...e, suggestion: { ...suggestion, reverted: true } } : e,
+        ),
+        sets: b.sets.map((s) =>
+          s.exerciseId === exerciseId &&
+          !s.completed &&
+          !s.isWarmup &&
+          s.weightKg === suggestion.weightKg
+            ? { ...s, weightKg: suggestion.previousKg }
+            : s,
+        ),
+      }
+    },
     now,
   )
 }

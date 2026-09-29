@@ -303,6 +303,7 @@ function planned(id: string, date: string, patch: Partial<PlannedSession> = {}):
     sessionType: 'strength',
     title: id,
     intensity: 'moderate',
+    heavyLegs: false,
     durationMin: 60,
     notes: null,
     blocks: [],

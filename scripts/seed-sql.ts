@@ -175,7 +175,7 @@ export function planTemplatesJson() {
     JSON.stringify(
       {
         _comment:
-          'GENERADO por scripts/plan-templates.ts (npm run seed:sql). No editar a mano. Datos de HYROX y DEKA: src/lib/plan/competition.ts (pendientes de verificar).',
+          'GENERADO por scripts/plan-templates.ts (npm run seed:sql). No editar a mano. Datos de HYROX y DEKA: src/lib/plan/competition.ts.',
         templates: buildPlanTemplates(),
       },
       null,
@@ -228,9 +228,10 @@ export function buildSeedFiles() {
       'Semilla: plantillas de fuerza e híbrido (CLAUDE.md §9). Requiere 0017.',
       templates.filter((t) => t.family === 'strength' || t.family === 'hybrid'),
     ),
+    // 0021 (primera versión de HYROX y DEKA) queda congelada; 0022 actualiza las mismas filas.
     planTemplatesSql(
-      '0021_seed_plan_templates_hyrox_deka.sql',
-      'Semilla: plantillas de HYROX y DEKA (CLAUDE.md §9). Datos de competición pendientes de verificar (src/lib/plan/competition.ts). Requiere 0017 y 0018.',
+      '0022_seed_plan_templates_hyrox_deka_verified.sql',
+      'Semilla: plantillas de HYROX y DEKA con los datos de competición verificados y pesos por sexo (src/lib/plan/competition.ts). Sustituye a 0021 (on conflict do update). Requiere 0017 y 0018.',
       templates.filter((t) => t.family === 'hyrox' || t.family === 'deka'),
     ),
   ]

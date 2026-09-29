@@ -38,7 +38,7 @@ import type { Commitment } from '@/lib/progress/types'
 import { parseDecimal, parseInteger } from '@/lib/workout/format'
 import { EQUIPMENT_LABELS } from '@/lib/workout/labels'
 import { cn } from '@/lib/utils'
-import type { Profile, TrainingLevel } from '@/types/database'
+import type { Profile, Sex, TrainingLevel } from '@/types/database'
 
 export const Route = createFileRoute('/_app/onboarding')({
   ssr: false,
@@ -86,10 +86,17 @@ const FIXED_LABELS: Record<FixedType, string> = {
   other: '⚡ Otra',
 }
 
+const SEX_OPTIONS: { value: Sex; label: string }[] = [
+  { value: 'female', label: 'Mujer' },
+  { value: 'male', label: 'Hombre' },
+  { value: 'other', label: 'Otro' },
+]
+
 type Draft = {
   data: TrainingProfileData
   birthYear: string
   heightCm: string
+  sex: Sex | null
   squat: string
   bench: string
   deadlift: string
@@ -132,6 +139,7 @@ function initialDraft(
     data,
     birthYear: profile.birth_year ? String(profile.birth_year) : '',
     heightCm: profile.height_cm ? String(profile.height_cm) : '',
+    sex: profile.sex,
     squat: kg(data.benchmarks.squat_1rm_kg),
     bench: kg(data.benchmarks.bench_1rm_kg),
     deadlift: kg(data.benchmarks.deadlift_1rm_kg),
@@ -215,7 +223,12 @@ function Wizard({
         const birth = parseInteger(draft.birthYear)
         const height = parseInteger(draft.heightCm)
         const year = new Date().getFullYear()
-        const patch: { birth_year?: number | null; height_cm?: number | null } = {}
+        const patch: {
+          birth_year?: number | null
+          height_cm?: number | null
+          sex?: Sex | null
+        } = {}
+        if (draft.sex !== profile.sex) patch.sex = draft.sex
         if (
           birth !== profile.birth_year &&
           (birth === null || (birth >= 1920 && birth <= year - 10))
@@ -420,6 +433,21 @@ function Wizard({
               </div>
             </Section>
             <Section title="Sobre ti" hint="Opcional.">
+              <p className="mb-1 text-sm font-medium">Sexo</p>
+              <p className="text-muted-foreground mb-2 text-xs">
+                Solo para mostrarte los pesos de competición de HYROX y DEKA de tu categoría.
+              </p>
+              <div className="mb-3 grid grid-cols-3 gap-2" role="group" aria-label="Sexo">
+                {SEX_OPTIONS.map((o) => (
+                  <Chip
+                    key={o.value}
+                    selected={draft.sex === o.value}
+                    onClick={() => set({ sex: draft.sex === o.value ? null : o.value })}
+                  >
+                    {o.label}
+                  </Chip>
+                ))}
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <Field
                   id="birth"

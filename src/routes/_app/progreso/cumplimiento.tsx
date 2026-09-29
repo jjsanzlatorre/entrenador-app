@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { Pencil } from 'lucide-react'
 import { AdherenceBar, UsCard, weekValue } from '@/components/progress/adherence'
+import { PlanAdherenceCard } from '@/components/plan/plan-adherence'
 import { BackLink, Stat } from '@/components/progress/common'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -62,6 +63,7 @@ function AdherencePage() {
             {hadOne ? 'Crear un compromiso' : 'Definir mi compromiso'}
           </Link>
         </Button>
+        <PlanAdherenceCard userId={auth.userId} />
         <UsCard userId={auth.userId} myName={auth.profile.display_name ?? 'Yo'} />
       </div>
     )
@@ -197,11 +199,13 @@ function AdherencePage() {
         </CardContent>
       </Card>
 
+      <PlanAdherenceCard userId={auth.userId} />
+
       <UsCard userId={auth.userId} myName={auth.profile.display_name ?? 'Yo'} />
 
       <p className="text-muted-foreground text-xs">
-        Cuenta una sesión por día y tipo, de al menos 15 minutos. La adherencia al plan llegará con
-        los planes (fase 5).
+        Cuenta una sesión por día y tipo, de al menos 15 minutos. La adherencia al plan es aparte:
+        sesiones del plan hechas frente a las que ya tocaban.
       </p>
     </div>
   )

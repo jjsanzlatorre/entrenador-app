@@ -6,6 +6,7 @@ import type {
   SessionType,
   TrackingType,
 } from '@/types/database'
+import type { WeightSuggestion } from './suggestion'
 import type { TimerConfig, TimerState } from './timer'
 
 // Ejercicio del catálogo ya combinado con sus músculos.
@@ -40,7 +41,13 @@ export type SetEntry = {
 }
 
 // Reps objetivo por ronda/minuto en bloques con temporizador (EMOM, AMRAP, For Time…).
-export type BlockExercise = { exerciseId: string; restS: number; targetReps?: number | null }
+// suggestion: sugerencia de peso (§10) aplicada al preparar el bloque; solo en el dispositivo.
+export type BlockExercise = {
+  exerciseId: string
+  restS: number
+  targetReps?: number | null
+  suggestion?: WeightSuggestion | null
+}
 
 export type LocalBlockType = BlockType
 

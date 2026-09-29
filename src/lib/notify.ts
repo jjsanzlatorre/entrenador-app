@@ -28,3 +28,8 @@ export function notifyError(error: unknown, action = 'guardar') {
 export function notifySaved(message = 'Guardado') {
   toast.success(message)
 }
+
+// Aviso que no bloquea (p. ej. reglas del plan al mover una sesión).
+export function notifyWarning(message: string) {
+  toast.warning(message)
+}

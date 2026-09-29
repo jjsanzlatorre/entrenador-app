@@ -1,4 +1,14 @@
-import { ArrowDown, ArrowUp, Info, Link2, MoreVertical, Plus, Replace, Trash2 } from 'lucide-react'
+import {
+  ArrowDown,
+  ArrowUp,
+  Info,
+  Lightbulb,
+  Link2,
+  MoreVertical,
+  Plus,
+  Replace,
+  Trash2,
+} from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
@@ -21,6 +31,7 @@ export type BlockActions = {
   onAddSuperset: (blockId: string) => void
   onSubstitute: (blockId: string, exercise: Exercise) => void
   onRemoveExercise: (blockId: string, exerciseId: string) => void
+  onRevertSuggestion: (blockId: string, exerciseId: string) => void
 }
 
 function lastSummary(last: LastPerformance | undefined, exercise: Exercise | undefined) {
@@ -97,6 +108,29 @@ export function BlockCard({
                     {last ? `Última vez ${last}` : 'Primera vez con este ejercicio'}
                     {' · '}descanso {formatClock(be.restS)}
                   </p>
+                  {be.suggestion && sets.some((s) => !s.completed) && (
+                    <p
+                      className="mt-1 flex flex-wrap items-center gap-x-2 text-xs"
+                      aria-label="Sugerencia de peso"
+                    >
+                      <span className="text-primary inline-flex items-center gap-1 font-medium">
+                        <Lightbulb className="size-3.5" />
+                        {be.suggestion.reverted
+                          ? `Con el peso de la última vez (${formatKg(be.suggestion.previousKg)} kg)`
+                          : be.suggestion.reason}
+                      </span>
+                      {!be.suggestion.reverted &&
+                        be.suggestion.weightKg !== be.suggestion.previousKg && (
+                          <button
+                            type="button"
+                            className="text-muted-foreground underline"
+                            onClick={() => actions.onRevertSuggestion(block.id, be.exerciseId)}
+                          >
+                            Usar {formatKg(be.suggestion.previousKg)} kg
+                          </button>
+                        )}
+                    </p>
+                  )}
                 </div>
                 <button
                   type="button"

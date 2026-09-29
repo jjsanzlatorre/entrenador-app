@@ -1,14 +1,12 @@
 // Plantillas de planes (CLAUDE.md §9): 6 familias × 2 niveles, 4 semanas (la 4.ª de descarga).
-// `npm run seed:sql` escribe supabase/seed/plan_templates.json y las migraciones 0019–0021.
-// Los datos de competición de HYROX y DEKA salen de src/lib/plan/competition.ts
-// (pendientes de verificar con el reglamento oficial).
+// `npm run seed:sql` escribe supabase/seed/plan_templates.json y las migraciones 0019, 0020 y
+// 0022 (HYROX y DEKA; 0021 es la versión anterior, congelada).
+// Los datos de competición de HYROX y DEKA salen de src/lib/plan/competition.ts.
 import {
   DEKA_RUN_M,
   DEKA_ZONES,
-  dekaWeightNote,
   HYROX_RUN_M,
   HYROX_STATIONS,
-  hyroxWeightNote,
   type DekaZone,
   type HyroxStation,
 } from '../src/lib/plan/competition.ts'
@@ -502,12 +500,11 @@ const station = (id: string) => HYROX_STATIONS.find((s) => s.exercise_id === id)
 
 // Una fracción de la estación de competición (distancia o reps).
 function hyroxPart(s: HyroxStation, fraction: number): PlanExercise {
-  const note = hyroxWeightNote(s)
   return {
     exercise_id: s.exercise_id,
     ...(s.distance_m ? { distance_m: Math.round((s.distance_m * fraction) / 5) * 5 } : {}),
     ...(s.reps ? { reps: String(Math.round(s.reps * fraction)) } : {}),
-    ...(note ? { note } : {}),
+    ...(s.standard ? { standard: s.standard } : {}),
   }
 }
 
@@ -525,7 +522,7 @@ function hyrox(level: PlanLevel) {
     'hyrox',
     level,
     beg ? 'HYROX · Iniciación 4 días' : 'HYROX · Rendimiento 4 días',
-    `Cuatro días: fuerza específica, carrera, compromised running (carrera + estación) y técnica de estaciones. Formato de competición: ${race}. Distancias y pesos de competición pendientes de verificar con el reglamento oficial.`,
+    `Cuatro días: fuerza específica, carrera, compromised running (carrera + estación) y técnica de estaciones. Formato de competición: ${race}. Pesos de la categoría Open según tu sexo (perfil).`,
     'Semanas 1–3: más rondas y series; la parte de carrera sube ≈10 %. Usa pesos de entreno que te dejen moverte con buena técnica y ve acercándote a los de tu categoría. ' +
       DELOAD,
     (w) => {
@@ -633,12 +630,12 @@ function hyrox(level: PlanLevel) {
                 {
                   exercise_id: 'farmers_carry',
                   distance_m: 50,
-                  note: hyroxWeightNote(station('farmers_carry')),
+                  standard: station('farmers_carry').standard,
                 },
                 {
                   exercise_id: 'wall_ball',
                   reps: beg ? '10' : '15',
-                  note: hyroxWeightNote(station('wall_ball')),
+                  standard: station('wall_ball').standard,
                 },
               ],
             },
@@ -655,13 +652,13 @@ function hyrox(level: PlanLevel) {
 const zone = (id: string) => DEKA_ZONES.find((z) => z.exercise_id === id)!
 
 function dekaPart(z: DekaZone, fraction: number): PlanExercise {
-  const note = dekaWeightNote(z)
   return {
     exercise_id: z.exercise_id,
     ...(z.distance_m ? { distance_m: Math.round((z.distance_m * fraction) / 5) * 5 } : {}),
     ...(z.reps ? { reps: String(Math.max(1, Math.round(z.reps * fraction))) } : {}),
     ...(z.calories ? { calories: Math.max(1, Math.round(z.calories * fraction)) } : {}),
-    ...(note ? { note } : {}),
+    ...(z.standard ? { standard: z.standard } : {}),
+    ...(z.note ? { note: z.note } : {}),
   }
 }
 
@@ -678,7 +675,7 @@ function deka(level: PlanLevel) {
     'deka',
     level,
     beg ? 'DEKA FIT · Iniciación 4 días' : 'DEKA FIT · Rendimiento 4 días',
-    `Cuatro días: fuerza específica, carrera de 500 m, zonas encadenadas con carrera y técnica de zonas. Formato: ${DEKA_ZONES.length} zonas con ${DEKA_RUN_M} m de carrera entre ellas (${DEKA_ZONES.map((z) => z.label).join(', ')}). Pendiente de verificar con el formato oficial.`,
+    `Cuatro días: fuerza específica, carrera de 500 m, zonas encadenadas con carrera y técnica de zonas. Formato: ${DEKA_ZONES.length} zonas con ${DEKA_RUN_M} m de carrera entre ellas (${DEKA_ZONES.map((z) => z.label).join(', ')}). Pesos de competición según tu sexo (perfil).`,
     'Semanas 1–3: más rondas y series; acorta descansos cuando la técnica sea sólida. ' + DELOAD,
     (w) => {
       const rounds = beg ? pick(w, [3, 3, 4, 2]) : pick(w, [4, 5, 5, 3])

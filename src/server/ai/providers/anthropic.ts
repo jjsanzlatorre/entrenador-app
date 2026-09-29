@@ -46,6 +46,7 @@ export function createAnthropicProvider(opts: {
         text,
         tokensIn: message.usage.input_tokens,
         tokensOut: message.usage.output_tokens,
+        model: opts.model,
       }
     },
   }

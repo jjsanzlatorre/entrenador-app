@@ -48,6 +48,7 @@ export type ContextExercise = {
   category: string
   equipment: string[]
   muscles: { muscleId: string; role: MuscleRole }[]
+  isCompound?: boolean
 }
 
 export type ContextCheckin = {
@@ -72,6 +73,8 @@ export type AiContextInput = {
   birthYear: number | null
   training: TrainingProfileData | null
   commitment: Commitment | null
+  // Historial de compromisos (revisión semanal: el de la semana revisada).
+  commitments?: Commitment[]
   plan: { name: string; startDate: DateKey; sessions: ContextPlanned[] } | null
   // Sesiones terminadas de las últimas ~6 semanas.
   sessions: ContextSession[]
@@ -89,6 +92,20 @@ export type AiContextOptions = {
   baseTemplate?: { id: string; name: string; structure: PlanStructure } | null
   // Sesión planificada de hoy completa (ajuste del día).
   todaySession?: ContextPlanned | null
+  // Sesiones pendientes del plan entre dos días, con su id (cambios propuestos).
+  upcoming?: { from: DateKey; to: DateKey } | null
+  // Datos calculados de la semana revisada (revisión semanal).
+  reviewWeek?: unknown
+  // Últimos mensajes del chat (los más antiguos primero) y el mensaje nuevo.
+  conversation?: { role: 'user' | 'assistant'; text: string }[] | null
+  message?: string | null
+}
+
+// Sesiones pendientes que la IA puede cambiar (revisión semanal y chat).
+export function upcomingSessions(input: AiContextInput, from: DateKey, to: DateKey) {
+  return (input.plan?.sessions ?? []).filter(
+    (s) => s.date >= from && s.date <= to && (s.status === 'planned' || s.status === 'moved'),
+  )
 }
 
 const round1 = (n: number) => Math.round(n * 10) / 10
@@ -236,7 +253,7 @@ function recent(input: AiContextInput) {
   }
 }
 
-function exerciseLines(input: AiContextInput) {
+export function exerciseLines(input: Pick<AiContextInput, 'exercises'>) {
   return input.exercises.map((e) => {
     const primary = e.muscles.filter((m) => m.role === 'primary').map((m) => m.muscleId)
     const equipment = e.equipment.length ? e.equipment.join('/') : 'sin material'
@@ -291,6 +308,16 @@ export function buildAiContext(input: AiContextInput, opts: AiContextOptions = {
       .map((ch) => withoutNulls({ ...ch })),
     today_checkin: input.checkins.find((ch) => ch.date === today) ?? null,
     today_session: opts.todaySession ? plannedDetail(opts.todaySession) : null,
+    review_week: opts.reviewWeek ?? null,
+    upcoming_sessions: opts.upcoming
+      ? upcomingSessions(input, opts.upcoming.from, opts.upcoming.to).map((s) => ({
+          planned_session_id: s.id,
+          weekday: dayName(s.date),
+          ...plannedDetail(s),
+        }))
+      : null,
+    conversation: opts.conversation?.length ? opts.conversation : null,
+    message: opts.message ?? null,
     base_template: opts.baseTemplate
       ? { id: opts.baseTemplate.id, name: opts.baseTemplate.name, ...opts.baseTemplate.structure }
       : null,

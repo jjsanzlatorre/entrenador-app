@@ -15,6 +15,8 @@ export type JsonResponse = {
   text: string
   tokensIn: number
   tokensOut: number
+  // Modelo que ha respondido (con reserva puede no ser el principal).
+  model?: string
 }
 
 export interface AiProvider {

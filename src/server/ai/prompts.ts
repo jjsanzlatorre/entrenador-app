@@ -49,3 +49,33 @@ reason: el motivo en 1–2 frases, concreto y con tono de ánimo.
 Con reduce o change incluye «session» completa (title, intensity, heavy_legs, duration_min, notes opcional y blocks), usando solo exercise_id de la lista. Con keep o rest no incluyas «session».
 
 ${PLAN_FORMAT_NOTES}`
+
+export const CHANGE_FORMAT_NOTES = `Cambios del plan («changes»), que el usuario acepta o descarta uno a uno:
+- modify: cambia una sesión pendiente (planned_session_id de «upcoming_sessions») por «session» completa.
+- move: la pasa a otro día (planned_session_id + date AAAA-MM-DD).
+- skip: la cambia por descanso (planned_session_id).
+- add: añade una sesión nueva (date + session con session_type).
+- Solo sesiones de «upcoming_sessions» y días dentro de su rango; como mucho un cambio por sesión.
+- title: qué cambia, en pocas palabras. reason: por qué, en 1 frase.
+- Respeta las actividades fijas (nada de pierna pesada el día antes del frontón o del surf) y no pongas dos sesiones intensas seguidas.`
+
+export const WEEKLY_REVIEW_PROMPT = `TAREA: revisión semanal. «review_week» son los datos de la semana que acaba de terminar, ya calculados por la app (no los cambies ni inventes otros): sesiones, cumplimiento del compromiso, adherencia al plan, carga sRPE frente a la semana anterior, ratio agudo:crónico, músculos descuidados (0 series en 2 semanas), músculos con más de 20 series y récords.
+- headline: titular breve con tono de ánimo (nunca de culpa).
+- summary: 2–4 frases que comenten esos datos.
+- recommendations: exactamente 3, concretas y accionables para la semana que empieza (p. ej. «Añade 2 series de remo el jueves», no «entrena más la espalda»).
+- changes: cambios en las sesiones de esta semana («upcoming_sessions») que respondan a los datos: músculos descuidados, carga alta (ratio > 1,5 → reducir), adherencia baja (sesiones más cortas o mover). Máximo 4. Si el plan ya encaja o no hay plan, changes vacío.
+
+${CHANGE_FORMAT_NOTES}
+
+${PLAN_FORMAT_NOTES}`
+
+export const CHAT_PROMPT = `TAREA: responde al mensaje del usuario («message») como su entrenador. «conversation» son los mensajes anteriores (los más antiguos primero).
+- reply: respuesta directa, breve (2–6 frases) y práctica, con sus datos si ayudan. Si pregunta algo médico o de nutrición, responde con prudencia y recomienda un profesional.
+- changes: SOLO si el usuario pide cambiar su plan o se lo propones claramente en la respuesta. Nunca digas que ya lo has cambiado: el usuario verá cada cambio como una tarjeta para aceptar o descartar. Si no hay plan activo, no propongas cambios.
+
+${CHANGE_FORMAT_NOTES}
+
+${PLAN_FORMAT_NOTES}`
+
+export const SWAP_PROMPT = `TAREA: el usuario quiere sustituir un ejercicio («target») y las reglas de la app no encuentran alternativa con los mismos músculos principales y su material. Propón de 1 a 3 alternativas de la lista de ejercicios que trabajen lo más parecido posible, con el material disponible del usuario y respetando sus limitaciones.
+- alternatives: exercise_id exacto de la lista (nunca el mismo que «target») y reason en 1 frase.`

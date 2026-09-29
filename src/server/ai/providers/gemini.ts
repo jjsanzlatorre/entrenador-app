@@ -60,9 +60,14 @@ export function createGeminiProvider(opts: {
       const body = (await res.json().catch(() => ({}))) as GeminiResponse
       if (!res.ok) {
         const detail = body.error?.message ?? res.statusText
-        // Gemini devuelve 400 con «API key not valid» cuando la clave es incorrecta.
+        // Gemini devuelve 400 con «API key not valid» cuando la clave es incorrecta y
+        // RESOURCE_EXHAUSTED cuando se agota la cuota (normalmente con 429).
         const kind =
-          res.status === 400 && /api key/i.test(detail) ? 'auth' : kindFromStatus(res.status)
+          body.error?.status === 'RESOURCE_EXHAUSTED'
+            ? 'quota'
+            : res.status === 400 && /api key/i.test(detail)
+              ? 'auth'
+              : kindFromStatus(res.status)
         throw new AiProviderError(kind, `Gemini ${res.status}: ${detail}`, res.status)
       }
 
@@ -89,6 +94,7 @@ export function createGeminiProvider(opts: {
         text,
         tokensIn: usage.promptTokenCount ?? 0,
         tokensOut: (usage.candidatesTokenCount ?? 0) + (usage.thoughtsTokenCount ?? 0),
+        model: opts.model,
       }
     },
   }

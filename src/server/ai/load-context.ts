@@ -78,12 +78,13 @@ export async function loadAiContextInput(
         .gte('started_at', since)
         .order('started_at'),
       supabase.rpc('session_exercise_sets', {
-        p_from: `${addDays(today, -15)}T00:00:00Z`,
+        // 3 semanas: la revisión semanal compara la semana revisada con la anterior.
+        p_from: `${addDays(today, -22)}T00:00:00Z`,
         p_to: `${addDays(today, 2)}T00:00:00Z`,
       }),
       supabase
         .from('exercises')
-        .select('id, name, category, equipment, exercise_muscles(muscle_id, role)'),
+        .select('id, name, category, equipment, is_compound, exercise_muscles(muscle_id, role)'),
       supabase
         .from('personal_records')
         .select('exercise_id, pr_type, value, unit, achieved_at')
@@ -158,6 +159,7 @@ export async function loadAiContextInput(
       name: string
       category: string
       equipment: string[] | null
+      is_compound: boolean
       exercise_muscles: { muscle_id: string; role: MuscleRole }[] | null
     }[]
   ).map((e) => ({
@@ -165,6 +167,7 @@ export async function loadAiContextInput(
     name: e.name,
     category: e.category,
     equipment: e.equipment ?? [],
+    isCompound: e.is_compound,
     muscles: (e.exercise_muscles ?? []).map((m) => ({ muscleId: m.muscle_id, role: m.role })),
   }))
 
@@ -174,6 +177,7 @@ export async function loadAiContextInput(
     birthYear: opts.profile.birth_year,
     training: trainingRow ? fromRow(trainingRow) : null,
     commitment: currentCommitment(commitmentList, today),
+    commitments: commitmentList,
     plan: planRow ? { name: planRow.name, startDate: planRow.start_date, sessions: planned } : null,
     planned,
     sessions: sessionList,

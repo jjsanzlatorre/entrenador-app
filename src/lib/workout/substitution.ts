@@ -1,10 +1,16 @@
 import type { Exercise } from './types'
 
+// Lo que necesitan las reglas (también en el servidor, antes de pedir una alternativa a la IA).
+export type SubstitutionExercise = Pick<Exercise, 'id' | 'name' | 'equipment' | 'muscles'> & {
+  category: string
+  isCompound?: boolean
+}
+
 // Alternativas basadas en reglas: comparten músculos primarios y usan material disponible.
 // Si el usuario no ha indicado su material (onboarding en la Fase 5), no se filtra por material.
-export function suggestAlternatives(
-  target: Exercise,
-  exercises: Exercise[],
+export function suggestAlternatives<E extends SubstitutionExercise>(
+  target: E,
+  exercises: E[],
   availableEquipment: string[] = [],
   limit = 8,
 ) {

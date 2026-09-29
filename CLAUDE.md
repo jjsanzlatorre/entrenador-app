@@ -21,7 +21,7 @@
 - **Solo planes gratuitos**: Supabase Free y Vercel Hobby. Nada que requiera pago (ni cron de pago, ni Edge Config, ni add-ons).
 - **Variables de entorno** (nombres exactos en `.env.example`):
   - Públicas, con prefijo `VITE_`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-  - Solo servidor, sin prefijo: `SUPABASE_SERVICE_ROLE_KEY` y, desde la Fase 6, las de IA: `AI_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_DAILY_LIMIT` (todas opcionales: sin clave la app funciona sin IA).
+  - Solo servidor, sin prefijo: `SUPABASE_SERVICE_ROLE_KEY` y, desde la Fase 6, las de IA: `AI_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `GEMINI_FALLBACK_MODEL`, `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_DAILY_LIMIT` (todas opcionales: sin clave la app funciona sin IA).
   - Al añadir una variable nueva: actualizar `.env.example` y decir cuáles configurar en Vercel.
 - **Vercel sin configuración extra**: el build (`npm run build`) usa Nitro, que detecta Vercel y genera `.vercel/output` (Build Output API). Preset «TanStack Start» (o «Other»), comando de build por defecto, sin directorio de salida personalizado.
 - Antes de cada push: `npm run typecheck`, `npm run lint`, `npm test` y `npm run build` deben pasar.
@@ -59,7 +59,7 @@ Funciones núcleo:
 | Estado servidor | TanStack Query |
 | Validación | Zod (formularios, API y respuestas de IA) |
 | Backend | Supabase: Postgres, Auth, Storage, RLS |
-| IA | Proveedor configurable desde servidor con `AI_PROVIDER` = `gemini` (por defecto, plan gratuito: `GEMINI_API_KEY`, modelo en `GEMINI_MODEL`, por defecto `gemini-2.5-flash`) o `anthropic` (`ANTHROPIC_API_KEY`, modelo en `AI_MODEL`, por defecto `claude-sonnet-5-5`). Una interfaz interna única (`generateStructured`) con un adaptador por proveedor |
+| IA | Proveedor configurable desde servidor con `AI_PROVIDER` = `gemini` (por defecto, plan gratuito: `GEMINI_API_KEY`, modelo en `GEMINI_MODEL`, por defecto `gemini-2.5-flash`, y modelo de reserva opcional en `GEMINI_FALLBACK_MODEL` para 429 / cuota agotada) o `anthropic` (`ANTHROPIC_API_KEY`, modelo en `AI_MODEL`, por defecto `claude-sonnet-5`). Una interfaz interna única (`generateStructured`) con un adaptador por proveedor |
 | Deploy | Vercel |
 | PWA | manifest + service worker (instalable, icono, pantalla completa) |
 
@@ -364,14 +364,14 @@ Las actividades fijas del usuario (surf, frontón) se cuentan como carga y el pl
 - Mapa o lista de destinos «alcanzados» por distancia.
 - Historial de hitos conseguidos con su fecha.
 
-Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reescribirlas con más variedad, pero el **dato y la equivalencia salen siempre del cálculo determinista**, nunca de la IA.
+Las frases se generan con plantillas deterministas; el **dato y la equivalencia salen siempre del cálculo determinista**, nunca de la IA. No se usa IA para reescribirlas (decisión de la Fase 6B): no aportan datos nuevos y gastarían cuota diaria del plan gratuito en cada pop-up.
 
 ---
 
 ## 11. Entrenador IA
 
 ### Arquitectura
-- Funciones de servidor en `src/server/ai.functions.ts` y lógica en `src/server/ai/*`. **Proveedor configurable** (`AI_PROVIDER`: `gemini` | `anthropic`) detrás de una interfaz única: `generateStructured({ schema, system, prompt, context })` pide JSON al proveedor, lo valida con Zod y reintenta una vez. Un adaptador por proveedor (`src/server/ai/providers/*`: Gemini por REST con `responseJsonSchema`, Anthropic con el SDK y `output_config.format`); el resto de la app no sabe cuál hay detrás. Modelo configurable por env (`GEMINI_MODEL` / `AI_MODEL`).
+- Funciones de servidor en `src/server/ai.functions.ts` y lógica en `src/server/ai/*`. **Proveedor configurable** (`AI_PROVIDER`: `gemini` | `anthropic`) detrás de una interfaz única: `generateStructured({ schema, system, prompt, context })` pide JSON al proveedor, lo valida con Zod y reintenta una vez. Un adaptador por proveedor (`src/server/ai/providers/*`: Gemini por REST con `responseJsonSchema`, Anthropic con el SDK y `output_config.format`); el resto de la app no sabe cuál hay detrás. Modelo configurable por env (`GEMINI_MODEL` / `AI_MODEL`); con Gemini, `GEMINI_FALLBACK_MODEL` (opcional) se usa una vez si el principal devuelve 429 o cuota agotada.
 - Sin clave del proveedor (o con la cuota del proveedor agotada) se muestra un mensaje claro en español y la app sigue funcionando sin IA.
 - Un **context builder** que resume los datos del usuario en JSON compacto: perfil de entrenamiento, plan activo, últimas 2–4 semanas (sesiones, carga, volumen por músculo, PRs, check-ins). Nunca enviar fotos. Enviar solo los datos necesarios para cada caso.
 - Toda salida estructurada en **JSON validado con Zod**; si no valida, un reintento; si vuelve a fallar, mostrar un error amable.
@@ -477,7 +477,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 ### Fase 7 — Pareja y extras
 - Vista de las sesiones de la pareja en solo lectura (si `can_view_sessions`) y reacciones a su semana.
 - Entreno en pareja con `pair_group_id`.
-- Sustitución de ejercicios con reglas + IA.
+- Sustitución de ejercicios con reglas + IA (hecha en la Fase 6B).
 - Recordatorios (notificaciones push de la PWA donde el sistema lo permita).
 - Exportar los datos del usuario en CSV/JSON.
 - Imagen compartible de las tarjetas de logros y de la semana completada.
@@ -489,7 +489,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **6A hecha** (infraestructura IA, generar/adaptar plan y ajuste del día; typecheck, lint, Vitest, build y E2E en verde; pantallas revisadas a 375 px). Falta validar en móvil real con una clave de Gemini. Siguiente: **Fase 6B** (revisión semanal, chat, sustitución con IA y frases de equivalencias).
+- Fase actual: **6 hecha** (6A + 6B: revisión semanal, chat con el entrenador y sustitución con IA; typecheck, lint, Vitest, build y 10 pasadas seguidas de la E2E completa en verde; pantallas revisadas a 375 px). Falta validar en móvil real con una clave de Gemini. Siguiente: **Fase 7**.
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -574,7 +574,7 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Tests: Vitest de sugerencia (reglas, rangos, incrementos, aplicar/deshacer), reglas al mover, adherencia al plan, atrasadas, sesión desde el plan con sugerencia, textos por sexo, datos de competición y check-in offline (fake-indexeddb); PGlite de 0022/0023 (plantillas tras dos pasadas, heavy_legs, relleno y refresco, RLS y rangos de `daily_checkins`, `recent_exercise_sets`); E2E `tests/e2e/today-plan.spec.ts`. El mock E2E respeta ahora el filtro `ended_at not null` del historial.
 - Hecho (Fase 6A):
   - Migración `0024_ai_coach.sql`: `ai_interactions` (RLS: solo lectura propia y `accepted` editable; sin insert/delete directos), `begin_ai_interaction` (límite diario atómico con bloqueo por usuario, en su zona horaria; los fallos del proveedor no cuentan), `finish_ai_interaction`, `ai_calls_today`, `create_user_plan` con `p_source` (`template` | `ai`) y `p_notes` (se borra la versión de 4 argumentos; las llamadas antiguas siguen valiendo), `planned_sessions.adjusted_from` y RPC `apply_daily_adjust` / `revert_daily_adjust`.
-  - Proveedor configurable (`src/server/ai/config.ts`): `AI_PROVIDER` gemini (por defecto) | anthropic, `GEMINI_API_KEY`, `GEMINI_MODEL` (por defecto `gemini-2.5-flash`), `ANTHROPIC_API_KEY`, `AI_MODEL` (por defecto `claude-sonnet-5-5`), `AI_DAILY_LIMIT` (20). Adaptadores en `src/server/ai/providers/` (Gemini por REST con `responseJsonSchema`; Anthropic con `@anthropic-ai/sdk` y `output_config.format`). El JSON Schema se genera desde Zod y se reduce al subconjunto común (`json-schema.ts`). `/api/health` informa de la IA (solo booleanos).
+  - Proveedor configurable (`src/server/ai/config.ts`): `AI_PROVIDER` gemini (por defecto) | anthropic, `GEMINI_API_KEY`, `GEMINI_MODEL` (por defecto `gemini-2.5-flash`), `ANTHROPIC_API_KEY`, `AI_MODEL` (por defecto `claude-sonnet-5`; en la 6A ponía `claude-sonnet-5-5` por error), `AI_DAILY_LIMIT` (20). Adaptadores en `src/server/ai/providers/` (Gemini por REST con `responseJsonSchema`; Anthropic con `@anthropic-ai/sdk` y `output_config.format`). El JSON Schema se genera desde Zod y se reduce al subconjunto común (`json-schema.ts`). `/api/health` informa de la IA (solo booleanos).
   - `generateStructured` (`src/server/ai/structured.ts`): JSON → Zod → comprobaciones propias (exercise_id existentes, sesiones por semana); si falla, un reintento con los errores; si vuelve a fallar, se descartan los ejercicios inventados (y bloques/sesiones vacíos) o error amable. Todo queda en `ai_interactions` (entrada resumida, salida, tokens, estado).
   - Context builder puro (`src/lib/ai/context.ts`) + carga en servidor con RLS (`load-context.ts`): perfil de entrenamiento (sin nombre ni email; sexo y edad), compromiso vigente, plan activo (semana, sesiones de la semana, adherencia), 4 semanas de carga, ACWR, sesiones de 14 días, series por músculo de 7 días, descuidados, PRs de 28 días y check-ins de 7 días; lista de ejercicios y plantilla base solo cuando hacen falta. Sin fotos, notas ni medidas.
   - System prompt (§11) en `src/server/ai/prompts.ts`.
@@ -583,12 +583,27 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Sin clave, sin conexión, con la cuota del proveedor agotada o al llegar al límite diario: mensaje en español y la app sigue igual. Consultas restantes del día visibles.
   - `vercel.functions.maxDuration = 60` (Nitro) para que generar un plan no se corte.
   - Tests (sin llamar a la API real): Vitest de esquemas, JSON Schema, validación y descarte de exercise_id, context builder, edición de la propuesta, servicio con proveedor simulado (reintento, descarte, límite diario, errores del proveedor, keep/rest sin sesión) y adaptadores con fetch/cliente simulados; PGlite de 0024 (límite, RLS, finish, create_user_plan con origen, aplicar/deshacer/descanso, propuestas ajenas); E2E `tests/e2e/ai-coach.spec.ts` contra un simulador de Gemini en el mock (`GEMINI_BASE_URL`): check-in energía 1 + agujetas 5 → reducir, solo al aceptar, deshacer, descartar y cuota agotada; «Recomiéndame un plan» → editar → aceptar.
+- Hecho (Fase 6B):
+  - Correcciones: modelo por defecto de Anthropic `claude-sonnet-5`. `GEMINI_FALLBACK_MODEL` (opcional): si el modelo principal devuelve 429 o `RESOURCE_EXHAUSTED`, se reintenta una vez con el de reserva antes del aviso; el resto de la consulta (reintento por salida no válida) va ya a la reserva (`src/server/ai/providers/fallback.ts`). `ai_interactions.model` guarda el modelo que respondió. Si el reintento por salida no válida falla por el proveedor, vale la primera respuesta quitando lo inválido.
+  - E2E del 6×400 m estable: la causa era que el reloj simulado seguía el tiempo real entre pasos y, tras cada recuperación, la serie siguiente empezaba 1 s antes de desbloquear: solo quedaba 1 s de margen para la deriva (con la máquina cargada se leía 1:31 o el parcial salía de 91 s). Ahora el reloj está parado mientras corre el temporizador (`page.clock.pauseAt`, solo avanza con `fastForward`) y los tiempos se comprueban exactos (EMOM «0:30»; parciales 88/89/89/88/89/89 s). 10 pasadas completas seguidas en verde.
+  - Migración `0025_ai_coach_review_chat.sql`: `ai_interactions.period` (semana revisada) y `responses` (índice → accepted/discarded), `begin_ai_interaction` con `p_period` (error `ai_in_progress` si ya hay una revisión de esa semana en curso), `finish_ai_interaction` con `p_model`, `ai_chat_messages` (RLS: leer y borrar lo propio; se escribe solo con `save_chat_turn`, que copia la respuesta guardada de la consulta), `respond_ai_change` (aceptar o descartar un cambio de la revisión o del chat: `modify`, `move`, `skip`, `add`; aplica la propuesta guardada; `modify`/`skip` guardan `adjusted_from` y se deshacen con `revert_daily_adjust`).
+  - Revisión semanal (`/plan/revision` + tarjeta en «Hoy»): revisa la semana anterior (lunes a domingo). Se genera sola la primera vez que se abre «Hoy» (o la pantalla) esa semana, una vez por dispositivo; queda guardada en `ai_interactions` y volver a abrirla no llama a la IA. Datos calculados por la app (`src/lib/ai/review.ts`): sesiones por tipo, compromiso, adherencia al plan, carga sRPE frente a la semana anterior, ACWR al acabar la semana, músculos descuidados (0 series esa semana y la anterior), con > 20 series y récords. La IA añade titular, resumen, 3 recomendaciones y hasta 4 cambios para las sesiones pendientes de esta semana, como tarjetas Aceptar / Descartar. «Regenerar» con confirmación (gasta 1 consulta). Sin sesiones ni plan esa semana no se pide nada.
+  - Chat (`/entrenador`, desde «Hoy» y Plan): context builder + los últimos 10 mensajes (recortados a 800 caracteres) + el mensaje nuevo (máx. 1000). Si la IA responde bien se guardan pregunta y respuesta; si falla, no se guarda nada y el texto vuelve a la caja. Cambios del plan (hasta 3, sesiones pendientes de los próximos 14 días) como tarjetas aceptables, nunca aplicados directamente. Consultas restantes visibles; «Borrar conversación».
+  - Validación de cambios (`src/lib/ai/validate.ts`): sesión pendiente del rango, un cambio por sesión, fechas en rango, ejercicios existentes y sin plan activo ningún cambio; primero reintento con los errores, después se quitan los inválidos.
+  - Sustituir con IA (§11.6): botón «Pedir una alternativa a la IA» en «Sustituir» solo cuando las reglas no encuentran alternativa; el servidor vuelve a comprobar las reglas (si hay alternativa, no llama a la IA: `rules_available`). Devuelve 1–3 `exercise_id` existentes y distintos del original (reintento y descarte); elegir una la marca como aceptada.
+  - Frases de equivalencias: siguen siendo plantillas deterministas; se quita la reescritura con IA de §10B (ahorra cuota; la IA no aporta datos).
+  - Tests: Vitest con proveedor simulado (`src/server/ai/coach-6b.test.ts`: caché de la revisión, regenerar, sin datos, en curso, datos deterministas, modelo de reserva y config, validación de cambios del chat, reparación tras 429 en el reintento, ids de la sustitución y reglas primero); PGlite `tests/db/ai-6b.test.ts` (periodo, modelo, en curso, `save_chat_turn`, RLS del chat, `respond_ai_change` en sus 4 acciones, doble respuesta, propuestas y sesiones ajenas, fechas al pasado); E2E `tests/e2e/ai-coach-6b.spec.ts` (revisión generada una vez, aceptar/descartar, reabrir sin gastar, regenerar; chat con 429 → reserva, tarjeta aceptada, historial tras recargar, cuota agotada). El simulador de Gemini acepta `{ __status: 429 }` en la cola.
+- Pendiente / deuda técnica (Fase 6B):
+  - La revisión se genera al abrir la app, no el lunes a una hora fija (sin cron en el plan gratuito). La generación automática se intenta una vez por dispositivo y semana; si falla, se reintenta a mano desde la pantalla.
+  - Regenerar crea respuestas nuevas: lo aceptado en la revisión anterior sigue aplicado, pero sus tarjetas ya no se ven.
+  - `move` y `add` no pasan por las reglas del programador (pierna pesada antes del frontón…): se confía en el prompt y el usuario decide. `move` no se puede deshacer desde la tarjeta (se puede mover otra vez desde Plan).
+  - Chat, revisión y sustitución necesitan conexión; `/entrenador` y `/plan/revision` no se precachean en el service worker.
+  - Solo se envían al chat los últimos 10 mensajes; en pantalla se ven los últimos 60.
 - Pendiente / deuda técnica (Fase 6A):
   - Modelo de Gemini por defecto `gemini-2.5-flash` sin verificar en la documentación oficial (sin acceso desde el entorno): comprobar en ai.google.dev el nombre vigente del plan gratuito y cambiar `GEMINI_MODEL` si hace falta.
   - Generar un plan puede tardar 20–60 s (una llamada larga; si reintenta, más). Si el proveedor tarda más de ~55 s se muestra error.
   - La IA necesita conexión; sus propuestas no se guardan en el móvil (si se cierra la hoja, se pierde la propuesta, pero la consulta cuenta).
   - Solo se ajusta la sesión de hoy; el ajuste no mueve sesiones de otros días.
-  - En la E2E completa, `timers.spec.ts › 6×400 m` falló 2 veces de 7 pasadas (lectura del reloj simulado); en solitario y en las 4 últimas pasadas completas, en verde. No toca código de IA.
 - Pendiente / deuda técnica (Fase 5):
   - Cambios del plan (crear, mover, saltar, marcar hecha) necesitan conexión; sin red se ve la última copia. Una sesión hecha desde el plan sin conexión se ve «Hecha» enseguida y se enlaza al sincronizar.
   - Nivel «avanzado» usa las plantillas de intermedio.
@@ -598,7 +613,7 @@ _(Claude Code: actualizar al cerrar cada fase.)_
 - Pendiente / deuda técnica (fases anteriores):
   - El mapa muscular sin conexión usa la última copia del rango consultado; si no se había abierto ese rango, solo cuentan las sesiones guardadas en el móvil.
   - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas; cámara y compresión de fotos HEIC).
-  - Botón «Compartir» de la tarjeta de logro (imagen): fase 7. Reescritura de frases con IA: fase 6.
+  - Botón «Compartir» de la tarjeta de logro (imagen): fase 7. (Reescritura de frases con IA: descartada en la 6B.)
   - «Mis logros» solo muestra el periodo en curso (sin navegar a semanas o meses anteriores).
   - Si no hay conexión ni copia local de `milestones_shown` (primer uso sin red), no se enseñan pop-ups para no repetir alguno.
   - Los valores de las semillas de equivalencias son aproximados: revisarlos si se quiere más precisión.
@@ -610,7 +625,7 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Temporizadores: en iOS con la pantalla bloqueada no suenan (limitación de las PWA); el estado se corrige al volver. No hay notificaciones programadas.
   - El ritmo medio en el historial usa la duración total de la sesión (incluye recuperaciones); el detalle usa el tiempo en movimiento.
   - E2E contra Supabase real: el test usa un mock de PostgREST/Auth (`tests/e2e/mock-supabase.ts`); no cubre RLS reales (eso lo cubren los tests PGlite).
-  - Sustitución con IA: fase 7. Filtro por material usa `training_profiles.equipment`, vacío hasta el onboarding (fase 5).
+  - Filtro por material usa `training_profiles.equipment`, vacío hasta el onboarding (fase 5).
   - Si el usuario cierra sesión con sesiones sin sincronizar, se quedan en la cola del dispositivo y se suben cuando vuelva a entrar ese usuario.
   - Warnings de build `MODULE_LEVEL_DIRECTIVE` ("use client"): inofensivos.
   - Componentes shadcn copiados a mano (registro no accesible desde el entorno).

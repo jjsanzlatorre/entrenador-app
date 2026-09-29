@@ -311,7 +311,12 @@ describe('adaptadores (fetch/cliente simulados)', () => {
       model: 'gemini-2.5-flash',
       fetch: fetchMock as typeof fetch,
     })
-    expect(await p.generateJson(request)).toEqual({ text: '{"a":1}', tokensIn: 10, tokensOut: 7 })
+    expect(await p.generateJson(request)).toEqual({
+      text: '{"a":1}',
+      tokensIn: 10,
+      tokensOut: 7,
+      model: 'gemini-2.5-flash',
+    })
     const [url, init] = fetchMock.mock.calls[0] as unknown as [string, RequestInit]
     expect(url).toContain('/models/gemini-2.5-flash:generateContent')
     expect(url).not.toContain('KEY')
@@ -362,13 +367,18 @@ describe('adaptadores (fetch/cliente simulados)', () => {
     }))
     const p = createAnthropicProvider({
       apiKey: 'k',
-      model: 'claude-sonnet-5-5',
+      model: 'claude-sonnet-5',
       client: { messages: { create } } as never,
     })
-    expect(await p.generateJson(request)).toEqual({ text: '{"a":1}', tokensIn: 12, tokensOut: 3 })
+    expect(await p.generateJson(request)).toEqual({
+      text: '{"a":1}',
+      tokensIn: 12,
+      tokensOut: 3,
+      model: 'claude-sonnet-5',
+    })
     expect(create).toHaveBeenCalledWith(
       expect.objectContaining({
-        model: 'claude-sonnet-5-5',
+        model: 'claude-sonnet-5',
         system: 'sys',
         output_config: { format: { type: 'json_schema', schema: { type: 'object' } } },
       }),

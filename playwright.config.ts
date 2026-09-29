@@ -37,6 +37,7 @@ export default defineConfig({
         AI_PROVIDER: 'gemini',
         GEMINI_API_KEY: 'e2e-gemini-key',
         GEMINI_BASE_URL: `http://localhost:${MOCK_PORT}/gemini/v1beta`,
+        GEMINI_FALLBACK_MODEL: 'gemini-e2e-fallback',
         AI_DAILY_LIMIT: '5',
       },
     },

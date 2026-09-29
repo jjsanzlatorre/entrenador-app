@@ -74,6 +74,7 @@ export function useSessionLog(userId: string, enabled = true) {
         const entry: SessionLogEntry = {
           id: s.id,
           sessionType: s.sessionType,
+          activityTypeId: s.activityTypeId ?? null,
           startedAt: s.startedAt,
           endedAt: s.endedAt,
           durationMin: s.durationMin,

@@ -103,6 +103,73 @@
   --color-trophy: var(--trophy);
 }
 
+/* Márgenes de seguridad (notch, Dynamic Island, barra de gestos, modo horizontal). La PWA usa
+   viewport-fit=cover + status bar «black-translucent»: el contenido se dibuja bajo la barra de
+   estado, así que TODO lo que toque un borde de la pantalla usa estas variables (vía las
+   utilidades de abajo o los componentes de src/components/layout). Los E2E las sobrescriben en
+   <html> para simular un iPhone. Ver CLAUDE.md §2 «Márgenes de seguridad». */
+:root {
+  --safe-top: env(safe-area-inset-top, 0px);
+  --safe-right: env(safe-area-inset-right, 0px);
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-left: env(safe-area-inset-left, 0px);
+  /* Alto de la navegación inferior (h-16) incluida la barra de gestos. */
+  --bottom-nav-h: calc(4rem + var(--safe-bottom));
+  /* Banda opaca bajo la barra de estado: el texto de la barra es blanco (black-translucent). */
+  --status-bar: #2563eb;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --status-bar: #0a0a0a;
+  }
+}
+
+@utility pt-safe {
+  padding-top: var(--safe-top);
+}
+@utility pt-safe-* {
+  padding-top: calc(var(--safe-top) + var(--spacing) * --value(integer));
+}
+@utility pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+@utility pb-safe-* {
+  padding-bottom: calc(var(--safe-bottom) + var(--spacing) * --value(integer));
+}
+@utility px-safe {
+  padding-left: var(--safe-left);
+  padding-right: var(--safe-right);
+}
+@utility px-safe-* {
+  padding-left: calc(var(--safe-left) + var(--spacing) * --value(integer));
+  padding-right: calc(var(--safe-right) + var(--spacing) * --value(integer));
+}
+@utility p-safe-* {
+  padding-top: calc(var(--safe-top) + var(--spacing) * --value(integer));
+  padding-right: calc(var(--safe-right) + var(--spacing) * --value(integer));
+  padding-bottom: calc(var(--safe-bottom) + var(--spacing) * --value(integer));
+  padding-left: calc(var(--safe-left) + var(--spacing) * --value(integer));
+}
+/* Cabeceras sticky: se pegan bajo la barra de estado, no detrás. */
+@utility top-safe {
+  top: var(--safe-top);
+}
+/* Elementos sticky/fixed que van justo encima de la navegación inferior. */
+@utility bottom-above-nav {
+  bottom: var(--bottom-nav-h);
+}
+/* Hueco al final de las páginas con navegación inferior. */
+@utility pb-nav {
+  padding-bottom: calc(var(--bottom-nav-h) + 2rem);
+}
+/* Alto de pantalla descontando la barra de estado (el layout ya la deja como padding). */
+@utility min-h-screen-safe {
+  min-height: calc(100dvh - var(--safe-top));
+}
+@utility max-h-sheet {
+  max-height: calc(100dvh - var(--safe-top) - 1rem);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

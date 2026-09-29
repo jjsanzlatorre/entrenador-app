@@ -70,6 +70,11 @@ Funciones núcleo:
 - Ninguna clave secreta en el cliente. Las llamadas a IA pasan siempre por funciones de servidor.
 - Datos semilla (músculos, ejercicios, plantillas) en `supabase/seed/*.json` y cargados con un script idempotente.
 - Tests: Vitest para la lógica de cálculo (1RM, volumen, carga, progresión); Playwright para el flujo de registrar una sesión.
+- **Márgenes de seguridad (iPhone con notch / Dynamic Island, barra de gestos, horizontal).** La PWA usa `viewport-fit=cover` + `apple-mobile-web-app-status-bar-style: black-translucent`: se dibuja bajo la barra de estado. Nada puede tocar un borde sin su margen:
+  - Variables `--safe-top/right/bottom/left` (= `env(safe-area-inset-*)`) y `--bottom-nav-h` en `src/styles.css`, con utilidades `pt-safe`, `pt-safe-N`, `pb-safe`, `pb-safe-N`, `px-safe`, `p-safe-N`, `top-safe`, `bottom-above-nav`, `pb-nav`, `min-h-screen-safe`, `max-h-sheet`. Nunca `env(...)` suelto en un componente.
+  - El layout `/_app` ya aplica el margen superior y lateral a **todas** sus pantallas (también las de pantalla completa). Las pantallas fuera de `/_app` (login, `/unirse`, `/bloqueado`…) usan `<Screen>` (`src/components/layout/safe-area.tsx`). `<StatusBarScrim>` pinta una banda opaca bajo la hora.
+  - Cabeceras sticky: `sticky top-safe`. Barras fijas abajo: `pb-safe px-safe`. Lo que va encima de la navegación: `bottom-above-nav`. Overlays a pantalla completa (hojas, pop-ups): `p-safe-N` / `pt-safe px-safe` y `max-h-sheet`. Toasts: offset con las variables (`src/components/ui/sonner.tsx`).
+  - E2E `tests/e2e/safe-area.spec.ts` simula los márgenes (vertical y horizontal) sobrescribiendo las variables; toda pantalla nueva debe añadirse a su lista.
 
 ---
 
@@ -107,6 +112,7 @@ Todas las tablas de usuario llevan `user_id uuid references auth.users` y una po
 - **muscles**: `id` text pk, `name`, `view` (`front|back|both`), `group` (`upper|core|lower`)
 - **exercises**: `id`, `name`, `aliases` text[], `category` (`strength|functional|cardio|mobility|sport`), `tracking_type` (`weight_reps|reps|time|distance_time|calories|duration_only`), `equipment` text[], `is_unilateral` bool, `is_compound` bool, `default_rest_s`, `technique_notes` (resumen libre), `technique_steps` text[] y `technique_mistakes` text[] (fase 6C: pasos clave y errores típicos), `owner_id` (null = global; si no, ejercicio propio del usuario)
 - **exercise_muscles**: `exercise_id`, `muscle_id`, `role` (`primary|secondary`)
+- **activity_types** (0031): tipos de actividad con su **aproximación muscular** (§6), en datos y no en código. Globales (`owner_id` null, `id` = `session_type`, semilla `supabase/seed/activity_types.json` → `0032`) y **personalizados** de cada usuario (`id` `a_…`): `name`, `emoji`, `exercise_id`, `location`, `muscles` text[], `sets_per_30min`, `quick` (sale en «Registrar actividad»), `fixed` (actividad fija), `free_activity` (cumplimiento), `leg_loading` y `hard_legs` (planificador), `sort_order`, `archived`. RLS: globales para todos; propias para su dueño y para quien vea sus entrenos, mapa o logros.
 
 ### Planes
 - **plan_templates**: `id`, `family` (`running|swimming|strength|hyrox|deka|hybrid`), `name`, `level`, `weeks` (4), `days_per_week`, `description`, `structure` jsonb (ver sección 9)
@@ -114,7 +120,7 @@ Todas las tablas de usuario llevan `user_id uuid references auth.users` y una po
 - **planned_sessions**: `id`, `user_plan_id`, `user_id`, `date`, `session_type`, `title`, `blocks` jsonb (mismo formato que los bloques reales), `status` (`planned|done|skipped|moved`), `workout_session_id` (nullable)
 
 ### Registro
-- **workout_sessions**: `id`, `user_id`, `planned_session_id` (nullable), `session_type` (`strength|functional|running|swimming|cycling|spinning|yoga|padel_fronton|surf|other`), `title`, `started_at`, `ended_at`, `duration_min`, `rpe` (1–10, se pide al terminar), `distance_m`, `avg_hr`, `max_hr`, `calories` (los tres últimos, manuales y opcionales: «datos del reloj»), `location` (`gym|outdoor|pool|home|other`), `notes`, `pair_group_id` (uuid nullable, enlaza sesiones hechas en pareja)
+- **workout_sessions**: `id`, `user_id`, `planned_session_id` (nullable), `session_type` (`strength|functional|running|swimming|cycling|spinning|yoga|fronton|padel|tennis|functional_class|gap|oxfit|surf|other|custom`; `padel_fronton` se separó en 0031 y lo antiguo pasó a `fronton`), `activity_type_id` (solo con `custom`: actividad personalizada), `title`, `started_at`, `ended_at`, `duration_min`, `rpe` (1–10, se pide al terminar), `distance_m`, `avg_hr`, `max_hr`, `calories` (los tres últimos, manuales y opcionales: «datos del reloj»), `location` (`gym|outdoor|pool|home|other`), `notes`, `pair_group_id` (uuid nullable, enlaza sesiones hechas en pareja)
 - **session_blocks**: `id`, `session_id`, `order`, `block_type` (`straight|superset|circuit|emom|amrap|tabata|for_time|intervals|free`), `config` jsonb (p. ej. minutos del EMOM, rondas, trabajo/descanso, cap de tiempo), `result` jsonb (rondas completadas en AMRAP, tiempo final en For Time…)
 - **exercise_sets**: `id`, `session_id`, `block_id`, `exercise_id`, `set_index`, `is_warmup`, `weight_kg`, `reps`, `rir` (0–5, opcional), `duration_s`, `distance_m`, `calories`, `completed` bool, `completed_at`
 
@@ -218,25 +224,31 @@ Formato: nombre → primarios / secundarios. Crea el JSON completo con `tracking
 - Assault / air bike → quads / hamstrings, glutes, delt_front
 - Double unders / comba → calves / delt_side, forearms
 
-**Cardio y deportes** (se registran por duración, distancia y RPE; `tracking_type` `distance_time` o `duration_only`)
-- Carrera, natación (crol, espalda, braza, técnica), bici o spinning, yoga, frontón, surf, otro.
+**Cardio, deportes y clases** (se registran por duración, distancia y RPE; `tracking_type` `distance_time` o `duration_only`)
+- Carrera, natación (crol, espalda, braza, técnica), bici o spinning, yoga, frontón, pádel, tenis, surf, otro.
+- Clases de gimnasio: **Functional Training** (clase), **GAP** (glúteos, abdominales y piernas) y **Oxfit** (cuerpo completo, alta intensidad).
 
-**Aproximación muscular del cardio y los deportes** (para el mapa): cada 30 min cuentan como **2 series equivalentes** repartidas así; muéstralo en la UI como «aproximado».
+**Aproximación muscular del cardio, los deportes y las clases** (para el mapa): cada 30 min cuentan como **2 series equivalentes** repartidas así; muéstralo en la UI como «aproximado». La tabla vive en **datos** (`activity_types`, semilla `supabase/seed/activity_types.json`): se ajusta sin tocar código.
 - Carrera → quads, hamstrings, calves, glutes
 - Natación → lats, delt_front, delt_side, triceps, core
 - Bici / spinning → quads, glutes, calves
 - Surf → lats, delt_front, core, triceps
 - Frontón → delt_front, forearms, core, quads
+- Pádel y tenis → delt_front, delt_side, forearms, core, quads, calves
+- Functional Training (clase) y Oxfit → quads, glutes, core, chest, delt_front, lats
+- GAP → glutes, core, quads, hamstrings, adductors
 - Yoga → core, glutes, hamstrings (0,5 por cada 30 min)
 
-El usuario puede crear ejercicios propios asignando músculos.
+Reglas del planificador (en los mismos datos): frontón, pádel, tenis y surf cargan las piernas (no poner pierna pesada el día antes ni ese día); GAP cuenta como sesión intensa de pierna y core para «dos intensas seguidas». Cumplimiento: las clases de gimnasio cuentan siempre como sesión; frontón, pádel, tenis, surf, yoga, «otra» y las personalizadas son actividades libres (`counts_free_activities`).
+
+El usuario puede crear ejercicios propios asignando músculos, y **actividades personalizadas** (Perfil → «Mis actividades», o «Nueva» en «Registrar actividad» y en las actividades fijas): nombre, emoji y músculos aproximados (2 series por cada 30 min). Se usan igual que las predefinidas.
 
 ---
 
 ## 7. Registro de sesión (UX clave)
 
 Flujo:
-1. **Hoy**: muestra la sesión planificada (si hay) + botones «Empezar planificada», «Entreno libre» y «Registrar actividad» (esta última para surf, frontón o yoga con duración, RPE y notas en una sola pantalla).
+1. **Hoy**: muestra la sesión planificada (si hay) + botones «Empezar planificada», «Entreno libre» y «Registrar actividad» (esta última para deportes —frontón, pádel, tenis, surf—, clases de gimnasio —Functional Training, GAP, Oxfit—, yoga, «otra» y las actividades personalizadas, cada una con su emoji, con duración, RPE y notas en una sola pantalla; «Nueva» crea una personalizada sin salir).
 2. **Sesión en curso**:
    - Bloques con sus ejercicios. En cada serie, los valores de la **última vez** vienen precargados (peso y reps).
    - Tocar ✓ completa la serie y arranca automáticamente el temporizador de descanso.
@@ -303,7 +315,7 @@ Familias:
 5. **Deka (DEKA FIT)**: 4 días. 10 zonas funcionales con carrera entre zonas (lunges, remo, box jump overs, med ball sit-up throws, ski, farmers carry, air bike, dead ball overs, tank push/pull y burpees). **Verificar el formato oficial vigente antes de sembrar los datos.**
 6. **Híbrido / variado**: 4–5 días. 2 de fuerza, 1 de functional (EMOM/AMRAP), 1 de carrera y 1 de natación o spinning.
 
-Las actividades fijas del usuario (surf, frontón) se cuentan como carga y el plan las respeta: no poner una pierna pesada el día antes del frontón, por ejemplo.
+Las actividades fijas del usuario (surf, frontón, pádel, tenis, clases…) se cuentan como carga y el plan las respeta: no poner una pierna pesada el día antes del frontón, el pádel o el tenis, ni una sesión intensa junto a una clase de GAP, por ejemplo.
 
 ---
 
@@ -528,7 +540,7 @@ Las frases se generan con plantillas deterministas; el **dato y la equivalencia 
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **plan de fases completado** (0 → 7B) + **invitaciones por enlace** (mejora posterior, ver abajo). La 7B (extras y pulido) está hecha: typecheck, lint, Vitest + PGlite (incluida la revisión de seguridad automática), build y E2E completa en verde. Falta validar en dos móviles reales (sobre todo iOS con la PWA instalada: push, Wake Lock, compartir imagen). Lo que queda son mejoras opcionales (ver «Posibles mejoras»).
+- Fase actual: **plan de fases completado** (0 → 7B) + **invitaciones por enlace** + **márgenes de seguridad y nuevas actividades** (mejoras posteriores, ver abajo). La 7B (extras y pulido) está hecha: typecheck, lint, Vitest + PGlite (incluida la revisión de seguridad automática), build y E2E completa en verde. Falta validar en dos móviles reales (sobre todo iOS con la PWA instalada: push, Wake Lock, compartir imagen). Lo que queda son mejoras opcionales (ver «Posibles mejoras»).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -668,6 +680,22 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Perfil → «Pareja y amigos»: tarjeta «Invitar con enlace» (solo si puede invitar o tiene invitaciones). El formulario por email pasa a «Vincular por email». `/admin/invitaciones`: interruptor y máximo, lista de todos los enlaces con creador y «Anular», «Generar contraseña temporal» por usuario (se muestra una vez, copiar o WhatsApp) y aviso «Contraseña temporal».
   - `public/og-invite.png` generado con `node scripts/og-image.ts` (Chromium de Playwright), fuera de la precarga del service worker.
   - Tests: PGlite `tests/db/invites.test.ts` (formato y unicidad, permisos para invitar y máximo, RLS, válido, caducado, anulado, reutilizado, inexistente, quien invita desactivado, cuenta existente, propio, ya vinculados, permisos conservados, atomicidad, sin código no hay cuenta, límite de intentos, `must_change_password`); el stub de PGlite da a service_role los permisos por defecto de Supabase. Vitest de textos/formato y del registro con cliente simulado (deshacer el usuario). E2E `tests/e2e/invites.spec.ts` (registro completo → onboarding → instalar, Open Graph, caducado/anulado/usado, inexistente + bloqueo por intentos, email existente → login → vínculo, invitar/compartir/anular, ajustes del admin y contraseña temporal obligatoria).
+- Hecho (mejora: márgenes de seguridad en iPhone):
+  - Fallo: en la PWA instalada en iPhone, con `black-translucent`, las pantallas a pantalla completa (onboarding, sesión en curso…) no dejaban el margen superior y «Atrás» / «Saltar todo» quedaban bajo la hora. Arreglo global (regla en §2): variables y utilidades `*-safe` en `styles.css`, margen superior y lateral en el layout de `/_app` para todas las pantallas, `<Screen>` para las pantallas sueltas, `<StatusBarScrim>` (banda opaca del color del tema bajo la barra de estado: el texto blanco de la barra se lee también en claro y el contenido no se mezcla con la hora), cabecera sticky de la sesión con `top-safe`, barras fijas y hojas con `pb-safe`/`px-safe` y alto máximo `max-h-sheet`, pop-ups de logros con `p-safe-4` y scroll propio (caben en horizontal), chat con la caja de texto sobre la navegación (`bottom-above-nav`, antes quedaba bajo ella con barra de gestos), hueco final `pb-nav`, toasts con offset seguro y página de error con `env()` en línea.
+  - Rutas afectadas: `/onboarding` (también desde Perfil → «Perfil de entrenamiento»), `/entrenar/sesion` (y sus temporizadores), `/instalar`, `/cambiar-contrasena` (margen doble), `/login`, `/unirse/$code`, `/bloqueado`, `/auth/callback`, la página de error, `/entrenador` (caja del chat), todas las hojas inferiores, el pop-up de logro / resumen del mes y los toasts; en horizontal, los laterales.
+  - `viewport-fit=cover` + `black-translucent` se mantienen (una sola configuración, coherente con los dos temas). El manifest sigue en `portrait` (Android); iOS lo ignora, así que el horizontal también se cubre.
+  - E2E `tests/e2e/safe-area.spec.ts`: iPhone con Dynamic Island simulado (59/34 px en vertical; 59 a los lados y 21 abajo en horizontal) en las pantallas principales, pantallas completas, hojas y toasts. Falla con el fallo original («Saltar todo» a 16 px).
+- Hecho (mejora: nuevas actividades y actividades personalizadas):
+  - Migraciones `0031_activity_types.sql` (tabla `activity_types` con RLS; `workout_sessions.activity_type_id`; `session_type` con `fronton`, `padel`, `tennis`, `functional_class`, `gap`, `oxfit` y `custom` en sesiones y planificadas; migración de datos idempotente de `padel_fronton` → `fronton` en sesiones, planificadas, actividades fijas, reparto del compromiso e invitaciones a entrenar; trigger `normalize_workout_session` que guarda como frontón lo que manden móviles con la versión anterior y solo deja usar actividades propias; `set_commitment` con los tipos nuevos; `save_workout_session` con `activity_type_id`; RPC `partner_sessions` = `partner_session_log` + `activity_type_id`, con otro nombre para que 0027 se pueda volver a ejecutar) y `0032_seed_activity_types.sql` (generada: ejercicios `padel`, `tennis`, `functional_class`, `gap_class`, `oxfit_class` con su técnica y los 13 tipos globales).
+  - Catálogo de actividades en el cliente (`src/lib/activities/`): el JSON de la semilla va en el bundle (funciona sin conexión y en el servidor) y la tabla lo sobrescribe al cargar (se cachea en IndexedDB con las personalizadas). Clave de actividad = `activity_type_id` si es personalizada, si no `session_type`: agrupa resúmenes por deporte, horas de «Mis logros», aportaciones del mapa y el filtro del historial.
+  - «Registrar actividad» con todas (emoji propio) y «Nueva»; actividades fijas del onboarding / perfil de entrenamiento como lista para elegir (con sus días) y «Nueva actividad»; Perfil → «Mis actividades» (crear, editar, archivar); filtro por tipo en el historial de Entrenar; «Mi compromiso» con los tipos nuevos en el reparto.
+  - Planificador y «Mover»: pádel y tenis como frontón (`leg_loading`); GAP (`hard_legs`) penaliza y avisa de una sesión intensa o de pierna pesada el día antes o después.
+  - Tests: Vitest (aproximación de las actividades nuevas y de una personalizada, planificador y avisos al mover, cumplimiento de clases frente a actividades libres, perfil con `padel_fronton` antiguo, registro rápido y payload); PGlite `tests/db/activities.test.ts` (migración de datos antiguos ×2, semilla, solo lectura, tipos nuevos, `padel_fronton` de un móvil antiguo, reparto del compromiso, personalizadas: RLS, dueño, músculos válidos, archivar, sesiones y persona vinculada); E2E `tests/e2e/activities.spec.ts` (GAP, pádel y personalizada; filtro del historial).
+- Pendiente / deuda técnica (márgenes y actividades):
+  - Validar en iPhone real con la PWA instalada (Dynamic Island, horizontal) y en Android con barra de gestos.
+  - Las actividades personalizadas no se pueden borrar (solo archivar); no tienen ajustes propios de planificador (carga de piernas / intensa) ni reparto por tipo en el compromiso (cuentan como actividad libre, una por día).
+  - En el servidor (contexto de la IA) la aproximación muscular solo conoce los tipos globales del JSON: las sesiones personalizadas no suman al mapa que ve la IA.
+  - Un entreno en pareja con una actividad personalizada le llega a la otra persona como «otra».
 - Pendiente / deuda técnica (invitaciones por enlace):
   - `createUser` no está en la transacción de Postgres: si el canje falla se borra el usuario; si además fallara ese borrado (caída del servidor justo ahí) quedaría una cuenta sin vínculo (se registra en el log).
   - Con `max_uses` > 1 (solo el admin, y no desde la UI) `used_by` guarda solo el último.

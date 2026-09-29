@@ -55,8 +55,7 @@ export function RestTimerBar({
 
   return (
     <div
-      className="bg-background/95 fixed inset-x-0 bottom-0 z-40 border-t shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="bg-background/95 pb-safe px-safe fixed inset-x-0 bottom-0 z-40 border-t shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur"
       role="timer"
       aria-live="off"
     >

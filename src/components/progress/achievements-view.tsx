@@ -23,9 +23,8 @@ import {
 import { formatDuration } from '@/lib/progress/period-summary'
 import type { SessionLogEntry } from '@/lib/progress/types'
 import type { ShownMilestone } from '@/lib/progress/api'
-import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
+import { activityEmoji, activityLabel } from '@/lib/activities/catalog'
 import { cn } from '@/lib/utils'
-import type { SessionType } from '@/types/database'
 import { ShareCardButton } from '@/components/share/share-card-button'
 import { achievementCard, leadingEmoji } from '@/lib/share/cards'
 
@@ -58,9 +57,7 @@ export function AchievementsView({
   const acc = useMemo(() => accumulate(sessions, periodFor(kind, today)), [sessions, kind, today])
 
   const eq = (metric: Metric, value: number) => (ctx ? equivalenceFor(metric, value, ctx) : null)
-  const sports = (Object.entries(acc.minutesBySport) as [SessionType, number][]).sort(
-    (a, b) => b[1] - a[1],
-  )
+  const sports = Object.entries(acc.minutesBySport).sort((a, b) => b[1] - a[1])
 
   return (
     <>
@@ -147,7 +144,7 @@ export function AchievementsView({
             {sports.map(([type, minutes]) => (
               <li key={type} className="flex justify-between">
                 <span>
-                  {sessionTypeEmoji(type)} {sessionTypeLabel(type)}
+                  {activityEmoji(type)} {activityLabel(type)}
                 </span>
                 <span className="tabular-nums">{formatDuration(minutes)}</span>
               </li>

@@ -47,7 +47,7 @@ function logEntry(id: string, startedAt: string, plannedSessionId: string | null
 describe('reglas al mover una sesión (avisan, no bloquean)', () => {
   // Frontón los jueves (4) y surf los domingos (7).
   const fixed = [
-    { type: 'padel_fronton' as const, days: [4] },
+    { type: 'fronton' as const, days: [4] },
     { type: 'surf' as const, days: [7] },
     { type: 'yoga' as const, days: [2] },
   ]
@@ -66,6 +66,21 @@ describe('reglas al mover una sesión (avisan, no bloquean)', () => {
     expect(moveWarnings(legs, '2026-10-10', [], fixed)[0]).toContain('antes de surf')
     // Lunes 5 → martes de yoga: el yoga no carga las piernas.
     expect(moveWarnings(legs, '2026-10-05', [], fixed)).toEqual([])
+  })
+
+  it('pádel y tenis como frontón; GAP cuenta como sesión intensa de pierna', () => {
+    expect(moveWarnings(legs, '2026-10-07', [], [{ type: 'padel', days: [4] }])).toEqual([
+      'Pierna pesada el día antes de pádel (el jueves 8 oct).',
+    ])
+    expect(moveWarnings(legs, '2026-10-07', [], [{ type: 'tennis', days: [4] }])[0]).toContain(
+      'antes de tenis',
+    )
+    // GAP el jueves: una intensa el miércoles o el viernes avisa.
+    expect(moveWarnings(legs, '2026-10-09', [], [{ type: 'gap', days: [4] }])).toEqual([
+      'Dos sesiones intensas seguidas: GAP el jueves 8 oct.',
+    ])
+    const easy = planned('easy', '2026-10-05', { intensity: 'easy', title: 'Rodaje' })
+    expect(moveWarnings(easy, '2026-10-09', [], [{ type: 'gap', days: [4] }])).toEqual([])
   })
 
   it('pierna pesada el mismo día que frontón', () => {

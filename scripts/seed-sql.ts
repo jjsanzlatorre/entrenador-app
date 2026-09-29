@@ -46,6 +46,21 @@ type SeedDestination = {
 }
 
 type SeedTechnique = { steps: string[]; mistakes: string[] }
+type SeedActivityType = {
+  id: string
+  name: string
+  emoji: string
+  exercise_id: string
+  location: string
+  muscles: string[]
+  sets_per_30min: number
+  quick: boolean
+  fixed: boolean
+  free_activity: boolean
+  leg_loading: boolean
+  hard_legs: boolean
+  sort_order: number
+}
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
@@ -169,12 +184,24 @@ function planTemplatesSql(file: string, description: string, templates: PlanTemp
   }
 }
 
+function techniqueRows(technique: Record<string, SeedTechnique>) {
+  return Object.entries(technique)
+    .map(([id, t]) => `  (${lit(id)}, ${arr(t.steps)}, ${arr(t.mistakes)})`)
+    .join(',\n')
+}
+
+function techniqueUpdate(technique: Record<string, SeedTechnique>) {
+  return (
+    `update public.exercises e set\n` +
+    `  technique_steps = v.steps,\n  technique_mistakes = v.mistakes\n` +
+    `from (values\n${techniqueRows(technique)}\n) as v (id, steps, mistakes)\n` +
+    `where e.id = v.id and e.owner_id is null;\n`
+  )
+}
+
 // Técnica (fase 6C): columnas estructuradas + pasos y errores de cada ejercicio global.
 function techniqueSql(technique: Record<string, SeedTechnique>) {
   const file = '0026_exercise_technique.sql'
-  const rows = Object.entries(technique)
-    .map(([id, t]) => `  (${lit(id)}, ${arr(t.steps)}, ${arr(t.mistakes)})`)
-    .join(',\n')
   return {
     file,
     sql:
@@ -189,10 +216,49 @@ function techniqueSql(technique: Record<string, SeedTechnique>) {
       `alter table public.exercises add constraint exercises_technique_len check (\n` +
       `  cardinality(technique_steps) <= 8 and cardinality(technique_mistakes) <= 8\n);\n\n` +
       `-- Solo ejercicios globales; los propios del usuario no se tocan.\n` +
-      `update public.exercises e set\n` +
-      `  technique_steps = v.steps,\n  technique_mistakes = v.mistakes\n` +
-      `from (values\n${rows}\n) as v (id, steps, mistakes)\n` +
-      `where e.id = v.id and e.owner_id is null;\n`,
+      techniqueUpdate(technique),
+  }
+}
+
+// Actividades (0032): ejercicios de las actividades nuevas (con su técnica) y tipos de
+// actividad globales con su aproximación muscular (supabase/seed/activity_types.json).
+function activityTypesSql(
+  exercises: SeedExercise[],
+  technique: Record<string, SeedTechnique>,
+  activities: SeedActivityType[],
+) {
+  const file = '0032_seed_activity_types.sql'
+  const base = exercisesSql(
+    file,
+    'Semilla: actividades nuevas (frontón, pádel, tenis, clases de gimnasio) y tipos de actividad globales con su aproximación muscular (CLAUDE.md §6). Requiere 0026 y 0031.',
+    exercises,
+  )
+  const ownTechnique = Object.fromEntries(
+    exercises.flatMap((e) => (technique[e.id] ? [[e.id, technique[e.id]!]] : [])),
+  )
+  const rows = activities
+    .map(
+      (a) =>
+        `  (${lit(a.id)}, null, ${lit(a.name)}, ${lit(a.emoji)}, ${lit(a.exercise_id)}, ${lit(a.location)}, ` +
+        `${arr(a.muscles)}, ${a.sets_per_30min}, ${a.quick}, ${a.fixed}, ${a.free_activity}, ` +
+        `${a.leg_loading}, ${a.hard_legs}, ${a.sort_order})`,
+    )
+    .join(',\n')
+  return {
+    file,
+    sql:
+      base.sql +
+      `\n-- Técnica de los ejercicios nuevos (0026 solo cubre los anteriores).\n` +
+      techniqueUpdate(ownTechnique) +
+      `\n-- Tipos de actividad globales. Ajustables: la app lee esta tabla (y usa el JSON sin conexión).\n` +
+      `insert into public.activity_types (\n  id, owner_id, name, emoji, exercise_id, location, muscles, sets_per_30min, quick, fixed,\n  free_activity, leg_loading, hard_legs, sort_order\n) values\n${rows}\n` +
+      `on conflict (id) do update set\n` +
+      `  name = excluded.name,\n  emoji = excluded.emoji,\n  exercise_id = excluded.exercise_id,\n` +
+      `  location = excluded.location,\n  muscles = excluded.muscles,\n` +
+      `  sets_per_30min = excluded.sets_per_30min,\n  quick = excluded.quick,\n  fixed = excluded.fixed,\n` +
+      `  free_activity = excluded.free_activity,\n  leg_loading = excluded.leg_loading,\n` +
+      `  hard_legs = excluded.hard_legs,\n  sort_order = excluded.sort_order\n` +
+      `where public.activity_types.owner_id is null;\n`,
   }
 }
 
@@ -231,6 +297,10 @@ export function buildSeedFiles() {
     readFileSync(join(root, 'supabase/seed/exercise_technique.json'), 'utf8'),
   ) as { technique: Record<string, SeedTechnique> }
   const templates = buildPlanTemplates()
+  const { activity_types: activities } = JSON.parse(
+    readFileSync(join(root, 'supabase/seed/activity_types.json'), 'utf8'),
+  ) as { activity_types: SeedActivityType[] }
+  const newIds = new Set(exercises.filter((e) => e.migration === '0032').map((e) => e.id))
 
   return [
     musclesSql(muscles),
@@ -266,7 +336,13 @@ export function buildSeedFiles() {
       'Semilla: plantillas de HYROX y DEKA con los datos de competición verificados y pesos por sexo (src/lib/plan/competition.ts). Sustituye a 0021 (on conflict do update). Requiere 0017 y 0018.',
       templates.filter((t) => t.family === 'hyrox' || t.family === 'deka'),
     ),
-    techniqueSql(technique),
+    // 0026 cubre los ejercicios anteriores a 0032; los de 0032 llevan su técnica en 0032.
+    techniqueSql(Object.fromEntries(Object.entries(technique).filter(([id]) => !newIds.has(id)))),
+    activityTypesSql(
+      exercises.filter((e) => e.migration === '0032'),
+      technique,
+      activities,
+    ),
   ]
 }
 

@@ -92,7 +92,7 @@ en orden. `supabase/snippets/` contiene SQL de un solo uso (no son migraciones).
 **Supabase**
 
 1. Crea un proyecto (plan Free).
-2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0030`).
+2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0032`).
    Comprueba en **Storage** que el bucket `progress-photos` es privado.
 3. **Authentication → Sign In / Providers**: desactiva **Allow new users to sign up**.
 4. **Authentication → URL Configuration**: Site URL `https://TU-APP.vercel.app` y Redirect URL

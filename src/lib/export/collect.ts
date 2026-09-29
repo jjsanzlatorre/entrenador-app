@@ -19,6 +19,7 @@ export const EXPORT_TABLES: { table: string; userColumn: string; order: string[]
   { table: 'session_blocks', userColumn: 'user_id', order: ['session_id', 'order', 'id'] },
   { table: 'exercise_sets', userColumn: 'user_id', order: ['session_id', 'set_index', 'id'] },
   { table: 'exercises', userColumn: 'owner_id', order: ['id'] },
+  { table: 'activity_types', userColumn: 'owner_id', order: ['id'] },
   { table: 'body_metrics', userColumn: 'user_id', order: ['date', 'id'] },
   { table: 'progress_photos', userColumn: 'user_id', order: ['date', 'id'] },
   { table: 'personal_records', userColumn: 'user_id', order: ['achieved_at', 'id'] },

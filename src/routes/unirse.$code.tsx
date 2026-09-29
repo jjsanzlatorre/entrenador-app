@@ -12,6 +12,7 @@ import { inviteProblemText, markJustJoined, savePendingInvite } from '@/lib/invi
 import { notifyError, notifySaved } from '@/lib/notify'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { getInvite, redeemInvite, registerWithInvite } from '@/server/invite.functions'
+import { Screen } from '@/components/layout/safe-area'
 
 const OG_TITLE = 'Te han invitado a Entrenador'
 const OG_DESCRIPTION =
@@ -55,7 +56,7 @@ function JoinPage() {
   const inviter = invite.inviterName?.trim() || 'Alguien'
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
+    <Screen>
       <div className="flex flex-col items-center gap-2 text-center">
         <div className="bg-primary text-primary-foreground rounded-2xl p-3">
           <Dumbbell className="size-8" />
@@ -80,7 +81,7 @@ function JoinPage() {
       ) : (
         <RegisterForm code={invite.code} inviter={inviter} />
       )}
-    </main>
+    </Screen>
   )
 }
 

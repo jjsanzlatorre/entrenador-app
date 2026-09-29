@@ -27,13 +27,11 @@ import {
   paceKindForSession,
 } from '@/lib/workout/pace'
 import { totalDistanceM } from '@/lib/workout/session-ops'
+import { isActivitySessionType } from '@/lib/activities/catalog'
 import { CARDIO_TYPES } from '@/lib/workout/session-kinds'
 import { isTimedBlock } from '@/lib/workout/timed-blocks'
 import type { Exercise, LastPerformance, LocalSession, SetEntry } from '@/lib/workout/types'
-import type { SessionType } from '@/types/database'
 import { cn } from '@/lib/utils'
-
-export const QUICK_TYPES = new Set<SessionType>(['yoga', 'surf', 'padel_fronton', 'other'])
 
 export type ExerciseLinkRenderer = (
   exerciseId: string,
@@ -71,6 +69,7 @@ export function SessionBody({
       {
         id: session.id,
         sessionType: session.sessionType,
+        activityTypeId: session.activityTypeId ?? null,
         startedAt: session.startedAt,
         endedAt: session.endedAt ?? session.startedAt,
         durationMin: session.durationMin,
@@ -86,7 +85,7 @@ export function SessionBody({
   const load = session.rpe && session.durationMin ? session.rpe * session.durationMin : null
   const paceKind = paceKindForSession(session.sessionType)
   const cardio = CARDIO_TYPES.has(session.sessionType)
-  const quick = QUICK_TYPES.has(session.sessionType)
+  const quick = isActivitySessionType(session.sessionType)
   const distance = session.distanceM ?? totalDistanceM(session)
   // Ritmo medio sobre el tiempo en movimiento (series con distancia), sin recuperaciones.
   const movingS = session.blocks

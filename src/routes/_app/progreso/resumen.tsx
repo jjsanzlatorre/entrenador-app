@@ -18,7 +18,7 @@ import { useSessionLog } from '@/lib/progress/hooks'
 import { formatDuration, periodSummary } from '@/lib/progress/period-summary'
 import { formatInt } from '@/lib/workout/format'
 import { formatDistance, paceKindForSession } from '@/lib/workout/pace'
-import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
+import { activityEmoji, activityLabel } from '@/lib/activities/catalog'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/progreso/resumen')({
@@ -139,10 +139,10 @@ function SummaryPage() {
                   </thead>
                   <tbody className="tabular-nums">
                     {summary.bySport.map((s) => (
-                      <tr key={s.sessionType} className="border-t">
+                      <tr key={s.activity} className="border-t">
                         <td className="py-1.5">
-                          <span aria-hidden>{sessionTypeEmoji(s.sessionType)} </span>
-                          {sessionTypeLabel(s.sessionType)}
+                          <span aria-hidden>{activityEmoji(s.activity)} </span>
+                          {activityLabel(s.activity)}
                         </td>
                         <td className="text-right">{s.sessions}</td>
                         <td className="text-right">{formatDuration(s.minutes)}</td>

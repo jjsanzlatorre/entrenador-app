@@ -233,11 +233,8 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   const headerStats = sessionHeaderStats(session, stats)
 
   return (
-    <div className="flex flex-col pb-40">
-      <header
-        className="bg-background/95 sticky top-0 z-30 border-b px-3 py-2 backdrop-blur"
-        style={{ paddingTop: 'max(0.5rem, env(safe-area-inset-top))' }}
-      >
+    <div className="pb-safe-40 flex flex-col">
+      <header className="bg-background/95 top-safe sticky z-30 border-b px-3 py-2 backdrop-blur">
         <div className="flex items-center gap-2">
           <Link
             to="/entrenar"

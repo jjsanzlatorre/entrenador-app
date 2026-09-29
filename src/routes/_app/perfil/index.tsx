@@ -12,6 +12,7 @@ import {
   Mail,
   MapPin,
   PartyPopper,
+  Shapes,
   ShieldCheck,
   Target,
   Users,
@@ -83,6 +84,15 @@ function ProfilePage() {
             <span className="flex items-center gap-2">
               <ClipboardList /> Perfil de entrenamiento
               <span className="text-muted-foreground font-normal">objetivos, días…</span>
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/actividades">
+            <span className="flex items-center gap-2">
+              <Shapes /> Mis actividades
+              <span className="text-muted-foreground font-normal">clases, deportes…</span>
             </span>
             <ChevronRight />
           </Link>

@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState } from '@/lib/auth'
 import { parseAuthCallback } from '@/lib/auth-callback'
+import { Screen } from '@/components/layout/safe-area'
 
 // Procesa los enlaces de Supabase: magic link (PKCE ?code=), invitación (#access_token=…)
 // y plantillas con token_hash (?token_hash=…&type=…).
@@ -73,7 +74,7 @@ function AuthCallback() {
   }, [queryClient, router])
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-center justify-center gap-4 p-6 text-center">
+    <Screen className="items-center gap-4 text-center">
       {error ? (
         <>
           <p className="text-destructive font-medium">{error}</p>
@@ -84,6 +85,6 @@ function AuthCallback() {
       ) : (
         <p className="text-muted-foreground">Entrando…</p>
       )}
-    </main>
+    </Screen>
   )
 }

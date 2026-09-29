@@ -20,9 +20,17 @@ export type SessionType =
   | 'cycling'
   | 'spinning'
   | 'yoga'
-  | 'padel_fronton'
+  // 0031: padel_fronton se separa en fronton, padel y tennis; clases de gimnasio.
+  | 'fronton'
+  | 'padel'
+  | 'tennis'
+  | 'functional_class'
+  | 'gap'
+  | 'oxfit'
   | 'surf'
   | 'other'
+  // Actividad personalizada del usuario (workout_sessions.activity_type_id).
+  | 'custom'
 export type SessionLocation = 'gym' | 'outdoor' | 'pool' | 'home' | 'other'
 export type BlockType =
   | 'straight'
@@ -226,6 +234,8 @@ export type Database = {
           user_id: string
           planned_session_id: string | null
           session_type: SessionType
+          // 0031_activity_types.sql: solo con session_type = 'custom'.
+          activity_type_id: string | null
           title: string | null
           started_at: string
           ended_at: string | null
@@ -247,6 +257,7 @@ export type Database = {
           user_id?: string
           planned_session_id?: string | null
           session_type?: SessionType
+          activity_type_id?: string | null
           title?: string | null
           started_at?: string
           ended_at?: string | null
@@ -264,6 +275,7 @@ export type Database = {
         Update: {
           planned_session_id?: string | null
           session_type?: SessionType
+          activity_type_id?: string | null
           title?: string | null
           started_at?: string
           ended_at?: string | null
@@ -564,6 +576,42 @@ export type Database = {
           can_view_muscles?: boolean
           can_view_achievements?: boolean
           can_view_metrics?: boolean
+        }
+        Relationships: []
+      }
+      // 0031_activity_types.sql: globales (owner_id null, id = session_type, semilla 0032) y
+      // personalizadas del usuario (id 'a_…').
+      activity_types: {
+        Row: {
+          id: string
+          owner_id: string | null
+          name: string
+          emoji: string
+          exercise_id: string
+          location: SessionLocation
+          muscles: string[]
+          sets_per_30min: number
+          quick: boolean
+          fixed: boolean
+          free_activity: boolean
+          leg_loading: boolean
+          hard_legs: boolean
+          sort_order: number
+          archived: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          owner_id?: string | null
+          name: string
+          emoji?: string
+          muscles?: string[]
+        }
+        Update: {
+          name?: string
+          emoji?: string
+          muscles?: string[]
+          archived?: boolean
         }
         Relationships: []
       }
@@ -1090,6 +1138,22 @@ export type Database = {
           total_reps: number | null
         }[]
       }
+      // 0031_activity_types.sql: partner_session_log + activity_type_id.
+      partner_sessions: {
+        Args: { p_partner: string }
+        Returns: {
+          id: string
+          session_type: SessionType
+          activity_type_id: string | null
+          started_at: string
+          ended_at: string
+          duration_min: number | null
+          rpe: number | null
+          distance_m: number | null
+          tonnage_kg: number | null
+          total_reps: number | null
+        }[]
+      }
       partner_exercise_sets: {
         Args: { p_partner: string; p_from: string; p_to: string }
         Returns: { session_id: string; exercise_id: string; sets: number }[]
@@ -1289,3 +1353,4 @@ export type PushSubscriptionRow = Tables<'push_subscriptions'>
 export type NotificationSettingsRow = Tables<'notification_settings'>
 export type AppSettingsRow = Tables<'app_settings'>
 export type InviteCodeRow = Tables<'invite_codes'>
+export type ActivityTypeRow = Tables<'activity_types'>

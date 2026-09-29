@@ -1,16 +1,19 @@
 // Al mover una sesión a mano se comprueban las mismas reglas que usa el programador (§9):
-// pierna pesada el día antes (o el mismo día) de frontón o surf y dos intensas seguidas.
+// pierna pesada el día antes (o el mismo día) de frontón, pádel, tenis o surf y dos intensas
+// seguidas (una clase fija de GAP cuenta como intensa de pierna y core).
 // Solo avisa: la sesión se mueve igualmente.
 import { addDays, formatDayMonth, isoWeekday, type DateKey } from '@/lib/progress/dates'
 import type { PlannedSession } from './api'
 import { WEEKDAY_LONG, type FixedActivity } from './profile'
-import { LEG_LOADING } from './schedule'
+import { activityLabel, getActivityType } from '@/lib/activities/catalog'
+import { isHardFixed, isLegLoading } from './schedule'
 
-const FIXED_NAME: Record<FixedActivity['type'], string> = {
-  padel_fronton: 'frontón',
-  surf: 'surf',
-  yoga: 'yoga',
-  other: 'actividad fija',
+// «frontón», «pádel», «GAP»; las personalizadas, con su nombre tal cual.
+function fixedName(type: FixedActivity['type']) {
+  if (type === 'other') return 'actividad fija'
+  const name = activityLabel(type)
+  if (getActivityType(type)?.ownerId || name === name.toUpperCase()) return name
+  return name.toLowerCase()
 }
 
 type Moving = Pick<PlannedSession, 'id' | 'intensity' | 'heavyLegs'>
@@ -26,16 +29,25 @@ export function moveWarnings(
 ): string[] {
   const warnings: string[] = []
   const legActivityOn = (d: DateKey) =>
-    fixed.find((f) => LEG_LOADING.has(f.type) && f.days.includes(isoWeekday(d)))
+    fixed.find((f) => isLegLoading(f.type) && f.days.includes(isoWeekday(d)))
+  const hardActivityOn = (d: DateKey) =>
+    fixed.find((f) => isHardFixed(f.type) && f.days.includes(isoWeekday(d)))
 
   if (session.heavyLegs) {
     const next = legActivityOn(addDays(date, 1))
     if (next)
       warnings.push(
-        `Pierna pesada el día antes de ${FIXED_NAME[next.type]} (${day(addDays(date, 1))}).`,
+        `Pierna pesada el día antes de ${fixedName(next.type)} (${day(addDays(date, 1))}).`,
       )
     const same = legActivityOn(date)
-    if (same) warnings.push(`Pierna pesada el mismo día que ${FIXED_NAME[same.type]}.`)
+    if (same) warnings.push(`Pierna pesada el mismo día que ${fixedName(same.type)}.`)
+  }
+
+  if (session.intensity === 'hard' || session.heavyLegs) {
+    for (const d of [addDays(date, -1), addDays(date, 1)]) {
+      const hard = hardActivityOn(d)
+      if (hard) warnings.push(`Dos sesiones intensas seguidas: ${fixedName(hard.type)} ${day(d)}.`)
+    }
   }
 
   const active = others.filter((o) => o.id !== session.id && o.status !== 'skipped')

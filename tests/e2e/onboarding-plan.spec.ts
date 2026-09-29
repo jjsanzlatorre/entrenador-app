@@ -74,7 +74,11 @@ test('onboarding → Híbrido → 4 semanas en sus días → sesión desde el pl
   await page.getByRole('button', { name: 'Mancuernas' }).click()
   await next.click()
 
-  // 5. Frontón los jueves.
+  // 5. Frontón los jueves (se elige de la lista y aparecen sus días).
+  await page
+    .getByRole('group', { name: 'Actividades fijas' })
+    .getByRole('button', { name: /Frontón/ })
+    .click()
   await page
     .getByRole('group', { name: /Días de .*Frontón/ })
     .getByRole('button', { name: 'jueves', exact: true })
@@ -113,7 +117,7 @@ test('onboarding → Híbrido → 4 semanas en sus días → sesión desde el pl
     preferred_days: [1, 3, 5, 6],
   })
   expect(state.trainingProfile?.fixed_activities).toEqual([
-    expect.objectContaining({ type: 'padel_fronton', days: [4] }),
+    expect.objectContaining({ type: 'fronton', days: [4] }),
   ])
   expect(state.commitments.at(-1)?.sessions_per_week).toBe(4)
   expect(state.profile.home_city).toBe('Barcelona')

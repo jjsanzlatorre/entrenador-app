@@ -1,6 +1,7 @@
 import { useEffect, type ReactNode } from 'react'
 import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
 import { QueryClientProvider, type QueryClient } from '@tanstack/react-query'
+import { StatusBarScrim } from '@/components/layout/safe-area'
 import { RootError, logError } from '@/components/root-error'
 import { Toaster } from '@/components/ui/sonner'
 import { ensureAuthState } from '@/lib/auth'
@@ -39,6 +40,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: 'color-scheme', content: 'light dark' },
       { name: 'mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
+      // Pantalla completa de borde a borde (viewport-fit=cover + black-translucent): la app se
+      // dibuja bajo la barra de estado y cada pantalla deja los márgenes con env(safe-area-*)
+      // (utilidades *-safe de styles.css). <StatusBarScrim> pinta la banda de la barra.
       { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
       { name: 'apple-mobile-web-app-title', content: 'Entrenador' },
     ],
@@ -63,7 +67,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   errorComponent: RootError,
   onCatch: (error) => logError('root.onCatch', error),
   notFoundComponent: () => (
-    <div className="p-6 text-center">
+    <div className="p-safe-6 text-center">
       <p className="text-lg font-semibold">Página no encontrada</p>
       <a href="/" className="text-primary mt-4 inline-block underline">
         Volver a Hoy
@@ -82,6 +86,7 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      <StatusBarScrim />
       <Outlet />
       <Toaster />
     </QueryClientProvider>

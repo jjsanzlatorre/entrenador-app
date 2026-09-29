@@ -17,8 +17,7 @@ export function BottomNav() {
   return (
     <nav
       aria-label="Navegación principal"
-      className="bg-background/95 supports-[backdrop-filter]:bg-background/80 fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur"
-      style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      className="bg-background/95 supports-[backdrop-filter]:bg-background/80 pb-safe px-safe fixed inset-x-0 bottom-0 z-40 border-t backdrop-blur"
     >
       <ul className="mx-auto grid max-w-lg grid-cols-5">
         {items.map(({ to, label, icon: Icon }) => (

@@ -37,9 +37,10 @@ export const PLACE_LABELS: Record<TrainingPlace, string> = {
   pool: 'Piscina',
 }
 
-// Actividades fijas: se cuentan como carga y el plan las respeta (§9).
-export const FIXED_TYPES = ['padel_fronton', 'surf', 'yoga', 'other'] as const
-export type FixedType = (typeof FIXED_TYPES)[number]
+// Actividades fijas: se cuentan como carga y el plan las respeta (§9). type = id de la
+// actividad: un tipo global marcado como `fixed` en activity_types (frontón, pádel, tenis, surf,
+// yoga, clases de gimnasio, otra…) o una personalizada ('a_…').
+export type FixedType = string
 
 // 1 = lunes … 7 = domingo.
 export const WEEKDAYS = [1, 2, 3, 4, 5, 6, 7] as const
@@ -69,7 +70,11 @@ const availabilitySchema = z.object({
 })
 
 const fixedActivitySchema = z.object({
-  type: z.enum(FIXED_TYPES),
+  // Perfiles anteriores a 0031: padel_fronton → frontón.
+  type: z.preprocess(
+    (v) => (v === 'padel_fronton' ? 'fronton' : v),
+    z.string().regex(/^[a-z][a-z0-9_]{1,39}$/),
+  ),
   days: z.array(weekday).min(1),
   minutes: z.number().int().min(5).max(600).nullable().default(null),
   label: z.string().max(40).nullable().default(null),

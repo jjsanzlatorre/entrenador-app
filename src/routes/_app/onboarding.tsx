@@ -1,7 +1,7 @@
 import { useState, type ReactNode } from 'react'
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, MapPin, X } from 'lucide-react'
+import { ChevronLeft, MapPin, Plus, X } from 'lucide-react'
 import { Chip, WeekdayPicker } from '@/components/plan/chip'
 import { homeOf } from '@/components/progress/achievements'
 import { CitySearch } from '@/components/progress/city-search'
@@ -16,7 +16,6 @@ import { saveTrainingProfile } from '@/lib/plan/api'
 import { trainingProfileKey, useTrainingProfile } from '@/lib/plan/hooks'
 import {
   emptyTrainingProfile,
-  FIXED_TYPES,
   formatClockShort,
   GOAL_LABELS,
   GOALS,
@@ -25,7 +24,6 @@ import {
   PLACE_LABELS,
   TRAINING_PLACES,
   type FixedActivity,
-  type FixedType,
   type Goal,
   type TrainingProfileData,
 } from '@/lib/plan/profile'
@@ -38,6 +36,9 @@ import { commitmentsKey, useCommitments } from '@/lib/progress/hooks'
 import type { Commitment } from '@/lib/progress/types'
 import { parseDecimal, parseInteger } from '@/lib/workout/format'
 import { EQUIPMENT_LABELS } from '@/lib/workout/labels'
+import { ActivityEditorSheet } from '@/components/activities/activity-editor'
+import { activityEmoji, activityLabel, fixedActivityOptions } from '@/lib/activities/catalog'
+import { useActivityTypes } from '@/lib/activities/hooks'
 import { cn } from '@/lib/utils'
 import type { Profile, Sex, TrainingLevel } from '@/types/database'
 
@@ -80,12 +81,7 @@ const EQUIPMENT_CHOICES = [
   'mat',
 ] as const
 
-const FIXED_LABELS: Record<FixedType, string> = {
-  padel_fronton: '🎾 Frontón / pádel',
-  surf: '🏄 Surf',
-  yoga: '🧘 Yoga',
-  other: '⚡ Otra',
-}
+const fixedLabel = (type: string) => `${activityEmoji(type)} ${activityLabel(type)}`
 
 const SEX_OPTIONS: { value: Sex; label: string }[] = [
   { value: 'female', label: 'Mujer' },
@@ -282,7 +278,7 @@ function Wizard({
   const sessions = draft.sessions ?? current?.sessionsPerWeek ?? d.availability.days_per_week ?? 3
 
   return (
-    <div className="flex min-h-dvh flex-col gap-4 p-4 pb-0">
+    <div className="min-h-screen-safe flex flex-col gap-4 p-4 pb-0">
       <div className="flex items-center justify-between gap-2">
         {step > 0 ? (
           <Button variant="ghost" size="sm" className="-ml-2" onClick={() => setStep(step - 1)}>
@@ -590,25 +586,13 @@ function Wizard({
         {step === 4 && (
           <Section
             title="¿Haces alguna actividad fija?"
-            hint="Cuentan como carga y el plan las respeta: no pone pierna pesada el día antes de frontón o surf."
+            hint="Cuentan como carga y el plan las respeta: no pone pierna pesada el día antes de frontón, pádel, tenis o surf, ni una sesión intensa junto a GAP."
           >
-            <div className="flex flex-col gap-3">
-              {FIXED_TYPES.map((type) => (
-                <FixedActivityRow
-                  key={type}
-                  type={type}
-                  value={d.fixedActivities.find((f) => f.type === type) ?? null}
-                  onChange={(value) =>
-                    setData({
-                      fixedActivities: [
-                        ...d.fixedActivities.filter((f) => f.type !== type),
-                        ...(value ? [value] : []),
-                      ],
-                    })
-                  }
-                />
-              ))}
-            </div>
+            <FixedActivitiesPicker
+              userId={userId}
+              value={d.fixedActivities}
+              onChange={(fixedActivities) => setData({ fixedActivities })}
+            />
           </Section>
         )}
 
@@ -665,10 +649,7 @@ function Wizard({
         )}
       </div>
 
-      <div
-        className="bg-background sticky bottom-0 grid grid-cols-2 gap-2 py-2"
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
-      >
+      <div className="bg-background pb-safe-2 sticky bottom-0 grid grid-cols-2 gap-2 pt-2">
         <Button
           variant="outline"
           size="lg"
@@ -732,12 +713,67 @@ function Field({
   )
 }
 
+// Actividades fijas: se eligen de la lista (globales + personalizadas) y cada una lleva sus días.
+function FixedActivitiesPicker({
+  userId,
+  value,
+  onChange,
+}: {
+  userId: string
+  value: FixedActivity[]
+  onChange: (value: FixedActivity[]) => void
+}) {
+  useActivityTypes(userId)
+  const [open, setOpen] = useState<string[]>(() => value.map((f) => f.type))
+  const [creating, setCreating] = useState(false)
+  const options = fixedActivityOptions(userId)
+  // Las que ya estaban guardadas salen aunque se hayan archivado.
+  const shown = [...new Set([...options.map((o) => o.id), ...value.map((f) => f.type)])]
+  const toggle = (type: string) => {
+    if (open.includes(type)) {
+      setOpen(open.filter((t) => t !== type))
+      onChange(value.filter((f) => f.type !== type))
+    } else setOpen([...open, type])
+  }
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="grid grid-cols-2 gap-1.5" role="group" aria-label="Actividades fijas">
+        {shown.map((type) => (
+          <Chip key={type} selected={open.includes(type)} onClick={() => toggle(type)}>
+            {fixedLabel(type)}
+          </Chip>
+        ))}
+        <Chip selected={false} onClick={() => setCreating(true)} className="border-dashed">
+          <Plus className="inline size-4" aria-hidden /> Nueva actividad
+        </Chip>
+      </div>
+      {open.map((type) => (
+        <FixedActivityRow
+          key={type}
+          type={type}
+          value={value.find((f) => f.type === type) ?? null}
+          onChange={(next) =>
+            onChange([...value.filter((f) => f.type !== type), ...(next ? [next] : [])])
+          }
+        />
+      ))}
+      <ActivityEditorSheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        userId={userId}
+        activity={null}
+        onSaved={(a) => setOpen((o) => [...o, a.id])}
+      />
+    </div>
+  )
+}
+
 function FixedActivityRow({
   type,
   value,
   onChange,
 }: {
-  type: FixedType
+  type: string
   value: FixedActivity | null
   onChange: (value: FixedActivity | null) => void
 }) {
@@ -753,9 +789,9 @@ function FixedActivityRow({
   }
   return (
     <div className="rounded-xl border p-3">
-      <p className="mb-2 font-medium">{FIXED_LABELS[type]}</p>
+      <p className="mb-2 font-medium">{fixedLabel(type)}</p>
       <WeekdayPicker
-        label={`Días de ${FIXED_LABELS[type]}`}
+        label={`Días de ${fixedLabel(type)}`}
         value={days}
         onChange={(next) => {
           setDays(next)

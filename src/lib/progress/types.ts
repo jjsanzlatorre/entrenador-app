@@ -5,6 +5,8 @@ import type { DateKey } from './dates'
 export type SessionLogEntry = {
   id: string
   sessionType: SessionType
+  // Actividad personalizada (session_type = 'custom').
+  activityTypeId?: string | null
   startedAt: string
   endedAt: string
   durationMin: number | null

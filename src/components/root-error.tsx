@@ -29,7 +29,9 @@ export function RootError({ error }: ErrorComponentProps) {
       style={{
         maxWidth: 480,
         margin: '0 auto',
-        padding: '48px 24px',
+        // Sin depender del CSS (puede no haber cargado): márgenes de seguridad con env().
+        padding:
+          'calc(48px + env(safe-area-inset-top, 0px)) calc(24px + env(safe-area-inset-right, 0px)) calc(48px + env(safe-area-inset-bottom, 0px)) calc(24px + env(safe-area-inset-left, 0px))',
         fontFamily: 'system-ui, -apple-system, sans-serif',
         textAlign: 'center',
       }}

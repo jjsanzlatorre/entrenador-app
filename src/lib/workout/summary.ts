@@ -1,4 +1,5 @@
 // Textos de resumen de una sesión para el historial.
+import { isActivitySessionType } from '@/lib/activities/catalog'
 import type { SessionType } from '@/types/database'
 import { formatInt } from './format'
 import { formatDistance, formatPace, paceKindForSession } from './pace'
@@ -16,8 +17,6 @@ export type HistorySummaryInput = {
   exerciseIds: string[]
 }
 
-const QUICK = new Set<SessionType>(['yoga', 'surf', 'padel_fronton', 'other'])
-
 export function historySummary(item: HistorySummaryInput, exerciseName: (id: string) => string) {
   const parts: string[] = []
   if (!item.endedAt) parts.push('Sin terminar')
@@ -32,7 +31,7 @@ export function historySummary(item: HistorySummaryInput, exerciseName: (id: str
     }
     return parts.join(' · ')
   }
-  if (QUICK.has(item.sessionType)) {
+  if (isActivitySessionType(item.sessionType)) {
     if (item.rpe) parts.push(`RPE ${item.rpe}`)
     return parts.join(' · ')
   }

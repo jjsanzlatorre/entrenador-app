@@ -146,11 +146,11 @@ function SessionDetailPage() {
 
       <div>
         <h1 className="text-2xl font-bold">
-          <span aria-hidden>{sessionTypeEmoji(session.sessionType)} </span>
+          <span aria-hidden>{sessionTypeEmoji(session.sessionType, session.activityTypeId)} </span>
           {session.title || 'Entreno'}
         </h1>
         <p className="text-muted-foreground text-sm">
-          {sessionTypeLabel(session.sessionType)} ·{' '}
+          {sessionTypeLabel(session.sessionType, session.activityTypeId)} ·{' '}
           <span className="first-letter:uppercase">{formatDateLong(session.startedAt)}</span> ·{' '}
           {formatTime(session.startedAt)}
         </p>

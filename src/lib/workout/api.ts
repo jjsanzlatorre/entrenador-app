@@ -355,6 +355,7 @@ export type HistoryItem = {
   id: string
   title: string
   sessionType: SessionType
+  activityTypeId: string | null
   startedAt: string
   endedAt: string | null
   durationMin: number | null
@@ -371,7 +372,7 @@ export async function fetchHistory(userId: string, limit = 50): Promise<HistoryI
     db()
       .from('workout_sessions')
       .select(
-        'id, title, session_type, started_at, ended_at, duration_min, rpe, distance_m, exercise_sets(exercise_id, weight_kg, reps, completed, is_warmup)',
+        'id, title, session_type, activity_type_id, started_at, ended_at, duration_min, rpe, distance_m, exercise_sets(exercise_id, weight_kg, reps, completed, is_warmup)',
       )
       .eq('user_id', userId)
       .order('started_at', { ascending: false })
@@ -383,6 +384,7 @@ export async function fetchHistory(userId: string, limit = 50): Promise<HistoryI
     | 'id'
     | 'title'
     | 'session_type'
+    | 'activity_type_id'
     | 'started_at'
     | 'ended_at'
     | 'duration_min'
@@ -403,6 +405,7 @@ export async function fetchHistory(userId: string, limit = 50): Promise<HistoryI
       id: row.id,
       title: row.title ?? 'Entreno',
       sessionType: row.session_type,
+      activityTypeId: row.activity_type_id ?? null,
       startedAt: row.started_at,
       endedAt: row.ended_at,
       durationMin: row.duration_min,

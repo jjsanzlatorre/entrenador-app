@@ -69,7 +69,7 @@ export function sampleContextInput(overrides: Partial<AiContextInput> = {}): AiC
       },
       equipment: ['barbell', 'dumbbell'],
       limitations: 'Molestia leve en la rodilla derecha',
-      fixedActivities: [{ type: 'padel_fronton', days: [6], minutes: 60, label: null }],
+      fixedActivities: [{ type: 'fronton', days: [6], minutes: 60, label: null }],
       benchmarks: {
         squat_1rm_kg: 80,
         bench_1rm_kg: null,

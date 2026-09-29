@@ -9,6 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState } from '@/lib/auth'
 import { savePendingInvite } from '@/lib/invites/invite'
+import { Screen } from '@/components/layout/safe-area'
 
 export const Route = createFileRoute('/login')({
   // ?invitacion=CÓDIGO: viene de /unirse con un email que ya tenía cuenta; al entrar se aplica.
@@ -107,7 +108,7 @@ function LoginPage() {
   }
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col justify-center gap-6 p-6">
+    <Screen>
       <div className="flex flex-col items-center gap-2 text-center">
         <div className="bg-primary text-primary-foreground rounded-2xl p-3">
           <Dumbbell className="size-8" />
@@ -202,7 +203,7 @@ function LoginPage() {
           </Button>
         </CardContent>
       </Card>
-    </main>
+    </Screen>
   )
 }
 

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { MuscleRole, SessionType } from '@/types/database'
+import { DEFAULT_ACTIVITY_TYPES, addActivityTypes } from '@/lib/activities/catalog'
 import { BODY_SILHOUETTE, MUSCLE_PATHS } from './body-map'
 import {
   cardioApproxSets,
@@ -138,12 +139,64 @@ describe('aproximación de cardio y deportes', () => {
       'core',
       'triceps',
     ])
-    expect(cardioApproxSets('padel_fronton', 30).map((x) => x.muscleId)).toEqual([
+    expect(cardioApproxSets('fronton', 30).map((x) => x.muscleId)).toEqual([
       'delt_front',
       'forearms',
       'core',
       'quads',
     ])
+  })
+
+  it('actividades nuevas: clases de gimnasio, pádel y tenis (2 series por cada 30 min)', () => {
+    const muscles = (type: string) => cardioApproxSets(type, 30).map((x) => x.muscleId)
+    const classes = ['quads', 'glutes', 'core', 'chest', 'delt_front', 'lats']
+    expect(muscles('functional_class')).toEqual(classes)
+    expect(muscles('oxfit')).toEqual(classes)
+    expect(muscles('gap')).toEqual(['glutes', 'core', 'quads', 'hamstrings', 'adductors'])
+    const racket = ['delt_front', 'delt_side', 'forearms', 'core', 'quads', 'calves']
+    expect(muscles('padel')).toEqual(racket)
+    expect(muscles('tennis')).toEqual(racket)
+    expect(cardioApproxSets('gap', 45).every((x) => x.sets === 3)).toBe(true)
+  })
+
+  it('la aproximación sale de los datos: una actividad personalizada trae la suya', () => {
+    addActivityTypes([
+      {
+        ...DEFAULT_ACTIVITY_TYPES.find((a) => a.id === 'other')!,
+        id: 'a_climb',
+        ownerId: 'u1',
+        name: 'Escalada',
+        muscles: ['lats', 'forearms'],
+        setsPer30Min: 2,
+      },
+    ])
+    const volume = muscleVolume(
+      [
+        {
+          id: 's1',
+          sessionType: 'custom',
+          activityTypeId: 'a_climb',
+          startedAt: '2026-09-28T08:00:00Z',
+          endedAt: '2026-09-28T09:00:00Z',
+          durationMin: 60,
+        },
+      ],
+      [],
+      new Map(),
+    )
+    expect(volume.get('lats')).toMatchObject({ sets: 4, approxSets: 4 })
+    expect(volume.get('forearms')?.contributions[0]).toMatchObject({
+      kind: 'cardio',
+      activity: 'a_climb',
+      sessions: 1,
+      minutes: 60,
+    })
+  })
+
+  it('todas las actividades globales usan músculos existentes', () => {
+    for (const a of DEFAULT_ACTIVITY_TYPES) {
+      for (const m of a.muscles) expect(MUSCLE_IDS).toContain(m)
+    }
   })
 
   it('fuerza, functional y «otro» no suman aproximación; sin duración tampoco', () => {
@@ -173,7 +226,7 @@ describe('aproximación de cardio y deportes', () => {
     expect(v.get('quads')!.approxSets).toBe(2)
     expect(v.get('quads')!.contributions.at(-1)).toEqual({
       kind: 'cardio',
-      sessionType: 'running',
+      activity: 'running',
       sets: 2,
       sessions: 1,
       minutes: 30,

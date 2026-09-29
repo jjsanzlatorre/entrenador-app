@@ -45,6 +45,9 @@ export type UserPlanStatus = 'active' | 'completed' | 'archived'
 export type PlanSource = 'template' | 'ai'
 export type PlannedStatus = 'planned' | 'done' | 'skipped' | 'moved'
 export type SessionIntensity = 'easy' | 'moderate' | 'hard'
+export type AiInteractionKind =
+  'plan_generation' | 'daily_adjust' | 'weekly_review' | 'chat' | 'exercise_swap'
+export type AiInteractionStatus = 'pending' | 'ok' | 'invalid' | 'error'
 
 export type Database = {
   public: {
@@ -698,6 +701,8 @@ export type Database = {
           created_at: string
           // 0023_phase5b.sql
           heavy_legs: boolean
+          // 0024_ai_coach.sql (prescripción original antes del ajuste del día)
+          adjusted_from: Json | null
         }
         Insert: {
           id?: string
@@ -716,6 +721,7 @@ export type Database = {
           workout_session_id?: string | null
           created_at?: string
           heavy_legs?: boolean
+          adjusted_from?: Json | null
         }
         Update: {
           date?: string
@@ -753,6 +759,45 @@ export type Database = {
           stress?: number | null
           notes?: string | null
           updated_at?: string
+        }
+        Relationships: []
+      }
+      // 0024_ai_coach.sql (alta y cierre por RPC; editable: accepted)
+      ai_interactions: {
+        Row: {
+          id: string
+          user_id: string
+          kind: AiInteractionKind
+          status: AiInteractionStatus
+          provider: string | null
+          model: string | null
+          input_summary: Json | null
+          output: Json | null
+          error: string | null
+          accepted: boolean | null
+          tokens_in: number | null
+          tokens_out: number | null
+          created_at: string
+          finished_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          kind: AiInteractionKind
+          status?: AiInteractionStatus
+          provider?: string | null
+          model?: string | null
+          input_summary?: Json | null
+          output?: Json | null
+          error?: string | null
+          accepted?: boolean | null
+          tokens_in?: number | null
+          tokens_out?: number | null
+          created_at?: string
+          finished_at?: string | null
+        }
+        Update: {
+          accepted?: boolean | null
         }
         Relationships: []
       }
@@ -826,13 +871,15 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: { session_id: string; exercise_id: string; sets: number }[]
       }
-      // 0017_plans.sql
+      // 0017_plans.sql (0024: p_source y p_notes)
       create_user_plan: {
         Args: {
           p_template_id: string | null
           p_name: string
           p_start_date: string
           p_sessions: Json
+          p_source?: PlanSource
+          p_notes?: string | null
         }
         Returns: string
       }
@@ -861,6 +908,32 @@ export type Database = {
           calories: number | null
         }[]
       }
+      // 0024_ai_coach.sql
+      ai_calls_today: { Args: { p_tz?: string }; Returns: number }
+      begin_ai_interaction: {
+        Args: {
+          p_kind: AiInteractionKind
+          p_input_summary: Json
+          p_daily_limit: number
+          p_tz?: string
+          p_provider?: string | null
+          p_model?: string | null
+        }
+        Returns: string
+      }
+      finish_ai_interaction: {
+        Args: {
+          p_id: string
+          p_status: Exclude<AiInteractionStatus, 'pending'>
+          p_output?: Json | null
+          p_tokens_in?: number | null
+          p_tokens_out?: number | null
+          p_error?: string | null
+        }
+        Returns: undefined
+      }
+      apply_daily_adjust: { Args: { p_interaction: string; p_planned: string }; Returns: string }
+      revert_daily_adjust: { Args: { p_planned: string }; Returns: undefined }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -894,3 +967,4 @@ export type PlanTemplateRow = Tables<'plan_templates'>
 export type UserPlanRow = Tables<'user_plans'>
 export type PlannedSessionRow = Tables<'planned_sessions'>
 export type DailyCheckinRow = Tables<'daily_checkins'>
+export type AiInteractionRow = Tables<'ai_interactions'>

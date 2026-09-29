@@ -141,6 +141,11 @@ type PlannedRow = Record<string, unknown> & {
 let userPlans: PlanRow[] = []
 let plannedSessions: PlannedRow[] = []
 let dailyCheckins: Record<string, unknown>[] = []
+// Fase 6A: consultas a la IA y simulador de Gemini (respuestas en cola con POST /__seed).
+type AiRow = Record<string, unknown> & { id: string; status: string; accepted: boolean | null }
+let aiInteractions: AiRow[] = []
+let geminiQueue: unknown[] = []
+let geminiRequests: { model: string; key: string | undefined; body: unknown }[] = []
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
@@ -199,6 +204,8 @@ export function startMockSupabase(port: number) {
         plannedSessions,
         dailyCheckins,
         commitments: progressSeed.commitments,
+        aiInteractions,
+        geminiRequests,
       })
     }
     if (path === '/__seed') {
@@ -206,7 +213,10 @@ export function startMockSupabase(port: number) {
         trainingProfile?: Record<string, unknown> | null
         userPlans?: PlanRow[]
         plannedSessions?: PlannedRow[]
+        gemini?: unknown[]
       }
+      if (body.gemini) geminiQueue = body.gemini
+      delete body.gemini
       if (body.userPlans) userPlans = body.userPlans
       if (body.plannedSessions) plannedSessions = body.plannedSessions
       delete body.userPlans
@@ -232,7 +242,121 @@ export function startMockSupabase(port: number) {
       userPlans = []
       plannedSessions = []
       dailyCheckins = []
+      aiInteractions = []
+      geminiQueue = []
+      geminiRequests = []
       return send(res, 200, { ok: true })
+    }
+
+    // Simulador de la API de Gemini (generateContent): devuelve la siguiente respuesta en cola.
+    const gemini = /^\/gemini\/v1beta\/models\/([^/:]+):generateContent$/.exec(path)
+    if (gemini) {
+      const body = await readBody(req)
+      geminiRequests.push({
+        model: decodeURIComponent(gemini[1]!),
+        key: req.headers['x-goog-api-key'] as string | undefined,
+        body,
+      })
+      const next = geminiQueue.shift()
+      if (next === undefined) return send(res, 429, { error: { message: 'Resource exhausted' } })
+      return send(res, 200, {
+        candidates: [
+          { content: { parts: [{ text: JSON.stringify(next) }] }, finishReason: 'STOP' },
+        ],
+        usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 200 },
+      })
+    }
+
+    // ── Fase 6A: ai_interactions (como 0024) ──
+    if (path === '/rest/v1/rpc/ai_calls_today') {
+      return send(res, 200, aiInteractions.filter((a) => a.status !== 'error').length)
+    }
+    if (path === '/rest/v1/rpc/begin_ai_interaction') {
+      const b = (await readBody(req)) as Record<string, unknown>
+      const used = aiInteractions.filter((a) => a.status !== 'error').length
+      if (used >= Number(b.p_daily_limit)) {
+        return send(res, 400, { code: 'P0001', message: 'ai_daily_limit' })
+      }
+      const id = crypto.randomUUID()
+      aiInteractions.push({
+        id,
+        user_id: MOCK_USER_ID,
+        kind: b.p_kind,
+        status: 'pending',
+        input_summary: b.p_input_summary,
+        output: null,
+        accepted: null,
+      })
+      return send(res, 200, id)
+    }
+    if (path === '/rest/v1/rpc/finish_ai_interaction') {
+      const b = (await readBody(req)) as Record<string, unknown>
+      for (const a of aiInteractions.filter((x) => x.id === b.p_id && x.status === 'pending')) {
+        Object.assign(a, { status: b.p_status, output: b.p_output ?? null, error: b.p_error })
+      }
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/rpc/apply_daily_adjust') {
+      const b = (await readBody(req)) as { p_interaction: string; p_planned: string }
+      const a = aiInteractions.find(
+        (x) => x.id === b.p_interaction && x.status === 'ok' && x.accepted === null,
+      )
+      const output = a?.output as
+        { proposal: { plannedSessionId: string; adjust: Record<string, unknown> } } | undefined
+      const ps = plannedSessions.find((x) => x.id === b.p_planned)
+      if (!a || !output || output.proposal.plannedSessionId !== b.p_planned || !ps) {
+        return send(res, 400, { message: 'propuesta no encontrada o ya respondida' })
+      }
+      const adjust = output.proposal.adjust
+      const session = adjust.session as Record<string, unknown> | undefined
+      if (adjust.decision !== 'keep') {
+        ps.adjusted_from ??= {
+          title: ps.title,
+          intensity: ps.intensity,
+          duration_min: ps.duration_min,
+          notes: ps.notes,
+          blocks: ps.blocks,
+          heavy_legs: ps.heavy_legs,
+        }
+      }
+      if (adjust.decision === 'rest') {
+        ps.status = 'skipped'
+        ps.notes = `Descanso (IA): ${String(adjust.reason)}`
+      } else if (session) {
+        Object.assign(ps, {
+          title: session.title,
+          intensity: session.intensity,
+          duration_min: session.duration_min,
+          heavy_legs: session.heavy_legs,
+          blocks: session.blocks,
+          notes: `Ajustada por la IA: ${String(adjust.reason)}`,
+        })
+      }
+      a.accepted = true
+      return send(res, 200, adjust.decision)
+    }
+    if (path === '/rest/v1/rpc/revert_daily_adjust') {
+      const { p_planned } = (await readBody(req)) as { p_planned: string }
+      const ps = plannedSessions.find((x) => x.id === p_planned)
+      if (!ps?.adjusted_from) return send(res, 400, { message: 'no hay ajuste que deshacer' })
+      Object.assign(ps, ps.adjusted_from, {
+        status: ps.original_date ? 'moved' : 'planned',
+        adjusted_from: null,
+      })
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/ai_interactions') {
+      const id = eqParam(url, 'id')
+      const hit = aiInteractions.filter((a) => a.id === id)
+      if (req.method === 'PATCH') {
+        const patch = (await readBody(req)) as { accepted: boolean }
+        for (const a of hit) a.accepted = patch.accepted
+      }
+      return send(
+        res,
+        200,
+        hit.map((a) => ({ id: a.id })),
+      )
     }
     if (path.startsWith('/auth/v1/user')) return send(res, 200, user)
     if (path.startsWith('/auth/v1/logout')) return send(res, 204, undefined)
@@ -383,6 +507,8 @@ export function startMockSupabase(port: number) {
         p_name: string
         p_start_date: string
         p_sessions: Record<string, unknown>[]
+        p_source?: string
+        p_notes?: string | null
       }
       for (const p of userPlans) if (p.status === 'active') p.status = 'archived'
       const id = crypto.randomUUID()
@@ -393,8 +519,8 @@ export function startMockSupabase(port: number) {
         name: b.p_name,
         start_date: b.p_start_date,
         status: 'active',
-        source: 'template',
-        notes: null,
+        source: b.p_source ?? 'template',
+        notes: b.p_notes ?? null,
       })
       for (const s of b.p_sessions) {
         plannedSessions.push({

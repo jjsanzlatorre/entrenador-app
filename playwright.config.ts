@@ -33,6 +33,11 @@ export default defineConfig({
         VITE_SUPABASE_URL: `http://localhost:${MOCK_PORT}`,
         VITE_SUPABASE_ANON_KEY: 'e2e-anon-key',
         SUPABASE_SERVICE_ROLE_KEY: 'e2e-service-key',
+        // Entrenador IA contra el simulador de Gemini del mock (nunca la API real).
+        AI_PROVIDER: 'gemini',
+        GEMINI_API_KEY: 'e2e-gemini-key',
+        GEMINI_BASE_URL: `http://localhost:${MOCK_PORT}/gemini/v1beta`,
+        AI_DAILY_LIMIT: '5',
       },
     },
   ],

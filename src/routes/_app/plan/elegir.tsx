@@ -2,11 +2,13 @@ import { useMemo, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { AlertTriangle, CalendarDays, ChevronLeft, Sparkles } from 'lucide-react'
+import { AiPlanSheet } from '@/components/ai/ai-plan-sheet'
 import { Chip } from '@/components/plan/chip'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sheet } from '@/components/ui/sheet'
+import { useAiStatus } from '@/lib/ai/client'
 import { notifyError, notifySaved } from '@/lib/notify'
 import { createPlan, type PlanTemplateData } from '@/lib/plan/api'
 import { describeBlock, INTENSITY_LABELS } from '@/lib/plan/describe'
@@ -42,6 +44,11 @@ function ChoosePlanPage() {
   const [family, setFamily] = useState<PlanFamily | 'all'>('all')
   const [level, setLevel] = useState<'all' | 'beginner' | 'intermediate'>('all')
   const [open, setOpen] = useState<PlanTemplateData | null>(null)
+  const [aiRequest, setAiRequest] = useState<{ templateId: string | null; label: string } | null>(
+    null,
+  )
+  const aiStatus = useAiStatus()
+  const aiReady = aiStatus.data?.configured === true
 
   const profile = training.data ?? emptyTrainingProfile()
   const list = useMemo(() => templates.data ?? [], [templates.data])
@@ -81,6 +88,12 @@ function ChoosePlanPage() {
         </p>
       ) : (
         <>
+          <AiCard
+            ready={aiReady}
+            notConfigured={aiStatus.data?.configured === false}
+            left={aiStatus.data ? aiStatus.data.limit - aiStatus.data.usedToday : null}
+            onAsk={() => setAiRequest({ templateId: null, label: 'Plan recomendado por la IA' })}
+          />
           {recommended && (
             <Card className="border-primary gap-2">
               <CardHeader>
@@ -162,8 +175,73 @@ function ChoosePlanPage() {
         profile={profile}
         userId={auth.userId}
         onClose={() => setOpen(null)}
+        onAi={
+          aiReady
+            ? (t) => {
+                setOpen(null)
+                setAiRequest({ templateId: t.id, label: `${t.name} a tu medida` })
+              }
+            : null
+        }
+      />
+      <AiPlanSheet
+        request={aiRequest}
+        profile={profile}
+        userId={auth.userId}
+        sex={auth.profile.sex}
+        onClose={() => setAiRequest(null)}
       />
     </div>
+  )
+}
+
+// «Personalizar con IA»: la IA parte de la plantilla recomendada (o de la que elijas) y de tu
+// perfil. Sin clave configurada, la app sigue funcionando con las plantillas.
+function AiCard({
+  ready,
+  notConfigured,
+  left,
+  onAsk,
+}: {
+  ready: boolean
+  notConfigured: boolean
+  left: number | null
+  onAsk: () => void
+}) {
+  if (notConfigured) {
+    return (
+      <p className="text-muted-foreground rounded-xl border border-dashed p-3 text-xs">
+        El entrenador IA no está configurado: elige una plantilla y se adapta a tus días.
+      </p>
+    )
+  }
+  if (!ready) return null
+  return (
+    <Card className="gap-2">
+      <CardHeader>
+        <CardDescription className="text-primary flex items-center gap-1 font-medium">
+          <Sparkles className="size-4" /> Personalizar con IA
+        </CardDescription>
+        <CardTitle>Un plan a tu medida</CardTitle>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <p className="text-muted-foreground text-sm">
+          La IA parte de una plantilla y de tu perfil (nivel, material, molestias, carga reciente) y
+          te propone 4 semanas. Lo revisas, lo editas y solo se crea si lo aceptas. También puedes
+          abrir cualquier plantilla y pulsar «Personalizar con IA».
+        </p>
+        <Button size="lg" variant="outline" disabled={left === 0} onClick={onAsk}>
+          <Sparkles /> Recomiéndame un plan
+        </Button>
+        {left !== null && (
+          <p className="text-muted-foreground text-center text-xs">
+            {left === 0
+              ? 'Has usado todas las consultas de hoy'
+              : `Te quedan ${left} consultas hoy`}
+          </p>
+        )}
+      </CardContent>
+    </Card>
   )
 }
 
@@ -172,11 +250,13 @@ function TemplateSheet({
   profile,
   userId,
   onClose,
+  onAi,
 }: {
   template: PlanTemplateData | null
   profile: TrainingProfileData
   userId: string
   onClose: () => void
+  onAi: ((template: PlanTemplateData) => void) | null
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -236,14 +316,26 @@ function TemplateSheet({
       onClose={onClose}
       title={template?.name ?? ''}
       footer={
-        <Button
-          size="lg"
-          className="w-full"
-          disabled={saving || !schedule}
-          onClick={() => void create()}
-        >
-          <CalendarDays /> {saving ? 'Creando…' : 'Crear plan'}
-        </Button>
+        <div className="flex flex-col gap-2">
+          <Button
+            size="lg"
+            className="w-full"
+            disabled={saving || !schedule}
+            onClick={() => void create()}
+          >
+            <CalendarDays /> {saving ? 'Creando…' : 'Crear plan'}
+          </Button>
+          {onAi && template && (
+            <Button
+              variant="outline"
+              className="w-full"
+              disabled={saving}
+              onClick={() => onAi(template)}
+            >
+              <Sparkles /> Personalizar con IA
+            </Button>
+          )}
+        </div>
       }
     >
       {template && schedule && (

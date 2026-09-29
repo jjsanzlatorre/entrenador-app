@@ -1,5 +1,6 @@
 import { createFileRoute } from '@tanstack/react-router'
 import { describeEnv } from '@/lib/env'
+import { describeAiEnv } from '@/server/ai/config'
 
 // Diagnóstico de despliegue: qué variables existen (true/false), nunca sus valores.
 export const Route = createFileRoute('/api/health')({
@@ -12,7 +13,8 @@ export const Route = createFileRoute('/api/health')({
           env.runtime.SUPABASE_SERVICE_ROLE_KEY &&
           (env.runtime.VITE_SUPABASE_ANON_KEY || env.build.VITE_SUPABASE_ANON_KEY)
         return Response.json(
-          { ok, env, node: process.version, time: new Date().toISOString() },
+          // La IA es opcional: sin clave no afecta a «ok».
+          { ok, env, ai: describeAiEnv(), node: process.version, time: new Date().toISOString() },
           { status: ok ? 200 : 503, headers: { 'cache-control': 'no-store' } },
         )
       },

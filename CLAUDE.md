@@ -21,7 +21,7 @@
 - **Solo planes gratuitos**: Supabase Free y Vercel Hobby. Nada que requiera pago (ni cron de pago, ni Edge Config, ni add-ons).
 - **Variables de entorno** (nombres exactos en `.env.example`):
   - Públicas, con prefijo `VITE_`: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`.
-  - Solo servidor, sin prefijo: `SUPABASE_SERVICE_ROLE_KEY` (y en la Fase 6 `ANTHROPIC_API_KEY`, `AI_MODEL`).
+  - Solo servidor, sin prefijo: `SUPABASE_SERVICE_ROLE_KEY` y, desde la Fase 6, las de IA: `AI_PROVIDER`, `GEMINI_API_KEY`, `GEMINI_MODEL`, `ANTHROPIC_API_KEY`, `AI_MODEL`, `AI_DAILY_LIMIT` (todas opcionales: sin clave la app funciona sin IA).
   - Al añadir una variable nueva: actualizar `.env.example` y decir cuáles configurar en Vercel.
 - **Vercel sin configuración extra**: el build (`npm run build`) usa Nitro, que detecta Vercel y genera `.vercel/output` (Build Output API). Preset «TanStack Start» (o «Other»), comando de build por defecto, sin directorio de salida personalizado.
 - Antes de cada push: `npm run typecheck`, `npm run lint`, `npm test` y `npm run build` deben pasar.
@@ -59,7 +59,7 @@ Funciones núcleo:
 | Estado servidor | TanStack Query |
 | Validación | Zod (formularios, API y respuestas de IA) |
 | Backend | Supabase: Postgres, Auth, Storage, RLS |
-| IA | Anthropic API desde servidor (`ANTHROPIC_API_KEY`, modelo en `AI_MODEL`, por defecto `claude-sonnet-5`) |
+| IA | Proveedor configurable desde servidor con `AI_PROVIDER` = `gemini` (por defecto, plan gratuito: `GEMINI_API_KEY`, modelo en `GEMINI_MODEL`, por defecto `gemini-2.5-flash`) o `anthropic` (`ANTHROPIC_API_KEY`, modelo en `AI_MODEL`, por defecto `claude-sonnet-5-5`). Una interfaz interna única (`generateStructured`) con un adaptador por proveedor |
 | Deploy | Vercel |
 | PWA | manifest + service worker (instalable, icono, pantalla completa) |
 
@@ -371,11 +371,12 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 ## 11. Entrenador IA
 
 ### Arquitectura
-- Funciones de servidor en `src/server/ai/*`. Cliente de Anthropic único, modelo configurable por env.
+- Funciones de servidor en `src/server/ai.functions.ts` y lógica en `src/server/ai/*`. **Proveedor configurable** (`AI_PROVIDER`: `gemini` | `anthropic`) detrás de una interfaz única: `generateStructured({ schema, system, prompt, context })` pide JSON al proveedor, lo valida con Zod y reintenta una vez. Un adaptador por proveedor (`src/server/ai/providers/*`: Gemini por REST con `responseJsonSchema`, Anthropic con el SDK y `output_config.format`); el resto de la app no sabe cuál hay detrás. Modelo configurable por env (`GEMINI_MODEL` / `AI_MODEL`).
+- Sin clave del proveedor (o con la cuota del proveedor agotada) se muestra un mensaje claro en español y la app sigue funcionando sin IA.
 - Un **context builder** que resume los datos del usuario en JSON compacto: perfil de entrenamiento, plan activo, últimas 2–4 semanas (sesiones, carga, volumen por músculo, PRs, check-ins). Nunca enviar fotos. Enviar solo los datos necesarios para cada caso.
 - Toda salida estructurada en **JSON validado con Zod**; si no valida, un reintento; si vuelve a fallar, mostrar un error amable.
 - Todo se guarda en `ai_interactions`. **Nada se aplica sin que el usuario pulse «Aceptar»**; se ofrece también «Editar» y «Descartar».
-- Límite de uso: máximo N llamadas por usuario y día (configurable).
+- Límite de uso: máximo N llamadas por usuario y día (`AI_DAILY_LIMIT`, por defecto 20), contado en `ai_interactions` en la zona horaria del usuario.
 - System prompt con este marco: entrenador personal prudente, prioriza la técnica y la progresión gradual, respeta las limitaciones declaradas (ante una molestia, alternativa conservadora y recomendar consultar a un profesional si persiste), no da diagnósticos médicos ni pautas nutricionales cerradas, responde en español.
 
 ### Funciones
@@ -488,7 +489,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **5 hecha** (5A + 5B; typecheck, lint, Vitest, build y E2E en verde; pantallas revisadas a 375 px). Falta validar en móvil real. Siguiente: **Fase 6** (entrenador IA).
+- Fase actual: **6A hecha** (infraestructura IA, generar/adaptar plan y ajuste del día; typecheck, lint, Vitest, build y E2E en verde; pantallas revisadas a 375 px). Falta validar en móvil real con una clave de Gemini. Siguiente: **Fase 6B** (revisión semanal, chat, sustitución con IA y frases de equivalencias).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -571,7 +572,24 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Aviso de carga baja (ACWR < 0,8) activo solo con plan activo y datos suficientes (`useHasActivePlan`).
   - Mover una sesión comprueba las reglas (pierna pesada el día antes o el mismo día de frontón/surf, dos intensas seguidas, otra sesión ese día): ⚠ en los días del selector y aviso (toast) al mover; no bloquea.
   - Tests: Vitest de sugerencia (reglas, rangos, incrementos, aplicar/deshacer), reglas al mover, adherencia al plan, atrasadas, sesión desde el plan con sugerencia, textos por sexo, datos de competición y check-in offline (fake-indexeddb); PGlite de 0022/0023 (plantillas tras dos pasadas, heavy_legs, relleno y refresco, RLS y rangos de `daily_checkins`, `recent_exercise_sets`); E2E `tests/e2e/today-plan.spec.ts`. El mock E2E respeta ahora el filtro `ended_at not null` del historial.
-- Pendiente / deuda técnica:
+- Hecho (Fase 6A):
+  - Migración `0024_ai_coach.sql`: `ai_interactions` (RLS: solo lectura propia y `accepted` editable; sin insert/delete directos), `begin_ai_interaction` (límite diario atómico con bloqueo por usuario, en su zona horaria; los fallos del proveedor no cuentan), `finish_ai_interaction`, `ai_calls_today`, `create_user_plan` con `p_source` (`template` | `ai`) y `p_notes` (se borra la versión de 4 argumentos; las llamadas antiguas siguen valiendo), `planned_sessions.adjusted_from` y RPC `apply_daily_adjust` / `revert_daily_adjust`.
+  - Proveedor configurable (`src/server/ai/config.ts`): `AI_PROVIDER` gemini (por defecto) | anthropic, `GEMINI_API_KEY`, `GEMINI_MODEL` (por defecto `gemini-2.5-flash`), `ANTHROPIC_API_KEY`, `AI_MODEL` (por defecto `claude-sonnet-5-5`), `AI_DAILY_LIMIT` (20). Adaptadores en `src/server/ai/providers/` (Gemini por REST con `responseJsonSchema`; Anthropic con `@anthropic-ai/sdk` y `output_config.format`). El JSON Schema se genera desde Zod y se reduce al subconjunto común (`json-schema.ts`). `/api/health` informa de la IA (solo booleanos).
+  - `generateStructured` (`src/server/ai/structured.ts`): JSON → Zod → comprobaciones propias (exercise_id existentes, sesiones por semana); si falla, un reintento con los errores; si vuelve a fallar, se descartan los ejercicios inventados (y bloques/sesiones vacíos) o error amable. Todo queda en `ai_interactions` (entrada resumida, salida, tokens, estado).
+  - Context builder puro (`src/lib/ai/context.ts`) + carga en servidor con RLS (`load-context.ts`): perfil de entrenamiento (sin nombre ni email; sexo y edad), compromiso vigente, plan activo (semana, sesiones de la semana, adherencia), 4 semanas de carga, ACWR, sesiones de 14 días, series por músculo de 7 días, descuidados, PRs de 28 días y check-ins de 7 días; lista de ejercicios y plantilla base solo cuando hacen falta. Sin fotos, notas ni medidas.
+  - System prompt (§11) en `src/server/ai/prompts.ts`.
+  - «Elegir plan»: tarjeta «Personalizar con IA» → «Recomiéndame un plan» (parte de la plantilla recomendada por reglas) y «Personalizar con IA» en cada plantilla. Vista previa con resumen, semanas 1–4, lunes de inicio y avisos del programador; «Editar» (nombre, quitar sesiones o ejercicios, series y reps), «Descartar» y «Aceptar» (crea el plan con `source = 'ai'`, repartido en sus días con el programador de la fase 5; recupera de la plantilla base los estándares HYROX/DEKA).
+  - «Hoy»: botón «¿Ajusto el entreno de hoy?» en la sesión planificada pendiente (destacado si el check-in indica cansancio: energía o sueño ≤ 2, agujetas ≥ 4 o estrés 5). Tarjeta con decisión (mantener, reducir, cambiar, descansar), motivo y sesión propuesta; Aceptar aplica en la base de datos la propuesta guardada (no la del cliente), Descartar la marca como no aceptada. «Deshacer» devuelve la prescripción original.
+  - Sin clave, sin conexión, con la cuota del proveedor agotada o al llegar al límite diario: mensaje en español y la app sigue igual. Consultas restantes del día visibles.
+  - `vercel.functions.maxDuration = 60` (Nitro) para que generar un plan no se corte.
+  - Tests (sin llamar a la API real): Vitest de esquemas, JSON Schema, validación y descarte de exercise_id, context builder, edición de la propuesta, servicio con proveedor simulado (reintento, descarte, límite diario, errores del proveedor, keep/rest sin sesión) y adaptadores con fetch/cliente simulados; PGlite de 0024 (límite, RLS, finish, create_user_plan con origen, aplicar/deshacer/descanso, propuestas ajenas); E2E `tests/e2e/ai-coach.spec.ts` contra un simulador de Gemini en el mock (`GEMINI_BASE_URL`): check-in energía 1 + agujetas 5 → reducir, solo al aceptar, deshacer, descartar y cuota agotada; «Recomiéndame un plan» → editar → aceptar.
+- Pendiente / deuda técnica (Fase 6A):
+  - Modelo de Gemini por defecto `gemini-2.5-flash` sin verificar en la documentación oficial (sin acceso desde el entorno): comprobar en ai.google.dev el nombre vigente del plan gratuito y cambiar `GEMINI_MODEL` si hace falta.
+  - Generar un plan puede tardar 20–60 s (una llamada larga; si reintenta, más). Si el proveedor tarda más de ~55 s se muestra error.
+  - La IA necesita conexión; sus propuestas no se guardan en el móvil (si se cierra la hoja, se pierde la propuesta, pero la consulta cuenta).
+  - Solo se ajusta la sesión de hoy; el ajuste no mueve sesiones de otros días.
+  - En la E2E completa, `timers.spec.ts › 6×400 m` falló 2 veces de 7 pasadas (lectura del reloj simulado); en solitario y en las 4 últimas pasadas completas, en verde. No toca código de IA.
+- Pendiente / deuda técnica (Fase 5):
   - Cambios del plan (crear, mover, saltar, marcar hecha) necesitan conexión; sin red se ve la última copia. Una sesión hecha desde el plan sin conexión se ve «Hecha» enseguida y se enlaza al sincronizar.
   - Nivel «avanzado» usa las plantillas de intermedio.
   - Las reps de la sesión desde el plan se precargan con el suelo del rango: para que la progresión doble funcione hay que anotar las reps hechas.
@@ -625,6 +643,7 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Cada sesión de plantilla lleva `intensity` (easy/moderate/hard) y `heavy_legs` para el programador; en los circuitos cada ejercicio aparece una vez por ronda (la carrera de DEKA va en un solo ejercicio «en tramos»).
   - `user_plans` y `planned_sessions` solo se crean por RPC (security definer con `auth.uid()` e `is_active()`); el usuario solo puede actualizar `date`, `original_date` y `status` de las planificadas (y `status`, `name`, `notes` del plan). El enlace con la sesión registrada solo lo escriben el trigger y `set_planned_session_done`. Crear un plan archiva el activo y borra sus pendientes desde la fecha de inicio del nuevo; lo hecho se conserva.
   - Onboarding hecho = existe la fila de `training_profiles` («Saltar todo» la crea con lo que haya). Formato jsonb: `goals {selected, main}`, `availability {days_per_week, minutes_per_session, preferred_days (1 = lunes), places}`, `fixed_activities [{type, days, minutes, label}]`, `benchmarks {squat_1rm_kg, bench_1rm_kg, deadlift_1rm_kg, run_5k_s, swim_100m_s}`; se valida con Zod al leer (`src/lib/plan/profile.ts`). Objetivo «Nadar mejor» añadido a los de §11.1 para poder recomendar natación.
+  - IA: la propuesta aceptada la aplica la base de datos leyendo `ai_interactions.output` (el cliente solo manda ids). Plan de la IA = formato de plantilla (§9) con `day_hint`; el reparto en días lo hace el programador determinista. `ai_interactions.status`: pending | ok | invalid | error; el límite diario cuenta todo menos `error`.
   - Diagnóstico: `/api/health` (qué variables existen en runtime y en build, solo true/false), `errorComponent` raíz en español renderizado en servidor y logs `console.error` con stack (root `beforeLoad`, `onCatch`, middleware global en `src/start.ts`).
 
 ---

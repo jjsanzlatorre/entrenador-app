@@ -29,6 +29,7 @@ import {
   type Goal,
   type TrainingProfileData,
 } from '@/lib/plan/profile'
+import { takeJustJoined } from '@/lib/invites/invite'
 import { currentCommitment } from '@/lib/progress/adherence'
 import { saveCommitment, updateOwnProfile, updateProfileSettings } from '@/lib/progress/api'
 import { localDateKey, weekStartOf } from '@/lib/progress/dates'
@@ -264,7 +265,10 @@ function Wizard({
       notifySaved(
         skipAll ? 'Puedes completar tu perfil cuando quieras desde Perfil' : 'Perfil guardado',
       )
-      await navigate({ to: skipAll ? '/' : '/plan/elegir', replace: true })
+      const next = skipAll ? '/' : '/plan/elegir'
+      // Recién unido con un enlace de invitación: antes, cómo instalar la app.
+      if (takeJustJoined()) await navigate({ to: '/instalar', search: { next }, replace: true })
+      else await navigate({ to: next, replace: true })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
       notifyError(e)

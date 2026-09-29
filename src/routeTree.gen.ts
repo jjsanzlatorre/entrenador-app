@@ -13,10 +13,13 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as BloqueadoRouteImport } from './routes/bloqueado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as AppCambiarContrasenaRouteImport } from './routes/_app/cambiar-contrasena'
 import { Route as AppEntrenadorRouteImport } from './routes/_app/entrenador'
+import { Route as AppInstalarRouteImport } from './routes/_app/instalar'
 import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
+import { Route as UnirseCodeRouteImport } from './routes/unirse.$code'
 import { Route as AppAdminInvitacionesRouteImport } from './routes/_app/admin/invitaciones'
 import { Route as AppEntrenarIndexRouteImport } from './routes/_app/entrenar/index'
 import { Route as AppEntrenarActividadRouteImport } from './routes/_app/entrenar/actividad'
@@ -68,9 +71,19 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
+const AppCambiarContrasenaRoute = AppCambiarContrasenaRouteImport.update({
+  id: '/cambiar-contrasena',
+  path: '/cambiar-contrasena',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppEntrenadorRoute = AppEntrenadorRouteImport.update({
   id: '/entrenador',
   path: '/entrenador',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppInstalarRoute = AppInstalarRouteImport.update({
+  id: '/instalar',
+  path: '/instalar',
   getParentRoute: () => AppRoute,
 } as any)
 const AppOnboardingRoute = AppOnboardingRouteImport.update({
@@ -86,6 +99,11 @@ const ApiHealthRoute = ApiHealthRouteImport.update({
 const AuthCallbackRoute = AuthCallbackRouteImport.update({
   id: '/auth/callback',
   path: '/auth/callback',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const UnirseCodeRoute = UnirseCodeRouteImport.update({
+  id: '/unirse/$code',
+  path: '/unirse/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppAdminInvitacionesRoute = AppAdminInvitacionesRouteImport.update({
@@ -253,10 +271,13 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/bloqueado': typeof BloqueadoRoute
   '/login': typeof LoginRoute
+  '/cambiar-contrasena': typeof AppCambiarContrasenaRoute
   '/entrenador': typeof AppEntrenadorRoute
+  '/instalar': typeof AppInstalarRoute
   '/onboarding': typeof AppOnboardingRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/unirse/$code': typeof UnirseCodeRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
@@ -292,10 +313,13 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/bloqueado': typeof BloqueadoRoute
   '/login': typeof LoginRoute
+  '/cambiar-contrasena': typeof AppCambiarContrasenaRoute
   '/entrenador': typeof AppEntrenadorRoute
+  '/instalar': typeof AppInstalarRoute
   '/onboarding': typeof AppOnboardingRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/unirse/$code': typeof UnirseCodeRoute
   '/': typeof AppIndexRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
@@ -334,10 +358,13 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/bloqueado': typeof BloqueadoRoute
   '/login': typeof LoginRoute
+  '/_app/cambiar-contrasena': typeof AppCambiarContrasenaRoute
   '/_app/entrenador': typeof AppEntrenadorRoute
+  '/_app/instalar': typeof AppInstalarRoute
   '/_app/onboarding': typeof AppOnboardingRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
+  '/unirse/$code': typeof UnirseCodeRoute
   '/_app/': typeof AppIndexRoute
   '/_app/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/_app/entrenar/actividad': typeof AppEntrenarActividadRoute
@@ -377,10 +404,13 @@ export interface FileRouteTypes {
     | '/'
     | '/bloqueado'
     | '/login'
+    | '/cambiar-contrasena'
     | '/entrenador'
+    | '/instalar'
     | '/onboarding'
     | '/api/health'
     | '/auth/callback'
+    | '/unirse/$code'
     | '/admin/invitaciones'
     | '/entrenar/actividad'
     | '/entrenar/ejercicios'
@@ -416,10 +446,13 @@ export interface FileRouteTypes {
   to:
     | '/bloqueado'
     | '/login'
+    | '/cambiar-contrasena'
     | '/entrenador'
+    | '/instalar'
     | '/onboarding'
     | '/api/health'
     | '/auth/callback'
+    | '/unirse/$code'
     | '/'
     | '/admin/invitaciones'
     | '/entrenar/actividad'
@@ -457,10 +490,13 @@ export interface FileRouteTypes {
     | '/_app'
     | '/bloqueado'
     | '/login'
+    | '/_app/cambiar-contrasena'
     | '/_app/entrenador'
+    | '/_app/instalar'
     | '/_app/onboarding'
     | '/api/health'
     | '/auth/callback'
+    | '/unirse/$code'
     | '/_app/'
     | '/_app/admin/invitaciones'
     | '/_app/entrenar/actividad'
@@ -501,6 +537,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ApiHealthRoute: typeof ApiHealthRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  UnirseCodeRoute: typeof UnirseCodeRoute
   ApiPushCronRoute: typeof ApiPushCronRoute
 }
 
@@ -534,11 +571,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/cambiar-contrasena': {
+      id: '/_app/cambiar-contrasena'
+      path: '/cambiar-contrasena'
+      fullPath: '/cambiar-contrasena'
+      preLoaderRoute: typeof AppCambiarContrasenaRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/entrenador': {
       id: '/_app/entrenador'
       path: '/entrenador'
       fullPath: '/entrenador'
       preLoaderRoute: typeof AppEntrenadorRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/instalar': {
+      id: '/_app/instalar'
+      path: '/instalar'
+      fullPath: '/instalar'
+      preLoaderRoute: typeof AppInstalarRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/onboarding': {
@@ -560,6 +611,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/callback'
       fullPath: '/auth/callback'
       preLoaderRoute: typeof AuthCallbackRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/unirse/$code': {
+      id: '/unirse/$code'
+      path: '/unirse/$code'
+      fullPath: '/unirse/$code'
+      preLoaderRoute: typeof UnirseCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/admin/invitaciones': {
@@ -783,7 +841,9 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
+  AppCambiarContrasenaRoute: typeof AppCambiarContrasenaRoute
   AppEntrenadorRoute: typeof AppEntrenadorRoute
+  AppInstalarRoute: typeof AppInstalarRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminInvitacionesRoute: typeof AppAdminInvitacionesRoute
@@ -819,7 +879,9 @@ interface AppRouteChildren {
 }
 
 const AppRouteChildren: AppRouteChildren = {
+  AppCambiarContrasenaRoute: AppCambiarContrasenaRoute,
   AppEntrenadorRoute: AppEntrenadorRoute,
+  AppInstalarRoute: AppInstalarRoute,
   AppOnboardingRoute: AppOnboardingRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminInvitacionesRoute: AppAdminInvitacionesRoute,
@@ -864,6 +926,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ApiHealthRoute: ApiHealthRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  UnirseCodeRoute: UnirseCodeRoute,
   ApiPushCronRoute: ApiPushCronRoute,
 }
 export const routeTree = rootRouteImport

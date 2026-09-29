@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { InviteLinkCard } from '@/components/partners/invite-link'
 import { sharedSummary } from '@/components/partners/permissions'
 import { invitePartner, respondPartner, revokePartner, type PartnerLink } from '@/lib/progress/api'
 import { partnersKey, usePartnerLinks } from '@/lib/progress/hooks'
@@ -38,6 +39,7 @@ function PartnersPage() {
         comparte. Las fotos nunca se comparten.
       </p>
 
+      <InviteLinkCard userId={auth.userId} name={auth.profile.display_name} />
       <InviteForm userId={auth.userId} />
 
       {links.isPending && <p className="text-muted-foreground">Cargando…</p>}
@@ -93,9 +95,9 @@ function InviteForm({ userId }: { userId: string }) {
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          <UserPlus className="size-5" /> Invitar
+          <UserPlus className="size-5" /> Vincular por email
         </CardTitle>
-        <CardDescription>Email con el que esa persona entra en la app.</CardDescription>
+        <CardDescription>Si ya usa la app: el email con el que entra.</CardDescription>
       </CardHeader>
       <CardContent>
         <form onSubmit={submit} className="flex flex-col gap-2">

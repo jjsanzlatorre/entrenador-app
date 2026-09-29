@@ -40,3 +40,46 @@ export async function clearCachedPages() {
   if (typeof window === 'undefined') return
   await postToServiceWorker({ type: 'clear-pages' })
 }
+
+// Evento beforeinstallprompt (Chrome/Android): llega pronto, antes de que se abra la pantalla de
+// instalar, así que se captura al arrancar la app y se guarda para usarlo después.
+type InstallPromptEvent = Event & {
+  prompt: () => Promise<void>
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>
+}
+let installPrompt: InstallPromptEvent | null = null
+const installListeners = new Set<() => void>()
+
+export function captureInstallPrompt() {
+  if (typeof window === 'undefined') return
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault()
+    installPrompt = e as InstallPromptEvent
+    for (const fn of installListeners) fn()
+  })
+  window.addEventListener('appinstalled', () => {
+    installPrompt = null
+    for (const fn of installListeners) fn()
+  })
+}
+
+export function canPromptInstall() {
+  return installPrompt !== null
+}
+
+export function onInstallPromptChange(fn: () => void) {
+  installListeners.add(fn)
+  return () => {
+    installListeners.delete(fn)
+  }
+}
+
+export async function promptInstall() {
+  const event = installPrompt
+  if (!event) return false
+  installPrompt = null
+  await event.prompt()
+  const { outcome } = await event.userChoice
+  for (const fn of installListeners) fn()
+  return outcome === 'accepted'
+}

@@ -184,6 +184,81 @@ let geminiQueue: unknown[] = []
 let geminiRequests: { model: string; key: string | undefined; body: unknown }[] = []
 // Fase 7A: cambios de permisos (PATCH partner_links) y respuestas a invitaciones.
 let partnerPatches: Record<string, unknown>[] = []
+// Invitaciones por enlace (0030): códigos, usuarios creados con service role, intentos por IP,
+// vínculos creados al canjear y contraseñas cambiadas por el admin.
+type InviteRow = {
+  id: string
+  code: string
+  created_by: string
+  created_by_name: string | null
+  created_at: string
+  expires_at: string
+  max_uses: number
+  uses: number
+  revoked: boolean
+  used_by: string | null
+  used_by_name: string | null
+  used_at: string | null
+}
+let inviteCodes: InviteRow[] = []
+let inviteSettings = { members_can_invite: false, max_active_invites_per_user: 3 }
+let inviteAttempts = 0
+let authUsers: { id: string; email: string; password: string; user_metadata: unknown }[] = []
+let deletedUsers: string[] = []
+let redeemed: { code: string; user: string }[] = []
+let passwordUpdates: { id: string; password: string }[] = []
+let otherProfiles: Record<string, Record<string, unknown>> = {}
+const EXISTING_EMAILS = new Set(['e2e@test.dev'])
+const INVITE_ALPHABET = '23456789ABCDEFGHJKLMNPQRSTUVWXYZ'
+
+function inviteState(c: InviteRow) {
+  if (c.revoked) return 'revoked'
+  if (c.uses >= c.max_uses) return 'used'
+  if (new Date(c.expires_at).getTime() <= Date.now()) return 'expired'
+  return 'active'
+}
+
+function normalizeCode(raw: string) {
+  const c = raw.replace(/[^A-Za-z0-9]/g, '').toUpperCase()
+  return c.length === 12 ? `${c.slice(0, 4)}-${c.slice(4, 8)}-${c.slice(8)}` : c
+}
+
+function newInviteCode(createdBy: string, name: string | null): InviteRow {
+  let code = ''
+  for (let i = 0; i < 12; i++) {
+    code += INVITE_ALPHABET[Math.floor(Math.random() * 32)]
+    if (i === 3 || i === 7) code += '-'
+  }
+  return {
+    id: randomUUID(),
+    code,
+    created_by: createdBy,
+    created_by_name: name,
+    created_at: new Date().toISOString(),
+    expires_at: new Date(Date.now() + 7 * 86_400_000).toISOString(),
+    max_uses: 1,
+    uses: 0,
+    revoked: false,
+    used_by: null,
+    used_by_name: null,
+    used_at: null,
+  }
+}
+
+// JWT que el mock acepta (mismo formato que tests/e2e/helpers.ts).
+function mockSession() {
+  const exp = Math.floor(Date.now() / 1000) + 3600
+  const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
+  const jwt = `${b64({ alg: 'HS256', typ: 'JWT' })}.${b64({ sub: MOCK_USER_ID, exp, role: 'authenticated', aud: 'authenticated' })}.sig`
+  return {
+    access_token: jwt,
+    refresh_token: 'refresh',
+    expires_in: 3600,
+    expires_at: exp,
+    token_type: 'bearer',
+    user,
+  }
+}
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
@@ -247,6 +322,15 @@ export function startMockSupabase(port: number) {
         geminiRequests,
         partnerPatches,
         pairInvites: progressSeed.pairInvites ?? [],
+        inviteCodes,
+        inviteSettings,
+        inviteAttempts,
+        authUsers,
+        deletedUsers,
+        redeemed,
+        passwordUpdates,
+        otherProfiles,
+        partnerLinks: progressSeed.partnerLinks,
       })
     }
     if (path === '/__seed') {
@@ -255,7 +339,32 @@ export function startMockSupabase(port: number) {
         userPlans?: PlanRow[]
         plannedSessions?: PlannedRow[]
         gemini?: unknown[]
+        inviteCodes?: (Partial<InviteRow> & { code: string })[]
+        inviteSettings?: typeof inviteSettings
+        authUsers?: { id: string; email: string; display_name?: string }[]
       }
+      if (body.inviteCodes) {
+        inviteCodes = body.inviteCodes.map((c) => ({
+          ...newInviteCode(MOCK_USER_ID, 'E2E'),
+          ...c,
+        }))
+      }
+      if (body.inviteSettings) inviteSettings = body.inviteSettings
+      if (body.authUsers) {
+        for (const u of body.authUsers) {
+          authUsers.push({ id: u.id, email: u.email, password: '', user_metadata: {} })
+          otherProfiles[u.id] = {
+            id: u.id,
+            display_name: u.display_name ?? u.email.split('@')[0],
+            role: 'member',
+            active: true,
+            must_change_password: false,
+          }
+        }
+      }
+      delete body.inviteCodes
+      delete body.inviteSettings
+      delete body.authUsers
       if (body.gemini) geminiQueue = body.gemini
       delete body.gemini
       if (body.userPlans) userPlans = body.userPlans
@@ -289,8 +398,162 @@ export function startMockSupabase(port: number) {
       geminiQueue = []
       geminiRequests = []
       partnerPatches = []
+      inviteCodes = []
+      inviteSettings = { members_can_invite: false, max_active_invites_per_user: 3 }
+      inviteAttempts = 0
+      authUsers = []
+      deletedUsers = []
+      redeemed = []
+      passwordUpdates = []
+      otherProfiles = {}
       return send(res, 200, { ok: true })
     }
+
+    // ── Invitaciones por enlace (0030) ──
+    if (path === '/rest/v1/rpc/invite_attempts_count') return send(res, 200, inviteAttempts)
+    if (path === '/rest/v1/rpc/record_invite_attempt') {
+      inviteAttempts++
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/rpc/lookup_invite_code') {
+      const { p_code } = (await readBody(req)) as { p_code: string }
+      const c = inviteCodes.find((x) => x.code === normalizeCode(p_code))
+      return send(res, 200, [
+        c
+          ? {
+              state: inviteState(c),
+              code: c.code,
+              inviter_id: c.created_by,
+              inviter_name: c.created_by_name,
+            }
+          : { state: 'not_found', code: null, inviter_id: null, inviter_name: null },
+      ])
+    }
+    if (path === '/rest/v1/rpc/redeem_invite_code') {
+      const { p_code, p_user } = (await readBody(req)) as { p_code: string; p_user: string }
+      const c = inviteCodes.find((x) => x.code === normalizeCode(p_code))
+      if (!c) return send(res, 400, { code: 'P0002', message: 'invite_not_found' })
+      const st = inviteState(c)
+      if (st !== 'active') return send(res, 400, { code: 'P0001', message: `invite_${st}` })
+      if (c.created_by === p_user) return send(res, 400, { code: '22023', message: 'invite_own' })
+      c.uses++
+      c.used_by = p_user
+      c.used_by_name =
+        (otherProfiles[p_user]?.display_name as string | undefined) ??
+        (p_user === MOCK_USER_ID ? String(profile.display_name) : null)
+      c.used_at = new Date().toISOString()
+      redeemed.push({ code: c.code, user: p_user })
+      return send(res, 200, 'linked')
+    }
+    if (path === '/rest/v1/rpc/my_invite_status') {
+      const admin = profile.role === 'admin'
+      const active = inviteCodes.filter(
+        (c) => c.created_by === MOCK_USER_ID && inviteState(c) === 'active',
+      ).length
+      const max = inviteSettings.max_active_invites_per_user
+      return send(res, 200, [
+        {
+          can_invite: admin || (inviteSettings.members_can_invite && active < max),
+          is_admin: admin,
+          max_active: admin ? null : max,
+          active_count: active,
+        },
+      ])
+    }
+    if (path === '/rest/v1/rpc/create_invite_code') {
+      const admin = profile.role === 'admin'
+      const active = inviteCodes.filter(
+        (c) => c.created_by === MOCK_USER_ID && inviteState(c) === 'active',
+      ).length
+      if (!admin && !inviteSettings.members_can_invite)
+        return send(res, 400, { code: '42501', message: 'invite_not_allowed' })
+      if (!admin && active >= inviteSettings.max_active_invites_per_user)
+        return send(res, 400, { code: 'P0001', message: 'invite_limit' })
+      const row = newInviteCode(MOCK_USER_ID, String(profile.display_name))
+      inviteCodes.unshift(row)
+      return send(res, 200, row)
+    }
+    if (path === '/rest/v1/rpc/list_invite_codes') {
+      const { p_all } = (await readBody(req)) as { p_all?: boolean }
+      return send(
+        res,
+        200,
+        inviteCodes
+          .filter((c) => c.created_by === MOCK_USER_ID || (p_all && profile.role === 'admin'))
+          .map((c) => ({ ...c, state: inviteState(c) })),
+      )
+    }
+    if (path === '/rest/v1/rpc/revoke_invite_code') {
+      const { p_id } = (await readBody(req)) as { p_id: string }
+      const c = inviteCodes.find((x) => x.id === p_id)
+      if (!c) return send(res, 400, { code: 'P0002', message: 'invite_not_found' })
+      c.revoked = true
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/rpc/set_invite_settings') {
+      const b = (await readBody(req)) as { p_members_can_invite: boolean; p_max_active: number }
+      inviteSettings = {
+        members_can_invite: b.p_members_can_invite,
+        max_active_invites_per_user: b.p_max_active,
+      }
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/app_settings') {
+      return send(res, 200, rows(req, [{ id: true, ...inviteSettings, updated_at: '' }]))
+    }
+    // Auth con service role: crear, borrar, cambiar contraseña y listar usuarios.
+    if (path === '/auth/v1/admin/users' && req.method === 'POST') {
+      const b = (await readBody(req)) as {
+        email: string
+        password: string
+        email_confirm?: boolean
+        user_metadata?: { display_name?: string }
+      }
+      const email = b.email.toLowerCase()
+      if (EXISTING_EMAILS.has(email) || authUsers.some((u) => u.email === email)) {
+        return send(res, 422, {
+          code: 'email_exists',
+          error_code: 'email_exists',
+          msg: 'A user with this email address has already been registered',
+        })
+      }
+      if (!b.email_confirm) return send(res, 400, { msg: 'mock: email_confirm requerido' })
+      const id = randomUUID()
+      authUsers.push({ id, email, password: b.password, user_metadata: b.user_metadata ?? {} })
+      otherProfiles[id] = {
+        id,
+        display_name: b.user_metadata?.display_name ?? email.split('@')[0],
+        role: 'member',
+        active: true,
+        must_change_password: false,
+      }
+      return send(res, 200, { id, email, aud: 'authenticated', role: 'authenticated' })
+    }
+    if (path === '/auth/v1/admin/users' && req.method === 'GET') {
+      const list = [
+        { id: MOCK_USER_ID, email: user.email, last_sign_in_at: '2026-01-01T00:00:00Z' },
+        ...authUsers.map((u) => ({
+          id: u.id,
+          email: u.email,
+          last_sign_in_at: '2026-01-01T00:00:00Z',
+        })),
+      ]
+      return send(res, 200, { users: list, aud: 'authenticated' })
+    }
+    const adminUser = /^\/auth\/v1\/admin\/users\/([^/]+)$/.exec(path)
+    if (adminUser) {
+      const id = adminUser[1]!
+      if (req.method === 'DELETE') {
+        deletedUsers.push(id)
+        authUsers = authUsers.filter((u) => u.id !== id)
+        delete otherProfiles[id]
+        return send(res, 200, {})
+      }
+      const b = (await readBody(req)) as { password?: string }
+      if (b.password) passwordUpdates.push({ id, password: b.password })
+      return send(res, 200, { id, email: authUsers.find((u) => u.id === id)?.email ?? user.email })
+    }
+    if (path === '/auth/v1/token') return send(res, 200, mockSession())
 
     // Simulador de la API de Gemini (generateContent): devuelve la siguiente respuesta en cola.
     const gemini = /^\/gemini\/v1beta\/models\/([^/:]+):generateContent$/.exec(path)
@@ -907,6 +1170,25 @@ export function startMockSupabase(port: number) {
       return send(res, 200, rows(req, []))
     }
     if (table === 'profiles') {
+      const pid = eqParam(url, 'id')
+      if (req.method === 'POST') {
+        // upsert del servidor al registrarse con invitación
+        const b = (await readBody(req)) as Record<string, unknown> | Record<string, unknown>[]
+        for (const r of Array.isArray(b) ? b : [b]) {
+          const id = String(r.id)
+          otherProfiles[id] = { ...(otherProfiles[id] ?? {}), ...r }
+        }
+        return send(res, 201, [])
+      }
+      if (req.method === 'GET' && !pid) {
+        // listUsers del admin (service role): todos los perfiles
+        return send(res, 200, [profile, ...Object.values(otherProfiles)])
+      }
+      if (req.method === 'PATCH' && pid && pid !== MOCK_USER_ID) {
+        const patch = (await readBody(req)) as object
+        otherProfiles[pid] = { ...(otherProfiles[pid] ?? { id: pid }), ...patch }
+        return send(res, 200, [otherProfiles[pid]])
+      }
       if (req.method === 'PATCH') {
         const patch = (await readBody(req)) as object
         if (progressSeed.profileUpdateBlocked) return send(res, 200, [])

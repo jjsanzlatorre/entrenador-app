@@ -5,7 +5,7 @@ import { RootError, logError } from '@/components/root-error'
 import { Toaster } from '@/components/ui/sonner'
 import { ensureAuthState } from '@/lib/auth'
 import { ConfigError, readPublicEnv } from '@/lib/env'
-import { registerServiceWorker } from '@/lib/pwa'
+import { captureInstallPrompt, registerServiceWorker } from '@/lib/pwa'
 import appCss from '@/styles.css?url'
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
@@ -77,6 +77,7 @@ function RootComponent() {
 
   useEffect(() => {
     registerServiceWorker()
+    captureInstallPrompt()
   }, [])
 
   return (

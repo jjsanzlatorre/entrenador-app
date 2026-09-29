@@ -19,11 +19,27 @@ planes gratuitos (Supabase Free, Vercel Hobby, Gemini gratis).
   iPhone usa el **código** (el enlace se abre en Safari, que no comparte sesión con la app).
   También puedes poner una contraseña en **Perfil → Contraseña**.
 
-### Invitar a alguien (solo admin)
+### Invitar a alguien con un enlace (sin email)
 
-**Perfil → Invitaciones y usuarios** → escribe su email → **Invitar**. Le llega un correo para
-entrar. Desde ahí también puedes desactivar (y reactivar) a un usuario. Nadie puede registrarse
-por su cuenta.
+1. **Perfil → Pareja y amigos → Invitar con enlace**. Se crea un código (p. ej.
+   `K7P4-QX2M-AB3C`) y se abre el menú de compartir del móvil; también hay **Compartir por
+   WhatsApp** y **Copiar enlace**.
+2. La otra persona abre `…/unirse/CÓDIGO`, pone nombre, email y contraseña y entra directamente
+   (sin correo de confirmación). Quedáis vinculados (solo el cumplimiento) y pasa al onboarding y
+   a las instrucciones para instalar la app.
+3. Cada enlace sirve para **una persona** y caduca a los **7 días**. En la misma pantalla ves su
+   estado (pendiente, usada por…, caducada, anulada) y puedes **Anular**.
+4. Si su email ya tenía cuenta, le pide iniciar sesión y, al entrar, os vincula igualmente.
+
+Por defecto solo invita el admin. En **Perfil → Invitaciones y usuarios** puede activar
+**Permitir que los usuarios inviten** y el máximo de invitaciones activas por persona (3).
+Nadie puede registrarse sin un código válido.
+
+### Invitar por email, desactivar y contraseña temporal (solo admin)
+
+**Perfil → Invitaciones y usuarios**: invitar por email (requiere SMTP), desactivar/reactivar un
+usuario y **Generar contraseña temporal** (si alguien la olvida y no hay email): se muestra una
+sola vez para copiarla o mandarla por WhatsApp, y al entrar le obliga a cambiarla.
 
 ### Vincularse con la pareja o amigos
 
@@ -76,7 +92,7 @@ en orden. `supabase/snippets/` contiene SQL de un solo uso (no son migraciones).
 **Supabase**
 
 1. Crea un proyecto (plan Free).
-2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0029`).
+2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0030`).
    Comprueba en **Storage** que el bucket `progress-photos` es privado.
 3. **Authentication → Sign In / Providers**: desactiva **Allow new users to sign up**.
 4. **Authentication → URL Configuration**: Site URL `https://TU-APP.vercel.app` y Redirect URL

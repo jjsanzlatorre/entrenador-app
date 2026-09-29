@@ -75,11 +75,19 @@ Funciones núcleo:
 
 ## 3. Autenticación y acceso
 
-- **Registro público desactivado** en Supabase.
-- Acceso solo por invitación: el admin invita por email desde `/admin/invitaciones` (`auth.admin.inviteUserByEmail`, en servidor).
+- **Registro público desactivado** en Supabase. Solo se crea una cuenta con un **código de invitación válido** (o por invitación por email del admin).
+- **Invitación por enlace** (vía principal, sin email): `/unirse/{código}` con códigos legibles `XXXX-XXXX-XXXX` (60 bits aleatorios, alfabeto sin 0/O ni 1/I), por defecto 7 días y 1 uso.
+  - Invita el admin siempre; el resto solo si el admin activa «Permitir que los usuarios inviten» (`app_settings`), con un máximo de invitaciones activas por usuario (por defecto 3).
+  - Perfil → «Pareja y amigos» → «Invitar con enlace»: hoja nativa de compartir (Web Share API) con «{nombre} te invita a entrenar juntos 💪 {url}», «Compartir por WhatsApp» (`wa.me`) y «Copiar enlace»; lista con estado (pendiente, usada por X, caducada, anulada) y «Anular».
+  - `/unirse/{código}` valida en el servidor; si vale: nombre, email y contraseña (mín. 8, repetida). El servidor crea el usuario con service role (`auth.admin.createUser`, `email_confirm: true`, sin email), su profile, marca el código y crea el vínculo **aceptado en los dos sentidos** (solo cumplimiento). Si algo falla tras crear el usuario, se borra (sin usuarios ni códigos a medias). Después: sesión iniciada → onboarding → pantalla de instalar la PWA según el dispositivo.
+  - Email ya registrado: «Ya tienes cuenta, inicia sesión» → `/login?invitacion=…`; al entrar se canjea el código igualmente.
+  - Límite de 10 intentos por hora y conexión (hash de la IP): cuentan los códigos inexistentes y cada registro o canje.
+  - Vista previa en WhatsApp: Open Graph en `/unirse/*` con `public/og-invite.png` (1200×630, sin datos personales).
+- Invitación por email desde `/admin/invitaciones` (`auth.admin.inviteUserByEmail`, en servidor; requiere SMTP).
 - Login con magic link y, opcionalmente, contraseña.
-- `profiles.role`: `admin` | `member`. Solo `admin` ve el panel de invitaciones.
+- `profiles.role`: `admin` | `member`. Solo `admin` ve el panel de invitaciones y usuarios.
 - Revocar acceso: el admin puede desactivar a un usuario (`profiles.active = false` + bloqueo en middleware).
+- Recuperar contraseña sin email: el admin pulsa «Generar contraseña temporal» en `/admin/invitaciones`; se muestra una sola vez y `profiles.must_change_password` obliga a cambiarla al entrar (`/cambiar-contrasena`).
 
 ---
 
@@ -88,8 +96,11 @@ Funciones núcleo:
 Todas las tablas de usuario llevan `user_id uuid references auth.users` y una política RLS `user_id = auth.uid()`. Las tablas globales (músculos, ejercicios globales, plantillas) son de solo lectura para los usuarios autenticados.
 
 ### Perfil
-- **profiles**: `id` (= auth uid), `display_name`, `role`, `active`, `sex` (opcional), `birth_year`, `height_cm`, `home_city`, `home_lat`, `home_lng` (ciudad de referencia para las equivalencias de distancia; la elige el usuario, no se usa la geolocalización), `show_equivalence_popups` bool (por defecto `true`), `created_at`
+- **profiles**: `id` (= auth uid), `display_name`, `role`, `active`, `sex` (opcional), `birth_year`, `height_cm`, `home_city`, `home_lat`, `home_lng` (ciudad de referencia para las equivalencias de distancia; la elige el usuario, no se usa la geolocalización), `show_equivalence_popups` bool (por defecto `true`), `must_change_password` bool (contraseña temporal del admin; solo servidor), `created_at`
 - **commitments**: `id`, `user_id`, `valid_from` date, `valid_to` date nullable, `sessions_per_week` int, `minutes_per_week` int nullable, `by_type` jsonb nullable (p. ej. `{"strength": 2, "swimming": 1}`), `counts_free_activities` bool (si surf, frontón o yoga cuentan para el objetivo; por defecto `true`). Guarda el **historial**: cambiar el compromiso cierra el anterior (`valid_to`) y crea uno nuevo, para que las semanas pasadas se midan con lo que se prometió entonces.
+- **app_settings** (una fila, global): `members_can_invite` bool (por defecto `false`), `max_active_invites_per_user` int (por defecto 3), `updated_at`. Lectura para usuarios activos; solo el admin cambia (RPC `set_invite_settings`).
+- **invite_codes**: `id`, `code` (único, `XXXX-XXXX-XXXX`), `created_by`, `created_at`, `expires_at` (por defecto +7 días), `max_uses` (por defecto 1), `uses`, `revoked`, `used_by`, `used_at`. RLS: cada usuario ve los suyos y el admin todos; se crean, anulan y listan por RPC (`create_invite_code`, `revoke_invite_code`, `list_invite_codes`, `my_invite_status`); consultar y canjear solo con service role (`lookup_invite_code`, `redeem_invite_code`).
+- **invite_attempts**: `key` (hash de la IP), `created_at`. Solo service role (límite de intentos en `/unirse`).
 - **training_profiles**: `user_id` (pk), `goals` jsonb, `level` (`beginner|intermediate|advanced`), `availability` jsonb (días/semana, minutos por sesión, días preferidos), `equipment` text[], `limitations` text (lesiones o molestias, texto libre), `fixed_activities` jsonb (p. ej. surf o frontón con su frecuencia), `benchmarks` jsonb (1RM aproximados, ritmo 5K, 100 m nado…), `updated_at`
 
 ### Catálogo
@@ -517,7 +528,7 @@ Las frases se generan con plantillas deterministas; el **dato y la equivalencia 
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **plan de fases completado** (0 → 7B). La 7B (extras y pulido) está hecha: typecheck, lint, Vitest + PGlite (incluida la revisión de seguridad automática), build y E2E completa en verde. Falta validar en dos móviles reales (sobre todo iOS con la PWA instalada: push, Wake Lock, compartir imagen). Lo que queda son mejoras opcionales (ver «Posibles mejoras»).
+- Fase actual: **plan de fases completado** (0 → 7B) + **invitaciones por enlace** (mejora posterior, ver abajo). La 7B (extras y pulido) está hecha: typecheck, lint, Vitest + PGlite (incluida la revisión de seguridad automática), build y E2E completa en verde. Falta validar en dos móviles reales (sobre todo iOS con la PWA instalada: push, Wake Lock, compartir imagen). Lo que queda son mejoras opcionales (ver «Posibles mejoras»).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -650,6 +661,19 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Seguridad: migración `0029_security_hardening.sql` (sin EXECUTE en las funciones de trigger SECURITY DEFINER; `are_linked` solo responde si quien pregunta es una de las dos personas). Test `tests/db/security.test.ts` que falla si alguna tabla de public no tiene RLS, alguna SECURITY DEFINER no fija `search_path`, anon puede ejecutar alguna o leer tablas de usuario. Revisado: service role solo en `src/server` y `src/routes/api`; ninguna clave secreta en el bundle del cliente ni en el repo (solo `.env.example`).
   - README con manual de uso y mantenimiento (migraciones, variables, push, pausa de Supabase, proveedor de IA).
   - Tests: Vitest de recordatorios (zona horaria, ventana, semana por detrás, mensaje), envío push (caducadas, sin repetir, sin dispositivos), CSV/ZIP/exportación, tarjetas y `wrapText`, firma de la plantilla; PGlite de 0028 y seguridad; E2E `tests/e2e/phase7b.spec.ts` (exportar JSON/CSV, Notificaciones sin claves, modo oscuro) y en `partners.spec.ts` la sincronización automática.
+- Hecho (mejora: invitaciones por enlace y contraseña temporal):
+  - Migración `0030_invite_links.sql`: `app_settings` (una fila), `invite_codes`, `invite_attempts`, `profiles.must_change_password` (también en el trigger `protect_profile_admin_fields`). Códigos generados en SQL con `gen_random_uuid()` (60 bits). RPC de usuario: `my_invite_status`, `create_invite_code` (solo el admin elige días 1–30 y usos 1–50; el resto 7 días/1 uso y máximo de activas, con bloqueo para no pasarse en peticiones simultáneas), `revoke_invite_code`, `list_invite_codes(p_all)`, `set_invite_settings`. Solo service role: `lookup_invite_code`, `redeem_invite_code` (una transacción: bloquea el código, suma el uso y deja el vínculo aceptado en los dos sentidos; un vínculo ya aceptado conserva sus permisos; si ya estaban vinculados no gasta el código), `invite_attempts_count`, `record_invite_attempt`.
+  - Servidor (`src/server/invite.server.ts` + `invite.functions.ts`): `getInvite` (estado y nombre de quien invita), `registerWithInvite` (createUser → perfil → canje; si el perfil o el canje fallan, `deleteUser`), `redeemInvite` (cuenta existente, con sesión). IP con `getRequestIP({ xForwardedFor: true })`, guardada como hash SHA-256.
+  - `/unirse/$code` (SSR, Open Graph, `noindex`), `/instalar` (iPhone: Compartir → Añadir a pantalla de inicio; Android: botón con `beforeinstallprompt` capturado al arrancar o menú ⋮ → Instalar app; «Ya la tienes instalada» en modo standalone), `/cambiar-contrasena` (obligatoria con `must_change_password`; se cambia en servidor para que la marca solo se quite si la contraseña se guardó). El código pendiente (email existente) se guarda en `localStorage` y se canjea al entrar en la app (cualquier método de login).
+  - Perfil → «Pareja y amigos»: tarjeta «Invitar con enlace» (solo si puede invitar o tiene invitaciones). El formulario por email pasa a «Vincular por email». `/admin/invitaciones`: interruptor y máximo, lista de todos los enlaces con creador y «Anular», «Generar contraseña temporal» por usuario (se muestra una vez, copiar o WhatsApp) y aviso «Contraseña temporal».
+  - `public/og-invite.png` generado con `node scripts/og-image.ts` (Chromium de Playwright), fuera de la precarga del service worker.
+  - Tests: PGlite `tests/db/invites.test.ts` (formato y unicidad, permisos para invitar y máximo, RLS, válido, caducado, anulado, reutilizado, inexistente, quien invita desactivado, cuenta existente, propio, ya vinculados, permisos conservados, atomicidad, sin código no hay cuenta, límite de intentos, `must_change_password`); el stub de PGlite da a service_role los permisos por defecto de Supabase. Vitest de textos/formato y del registro con cliente simulado (deshacer el usuario). E2E `tests/e2e/invites.spec.ts` (registro completo → onboarding → instalar, Open Graph, caducado/anulado/usado, inexistente + bloqueo por intentos, email existente → login → vínculo, invitar/compartir/anular, ajustes del admin y contraseña temporal obligatoria).
+- Pendiente / deuda técnica (invitaciones por enlace):
+  - `createUser` no está en la transacción de Postgres: si el canje falla se borra el usuario; si además fallara ese borrado (caída del servidor justo ahí) quedaría una cuenta sin vínculo (se registra en el log).
+  - Con `max_uses` > 1 (solo el admin, y no desde la UI) `used_by` guarda solo el último.
+  - El nuevo usuario entra con contraseña; en iPhone, al abrir la PWA instalada tiene que volver a entrar (no comparte sesión con Safari).
+  - La hoja nativa de compartir se intenta abrir justo después de crear el código; si el navegador no lo permite (sin gesto reciente), quedan los botones de la hoja.
+  - Validar la vista previa real en WhatsApp con el dominio de producción (cachea las vistas previas).
 - Pendiente / posibles mejoras (Fase 7B y plan completo):
   - Validar push en móviles reales: iOS solo con la PWA instalada (16.4+); Android/Chrome sin restricciones. Los recordatorios llegan con hasta 15 min de retraso.
   - No hay importación del JSON exportado (restaurar sería a mano con SQL).

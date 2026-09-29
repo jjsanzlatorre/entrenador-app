@@ -53,6 +53,7 @@ export type AiInteractionKind =
 export type AiInteractionStatus = 'pending' | 'ok' | 'invalid' | 'error'
 export type AiChatRole = 'user' | 'assistant'
 export type AiChangeResponse = 'accepted' | 'discarded'
+export type InviteCodeState = 'active' | 'used' | 'expired' | 'revoked'
 
 export type Database = {
   public: {
@@ -71,6 +72,8 @@ export type Database = {
           home_lat: number | null
           home_lng: number | null
           show_equivalence_popups: boolean
+          // 0030_invite_links.sql: contraseña temporal del admin; obliga a cambiarla al entrar.
+          must_change_password: boolean
           created_at: string
         }
         Insert: {
@@ -85,6 +88,7 @@ export type Database = {
           home_lat?: number | null
           home_lng?: number | null
           show_equivalence_popups?: boolean
+          must_change_password?: boolean
           created_at?: string
         }
         // role y active solo se pueden cambiar con service role (ver GRANTs de la migración).
@@ -99,6 +103,7 @@ export type Database = {
           home_lat?: number | null
           home_lng?: number | null
           show_equivalence_popups?: boolean
+          must_change_password?: boolean
         }
         Relationships: []
       }
@@ -943,6 +948,66 @@ export type Database = {
         Update: { sent_at?: string }
         Relationships: []
       }
+      // 0030_invite_links.sql
+      app_settings: {
+        Row: {
+          id: boolean
+          members_can_invite: boolean
+          max_active_invites_per_user: number
+          updated_at: string
+        }
+        Insert: {
+          id?: boolean
+          members_can_invite?: boolean
+          max_active_invites_per_user?: number
+          updated_at?: string
+        }
+        Update: {
+          members_can_invite?: boolean
+          max_active_invites_per_user?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      invite_codes: {
+        Row: {
+          id: string
+          code: string
+          created_by: string
+          created_at: string
+          expires_at: string
+          max_uses: number
+          uses: number
+          revoked: boolean
+          used_by: string | null
+          used_at: string | null
+        }
+        Insert: {
+          id?: string
+          code: string
+          created_by: string
+          created_at?: string
+          expires_at?: string
+          max_uses?: number
+          uses?: number
+          revoked?: boolean
+          used_by?: string | null
+          used_at?: string | null
+        }
+        Update: {
+          revoked?: boolean
+          uses?: number
+          used_by?: string | null
+          used_at?: string | null
+        }
+        Relationships: []
+      }
+      invite_attempts: {
+        Row: { id: number; key: string; created_at: string }
+        Insert: { key: string; created_at?: string }
+        Update: { created_at?: string }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -1129,6 +1194,60 @@ export type Database = {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null }
         Returns: string
       }
+      // 0030_invite_links.sql
+      my_invite_status: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          can_invite: boolean
+          is_admin: boolean
+          max_active: number | null
+          active_count: number
+        }[]
+      }
+      create_invite_code: {
+        Args: { p_expires_days?: number; p_max_uses?: number }
+        Returns: Database['public']['Tables']['invite_codes']['Row']
+      }
+      revoke_invite_code: { Args: { p_id: string }; Returns: undefined }
+      list_invite_codes: {
+        Args: { p_all?: boolean }
+        Returns: {
+          id: string
+          code: string
+          created_by: string
+          created_by_name: string | null
+          created_at: string
+          expires_at: string
+          max_uses: number
+          uses: number
+          revoked: boolean
+          used_by: string | null
+          used_by_name: string | null
+          used_at: string | null
+          state: InviteCodeState
+        }[]
+      }
+      set_invite_settings: {
+        Args: { p_members_can_invite: boolean; p_max_active: number }
+        Returns: undefined
+      }
+      normalize_invite_code: { Args: { p_code: string }; Returns: string }
+      // Solo service role (servidor).
+      lookup_invite_code: {
+        Args: { p_code: string }
+        Returns: {
+          state: InviteCodeState | 'not_found' | 'inviter_inactive'
+          code: string | null
+          inviter_id: string | null
+          inviter_name: string | null
+        }[]
+      }
+      redeem_invite_code: {
+        Args: { p_code: string; p_user: string }
+        Returns: 'linked' | 'already_linked'
+      }
+      invite_attempts_count: { Args: { p_key: string; p_window_s: number }; Returns: number }
+      record_invite_attempt: { Args: { p_key: string }; Returns: undefined }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -1168,3 +1287,5 @@ export type PairInviteRow = Tables<'pair_invites'>
 export type ReactionRow = Tables<'reactions'>
 export type PushSubscriptionRow = Tables<'push_subscriptions'>
 export type NotificationSettingsRow = Tables<'notification_settings'>
+export type AppSettingsRow = Tables<'app_settings'>
+export type InviteCodeRow = Tables<'invite_codes'>

@@ -1,8 +1,10 @@
+import { randomBytes } from 'node:crypto'
 import { createServerFn } from '@tanstack/react-start'
 import { getRequest } from '@tanstack/react-start/server'
 import { z } from 'zod'
 import { adminMiddleware } from './middleware'
 import { getSupabaseAdminClient } from './supabase.server'
+import { temporaryPassword } from '@/lib/invites/invite'
 import type { UserRole } from '@/types/database'
 
 // Baneo largo (~100 años): invalida el refresh token de un usuario desactivado.
@@ -14,6 +16,7 @@ export type AdminUser = {
   displayName: string | null
   role: UserRole
   active: boolean
+  mustChangePassword: boolean
   invitedAt: string | null
   lastSignInAt: string | null
 }
@@ -40,6 +43,7 @@ export const listUsers = createServerFn({ method: 'GET' })
           displayName: p?.display_name ?? null,
           role: p?.role ?? 'member',
           active: p?.active ?? false,
+          mustChangePassword: p?.must_change_password ?? false,
           invitedAt: u.invited_at ?? null,
           lastSignInAt: u.last_sign_in_at ?? null,
         }
@@ -84,4 +88,29 @@ export const setUserActive = createServerFn({ method: 'POST' })
     })
     if (banError) throw new Error(banError.message)
     return { ok: true as const }
+  })
+
+// Contraseña temporal (recuperar el acceso sin email). Se devuelve una sola vez para que el admin
+// la copie; al entrar con ella, la app obliga a cambiarla (profiles.must_change_password).
+export const setTemporaryPassword = createServerFn({ method: 'POST' })
+  .middleware([adminMiddleware])
+  .validator(z.object({ userId: z.uuid() }))
+  .handler(async ({ data, context }) => {
+    if (data.userId === context.auth.userId) {
+      throw new Error('Cambia tu propia contraseña desde Perfil')
+    }
+    const admin = getSupabaseAdminClient()
+    const password = temporaryPassword((n) => randomBytes(n))
+    // Primero la marca: si luego falla la contraseña, se quita.
+    const { error: flagError } = await admin
+      .from('profiles')
+      .update({ must_change_password: true })
+      .eq('id', data.userId)
+    if (flagError) throw new Error(flagError.message)
+    const { error } = await admin.auth.admin.updateUserById(data.userId, { password })
+    if (error) {
+      await admin.from('profiles').update({ must_change_password: false }).eq('id', data.userId)
+      throw new Error(error.message)
+    }
+    return { password }
   })

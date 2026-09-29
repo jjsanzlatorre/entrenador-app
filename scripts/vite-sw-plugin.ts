@@ -13,7 +13,8 @@ function listFiles(dir: string): string[] {
 // Imágenes de técnica (public/exercises/): no se precargan; el service worker las guarda
 // en caché la primera vez que se ven.
 export function isLazyPublicFile(path: string) {
-  return path.startsWith('/exercises/')
+  // og-invite.png: solo la piden WhatsApp y compañía al generar la vista previa de /unirse.
+  return path.startsWith('/exercises/') || path === '/og-invite.png'
 }
 
 // Sustituye los marcadores del código (no los de los comentarios) de la plantilla.

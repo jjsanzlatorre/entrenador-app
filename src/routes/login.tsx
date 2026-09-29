@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from 'react'
+import { useEffect, useState, type FormEvent } from 'react'
 import { createFileRoute, redirect, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { Dumbbell } from 'lucide-react'
@@ -8,8 +8,14 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState } from '@/lib/auth'
+import { savePendingInvite } from '@/lib/invites/invite'
 
 export const Route = createFileRoute('/login')({
+  // ?invitacion=CÓDIGO: viene de /unirse con un email que ya tenía cuenta; al entrar se aplica.
+  validateSearch: (search: Record<string, unknown>): { invitacion?: string } =>
+    typeof search.invitacion === 'string' && search.invitacion.length <= 40
+      ? { invitacion: search.invitacion }
+      : {},
   beforeLoad: ({ context }) => {
     if (context.auth.status === 'active') throw redirect({ to: '/' })
   },
@@ -19,6 +25,7 @@ export const Route = createFileRoute('/login')({
 type Mode = 'magic' | 'code' | 'password'
 
 function LoginPage() {
+  const { invitacion } = Route.useSearch()
   const router = useRouter()
   const queryClient = useQueryClient()
   const [mode, setMode] = useState<Mode>('magic')
@@ -28,6 +35,11 @@ function LoginPage() {
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [info, setInfo] = useState<string | null>(null)
+
+  // También para el enlace mágico, que vuelve por /auth/callback.
+  useEffect(() => {
+    if (invitacion) savePendingInvite(invitacion)
+  }, [invitacion])
 
   async function afterLogin() {
     await resetAuthState(queryClient)
@@ -101,7 +113,11 @@ function LoginPage() {
           <Dumbbell className="size-8" />
         </div>
         <h1 className="text-2xl font-bold">Entrenador</h1>
-        <p className="text-muted-foreground text-sm">Acceso solo por invitación</p>
+        <p className="text-muted-foreground text-sm">
+          {invitacion
+            ? 'Entra con tu cuenta: al entrar se aplicará la invitación.'
+            : 'Acceso solo por invitación'}
+        </p>
       </div>
 
       <Card>

@@ -97,6 +97,8 @@ export type LocalSession = {
   notes: string | null
   // Distancia total (carrera, natación, bici); se calcula de las series al terminar.
   distanceM?: number | null
+  // Sesión planificada de la que sale (fase 5). Al guardarla terminada, el servidor la marca hecha.
+  plannedSessionId?: string | null
   blocks: LocalBlock[]
   rest: RestTimer | null
   // Versión creciente para que el servidor descarte copias antiguas.

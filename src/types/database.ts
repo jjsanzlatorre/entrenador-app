@@ -40,6 +40,11 @@ export type PhotoPose = 'front' | 'side' | 'back'
 export type PartnerLinkStatus = 'pending' | 'accepted' | 'revoked'
 export type EquivalenceKind = 'weight' | 'distance_route' | 'time'
 export type DestinationType = 'city' | 'island' | 'landmark'
+export type PlanFamily = 'running' | 'swimming' | 'strength' | 'hyrox' | 'deka' | 'hybrid'
+export type UserPlanStatus = 'active' | 'completed' | 'archived'
+export type PlanSource = 'template' | 'ai'
+export type PlannedStatus = 'planned' | 'done' | 'skipped' | 'moved'
+export type SessionIntensity = 'easy' | 'moderate' | 'hard'
 
 export type Database = {
   public: {
@@ -617,6 +622,105 @@ export type Database = {
         }
         Relationships: []
       }
+      // 0017_plans.sql (plantillas globales de solo lectura)
+      plan_templates: {
+        Row: {
+          id: string
+          family: PlanFamily
+          name: string
+          level: TrainingLevel
+          weeks: number
+          days_per_week: number
+          description: string
+          structure: Json
+        }
+        Insert: {
+          id: string
+          family: PlanFamily
+          name: string
+          level: TrainingLevel
+          weeks?: number
+          days_per_week: number
+          description?: string
+          structure: Json
+        }
+        Update: { [_ in never]: never }
+        Relationships: []
+      }
+      // 0017_plans.sql (se crean con create_user_plan; editables: status, name, notes)
+      user_plans: {
+        Row: {
+          id: string
+          user_id: string
+          template_id: string | null
+          name: string
+          start_date: string
+          status: UserPlanStatus
+          source: PlanSource
+          notes: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          template_id?: string | null
+          name: string
+          start_date: string
+          status?: UserPlanStatus
+          source?: PlanSource
+          notes?: string | null
+          created_at?: string
+        }
+        Update: {
+          status?: UserPlanStatus
+          name?: string
+          notes?: string | null
+        }
+        Relationships: []
+      }
+      // 0017_plans.sql (editables: date, original_date, status; enlace por set_planned_session_done)
+      planned_sessions: {
+        Row: {
+          id: string
+          user_plan_id: string
+          user_id: string
+          date: string
+          original_date: string | null
+          week: number
+          session_type: SessionType
+          title: string
+          intensity: SessionIntensity
+          duration_min: number | null
+          notes: string | null
+          blocks: Json
+          status: PlannedStatus
+          workout_session_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_plan_id: string
+          user_id?: string
+          date: string
+          original_date?: string | null
+          week?: number
+          session_type: SessionType
+          title: string
+          intensity?: SessionIntensity
+          duration_min?: number | null
+          notes?: string | null
+          blocks?: Json
+          status?: PlannedStatus
+          workout_session_id?: string | null
+          created_at?: string
+        }
+        Update: {
+          date?: string
+          original_date?: string | null
+          status?: PlannedStatus
+        }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -687,6 +791,20 @@ export type Database = {
         Args: { p_from: string; p_to: string }
         Returns: { session_id: string; exercise_id: string; sets: number }[]
       }
+      // 0017_plans.sql
+      create_user_plan: {
+        Args: {
+          p_template_id: string | null
+          p_name: string
+          p_start_date: string
+          p_sessions: Json
+        }
+        Returns: string
+      }
+      set_planned_session_done: {
+        Args: { p_planned: string; p_done: boolean; p_workout?: string | null }
+        Returns: undefined
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -716,3 +834,6 @@ export type PartnerLinkRow = Tables<'partner_links'>
 export type EquivalenceObjectRow = Tables<'equivalence_objects'>
 export type DestinationRow = Tables<'destinations'>
 export type MilestoneShownRow = Tables<'milestones_shown'>
+export type PlanTemplateRow = Tables<'plan_templates'>
+export type UserPlanRow = Tables<'user_plans'>
+export type PlannedSessionRow = Tables<'planned_sessions'>

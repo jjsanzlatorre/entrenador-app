@@ -1,5 +1,5 @@
 {
-  "_comment": "Biblioteca semilla (CLAUDE.md §6). Los ejercicios de cardio y deportes no llevan músculos: el mapa usa la aproximación por tipo de sesión (§6, Fase 4). Regenerar SQL con: npm run seed:sql",
+  "_comment": "Biblioteca semilla (CLAUDE.md §6). Los ejercicios de cardio y deportes no llevan músculos: el mapa usa la aproximación por tipo de sesión (§6, Fase 4). Regenerar SQL con: npm run seed:sql Los ejercicios con \"migration\" van en su propia migración (añadidos después de aplicar 0006/0007).",
   "exercises": [
     {
       "id": "back_squat",
@@ -770,6 +770,51 @@
       "technique_notes": null,
       "primary": [],
       "secondary": []
+    },
+    {
+      "id": "ram_reverse_lunge",
+      "name": "Zancada inversa con RAM",
+      "aliases": ["ram lunge", "reverse lunge", "zancada atrás", "deka lunge"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["ram", "sandbag"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "RAM (o saco) sobre los hombros, paso atrás largo, rodilla trasera casi al suelo y tronco erguido; alternar piernas.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors", "core", "hamstrings"],
+      "migration": "0018"
+    },
+    {
+      "id": "tank_push_pull",
+      "name": "Tank push/pull",
+      "aliases": ["tank", "deka tank", "empuje y arrastre"],
+      "category": "functional",
+      "tracking_type": "distance_time",
+      "equipment": ["tank", "sled"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Empujar con el cuerpo inclinado y brazos firmes; al arrastrar, caminar hacia atrás con la cadera baja y tirar con la espalda, no solo con los brazos.",
+      "primary": ["quads", "glutes", "upper_back"],
+      "secondary": ["calves", "core", "lats", "hamstrings"],
+      "migration": "0018"
+    },
+    {
+      "id": "ram_burpee",
+      "name": "Burpee con RAM",
+      "aliases": ["ram burpee", "deka burpee", "burpee con saco"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["ram", "sandbag"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Pecho al suelo con las manos sobre el RAM, saltar los pies adelante y levantar el RAM por encima de la cabeza al subir.",
+      "primary": ["chest", "quads"],
+      "secondary": ["core", "triceps", "delt_front", "glutes"],
+      "migration": "0018"
     }
   ]
 }

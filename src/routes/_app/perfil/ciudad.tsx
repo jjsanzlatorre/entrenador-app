@@ -1,10 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import { createFileRoute, useNavigate, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, MapPin, Search } from 'lucide-react'
+import { MapPin } from 'lucide-react'
 import { z } from 'zod'
 import { BackLink } from '@/components/progress/common'
 import { homeOf } from '@/components/progress/achievements'
+import { CitySearch } from '@/components/progress/city-search'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -13,8 +14,6 @@ import { resetAuthState } from '@/lib/auth'
 import { notifyError, notifySaved } from '@/lib/notify'
 import { updateProfileSettings } from '@/lib/progress/api'
 import type { Home } from '@/lib/progress/equivalences'
-import { useEquivalenceCatalog } from '@/lib/progress/hooks'
-import { normalizeText as normalize } from '@/lib/workout/search'
 
 export const Route = createFileRoute('/_app/perfil/ciudad')({
   ssr: false,
@@ -34,22 +33,12 @@ function HomeCityPage() {
   const router = useRouter()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const catalog = useEquivalenceCatalog()
   const current = homeOf(auth.profile)
-  const [query, setQuery] = useState('')
   const [name, setName] = useState('')
   const [lat, setLat] = useState('')
   const [lng, setLng] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
-
-  const results = useMemo(() => {
-    const q = normalize(query)
-    return (catalog.data?.destinations ?? [])
-      .filter((d) => !q || normalize(d.name).includes(q))
-      .sort((a, b) => a.name.localeCompare(b.name, 'es'))
-      .slice(0, q ? 20 : 60)
-  }, [catalog.data, query])
 
   async function save(home: Home | null) {
     setSaving(true)
@@ -102,46 +91,12 @@ function HomeCityPage() {
         <CardHeader>
           <CardTitle>Buscar</CardTitle>
         </CardHeader>
-        <CardContent className="flex flex-col gap-3">
-          <div className="relative">
-            <Search className="text-muted-foreground absolute top-1/2 left-3 size-4 -translate-y-1/2" />
-            <Input
-              className="pl-9"
-              placeholder="Madrid, Palma, Lisboa…"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              aria-label="Buscar ciudad"
-            />
-          </div>
-          {catalog.isPending && <p className="text-muted-foreground text-sm">Cargando…</p>}
-          {catalog.isError && (
-            <p className="text-muted-foreground text-sm">
-              No se ha podido cargar la lista. Puedes introducir las coordenadas a mano.
-            </p>
-          )}
-          <ul className="flex max-h-80 flex-col overflow-y-auto">
-            {results.map((d) => {
-              const selected = current?.city === d.name
-              return (
-                <li key={d.id}>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={() => void save({ city: d.name, lat: d.lat, lng: d.lng })}
-                    className="hover:bg-accent flex w-full items-center justify-between rounded-lg px-2 py-3 text-left"
-                  >
-                    <span>{d.name}</span>
-                    {selected && <Check className="text-primary size-4" />}
-                  </button>
-                </li>
-              )
-            })}
-            {catalog.data && results.length === 0 && (
-              <li className="text-muted-foreground px-2 py-3 text-sm">
-                No está en la lista: introdúcela a mano abajo.
-              </li>
-            )}
-          </ul>
+        <CardContent>
+          <CitySearch
+            selected={current?.city ?? null}
+            disabled={saving}
+            onPick={(home) => void save(home)}
+          />
         </CardContent>
       </Card>
 

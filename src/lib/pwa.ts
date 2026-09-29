@@ -1,5 +1,16 @@
 // Registro del service worker y utilidades de la caché de páginas (ver src/sw/sw.js).
-export const PAGES_TO_CACHE = ['/', '/entrenar', '/entrenar/sesion', '/entrenar/ejercicios']
+// Se guardan al abrir la app con conexión para poder abrirlas después sin red, en frío.
+export const PAGES_TO_CACHE = [
+  '/',
+  '/entrenar',
+  '/entrenar/sesion',
+  '/entrenar/ejercicios',
+  '/progreso/musculos',
+  '/progreso/carga',
+  '/plan',
+  '/plan/elegir',
+  '/onboarding',
+]
 
 // Solo en producción (en dev interferiría con Vite HMR).
 export function registerServiceWorker() {

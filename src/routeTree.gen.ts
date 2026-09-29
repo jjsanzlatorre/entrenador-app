@@ -13,7 +13,7 @@ import { Route as AppRouteImport } from './routes/_app'
 import { Route as BloqueadoRouteImport } from './routes/bloqueado'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AppPlanRouteImport } from './routes/_app/plan'
+import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as AppAdminInvitacionesRouteImport } from './routes/_app/admin/invitaciones'
@@ -25,6 +25,8 @@ import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
 import { Route as AppPerfilCiudadRouteImport } from './routes/_app/perfil/ciudad'
 import { Route as AppPerfilCompromisoRouteImport } from './routes/_app/perfil/compromiso'
 import { Route as AppPerfilVinculosRouteImport } from './routes/_app/perfil/vinculos'
+import { Route as AppPlanIndexRouteImport } from './routes/_app/plan/index'
+import { Route as AppPlanElegirRouteImport } from './routes/_app/plan/elegir'
 import { Route as AppProgresoIndexRouteImport } from './routes/_app/progreso/index'
 import { Route as AppProgresoCargaRouteImport } from './routes/_app/progreso/carga'
 import { Route as AppProgresoCumplimientoRouteImport } from './routes/_app/progreso/cumplimiento'
@@ -56,9 +58,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AppPlanRoute = AppPlanRouteImport.update({
-  id: '/plan',
-  path: '/plan',
+const AppOnboardingRoute = AppOnboardingRouteImport.update({
+  id: '/onboarding',
+  path: '/onboarding',
   getParentRoute: () => AppRoute,
 } as any)
 const ApiHealthRoute = ApiHealthRouteImport.update({
@@ -114,6 +116,16 @@ const AppPerfilCompromisoRoute = AppPerfilCompromisoRouteImport.update({
 const AppPerfilVinculosRoute = AppPerfilVinculosRouteImport.update({
   id: '/perfil/vinculos',
   path: '/perfil/vinculos',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanIndexRoute = AppPlanIndexRouteImport.update({
+  id: '/plan/',
+  path: '/plan/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPlanElegirRoute = AppPlanElegirRouteImport.update({
+  id: '/plan/elegir',
+  path: '/plan/elegir',
   getParentRoute: () => AppRoute,
 } as any)
 const AppProgresoIndexRoute = AppProgresoIndexRouteImport.update({
@@ -178,7 +190,7 @@ export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
   '/bloqueado': typeof BloqueadoRoute
   '/login': typeof LoginRoute
-  '/plan': typeof AppPlanRoute
+  '/onboarding': typeof AppOnboardingRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
@@ -188,6 +200,7 @@ export interface FileRoutesByFullPath {
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/vinculos': typeof AppPerfilVinculosRoute
+  '/plan/elegir': typeof AppPlanElegirRoute
   '/progreso/carga': typeof AppProgresoCargaRoute
   '/progreso/cumplimiento': typeof AppProgresoCumplimientoRoute
   '/progreso/fotos': typeof AppProgresoFotosRoute
@@ -198,6 +211,7 @@ export interface FileRoutesByFullPath {
   '/progreso/resumen': typeof AppProgresoResumenRoute
   '/entrenar/': typeof AppEntrenarIndexRoute
   '/perfil/': typeof AppPerfilIndexRoute
+  '/plan/': typeof AppPlanIndexRoute
   '/progreso/': typeof AppProgresoIndexRoute
   '/entrenar/historial/$sessionId': typeof AppEntrenarHistorialSessionIdRoute
   '/progreso/ejercicio/$exerciseId': typeof AppProgresoEjercicioExerciseIdRoute
@@ -205,7 +219,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/bloqueado': typeof BloqueadoRoute
   '/login': typeof LoginRoute
-  '/plan': typeof AppPlanRoute
+  '/onboarding': typeof AppOnboardingRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/': typeof AppIndexRoute
@@ -216,6 +230,7 @@ export interface FileRoutesByTo {
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/vinculos': typeof AppPerfilVinculosRoute
+  '/plan/elegir': typeof AppPlanElegirRoute
   '/progreso/carga': typeof AppProgresoCargaRoute
   '/progreso/cumplimiento': typeof AppProgresoCumplimientoRoute
   '/progreso/fotos': typeof AppProgresoFotosRoute
@@ -226,6 +241,7 @@ export interface FileRoutesByTo {
   '/progreso/resumen': typeof AppProgresoResumenRoute
   '/entrenar': typeof AppEntrenarIndexRoute
   '/perfil': typeof AppPerfilIndexRoute
+  '/plan': typeof AppPlanIndexRoute
   '/progreso': typeof AppProgresoIndexRoute
   '/entrenar/historial/$sessionId': typeof AppEntrenarHistorialSessionIdRoute
   '/progreso/ejercicio/$exerciseId': typeof AppProgresoEjercicioExerciseIdRoute
@@ -235,7 +251,7 @@ export interface FileRoutesById {
   '/_app': typeof AppRouteWithChildren
   '/bloqueado': typeof BloqueadoRoute
   '/login': typeof LoginRoute
-  '/_app/plan': typeof AppPlanRoute
+  '/_app/onboarding': typeof AppOnboardingRoute
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/_app/': typeof AppIndexRoute
@@ -246,6 +262,7 @@ export interface FileRoutesById {
   '/_app/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/_app/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/_app/perfil/vinculos': typeof AppPerfilVinculosRoute
+  '/_app/plan/elegir': typeof AppPlanElegirRoute
   '/_app/progreso/carga': typeof AppProgresoCargaRoute
   '/_app/progreso/cumplimiento': typeof AppProgresoCumplimientoRoute
   '/_app/progreso/fotos': typeof AppProgresoFotosRoute
@@ -256,6 +273,7 @@ export interface FileRoutesById {
   '/_app/progreso/resumen': typeof AppProgresoResumenRoute
   '/_app/entrenar/': typeof AppEntrenarIndexRoute
   '/_app/perfil/': typeof AppPerfilIndexRoute
+  '/_app/plan/': typeof AppPlanIndexRoute
   '/_app/progreso/': typeof AppProgresoIndexRoute
   '/_app/entrenar/historial/$sessionId': typeof AppEntrenarHistorialSessionIdRoute
   '/_app/progreso/ejercicio/$exerciseId': typeof AppProgresoEjercicioExerciseIdRoute
@@ -266,7 +284,7 @@ export interface FileRouteTypes {
     | '/'
     | '/bloqueado'
     | '/login'
-    | '/plan'
+    | '/onboarding'
     | '/api/health'
     | '/auth/callback'
     | '/admin/invitaciones'
@@ -276,6 +294,7 @@ export interface FileRouteTypes {
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/vinculos'
+    | '/plan/elegir'
     | '/progreso/carga'
     | '/progreso/cumplimiento'
     | '/progreso/fotos'
@@ -286,6 +305,7 @@ export interface FileRouteTypes {
     | '/progreso/resumen'
     | '/entrenar/'
     | '/perfil/'
+    | '/plan/'
     | '/progreso/'
     | '/entrenar/historial/$sessionId'
     | '/progreso/ejercicio/$exerciseId'
@@ -293,7 +313,7 @@ export interface FileRouteTypes {
   to:
     | '/bloqueado'
     | '/login'
-    | '/plan'
+    | '/onboarding'
     | '/api/health'
     | '/auth/callback'
     | '/'
@@ -304,6 +324,7 @@ export interface FileRouteTypes {
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/vinculos'
+    | '/plan/elegir'
     | '/progreso/carga'
     | '/progreso/cumplimiento'
     | '/progreso/fotos'
@@ -314,6 +335,7 @@ export interface FileRouteTypes {
     | '/progreso/resumen'
     | '/entrenar'
     | '/perfil'
+    | '/plan'
     | '/progreso'
     | '/entrenar/historial/$sessionId'
     | '/progreso/ejercicio/$exerciseId'
@@ -322,7 +344,7 @@ export interface FileRouteTypes {
     | '/_app'
     | '/bloqueado'
     | '/login'
-    | '/_app/plan'
+    | '/_app/onboarding'
     | '/api/health'
     | '/auth/callback'
     | '/_app/'
@@ -333,6 +355,7 @@ export interface FileRouteTypes {
     | '/_app/perfil/ciudad'
     | '/_app/perfil/compromiso'
     | '/_app/perfil/vinculos'
+    | '/_app/plan/elegir'
     | '/_app/progreso/carga'
     | '/_app/progreso/cumplimiento'
     | '/_app/progreso/fotos'
@@ -343,6 +366,7 @@ export interface FileRouteTypes {
     | '/_app/progreso/resumen'
     | '/_app/entrenar/'
     | '/_app/perfil/'
+    | '/_app/plan/'
     | '/_app/progreso/'
     | '/_app/entrenar/historial/$sessionId'
     | '/_app/progreso/ejercicio/$exerciseId'
@@ -386,11 +410,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/plan': {
-      id: '/_app/plan'
-      path: '/plan'
-      fullPath: '/plan'
-      preLoaderRoute: typeof AppPlanRouteImport
+    '/_app/onboarding': {
+      id: '/_app/onboarding'
+      path: '/onboarding'
+      fullPath: '/onboarding'
+      preLoaderRoute: typeof AppOnboardingRouteImport
       parentRoute: typeof AppRoute
     }
     '/api/health': {
@@ -468,6 +492,20 @@ declare module '@tanstack/react-router' {
       path: '/perfil/vinculos'
       fullPath: '/perfil/vinculos'
       preLoaderRoute: typeof AppPerfilVinculosRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/': {
+      id: '/_app/plan/'
+      path: '/plan'
+      fullPath: '/plan/'
+      preLoaderRoute: typeof AppPlanIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/plan/elegir': {
+      id: '/_app/plan/elegir'
+      path: '/plan/elegir'
+      fullPath: '/plan/elegir'
+      preLoaderRoute: typeof AppPlanElegirRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/progreso/': {
@@ -551,7 +589,7 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteChildren {
-  AppPlanRoute: typeof AppPlanRoute
+  AppOnboardingRoute: typeof AppOnboardingRoute
   AppIndexRoute: typeof AppIndexRoute
   AppAdminInvitacionesRoute: typeof AppAdminInvitacionesRoute
   AppEntrenarActividadRoute: typeof AppEntrenarActividadRoute
@@ -560,6 +598,7 @@ interface AppRouteChildren {
   AppPerfilCiudadRoute: typeof AppPerfilCiudadRoute
   AppPerfilCompromisoRoute: typeof AppPerfilCompromisoRoute
   AppPerfilVinculosRoute: typeof AppPerfilVinculosRoute
+  AppPlanElegirRoute: typeof AppPlanElegirRoute
   AppProgresoCargaRoute: typeof AppProgresoCargaRoute
   AppProgresoCumplimientoRoute: typeof AppProgresoCumplimientoRoute
   AppProgresoFotosRoute: typeof AppProgresoFotosRoute
@@ -570,13 +609,14 @@ interface AppRouteChildren {
   AppProgresoResumenRoute: typeof AppProgresoResumenRoute
   AppEntrenarIndexRoute: typeof AppEntrenarIndexRoute
   AppPerfilIndexRoute: typeof AppPerfilIndexRoute
+  AppPlanIndexRoute: typeof AppPlanIndexRoute
   AppProgresoIndexRoute: typeof AppProgresoIndexRoute
   AppEntrenarHistorialSessionIdRoute: typeof AppEntrenarHistorialSessionIdRoute
   AppProgresoEjercicioExerciseIdRoute: typeof AppProgresoEjercicioExerciseIdRoute
 }
 
 const AppRouteChildren: AppRouteChildren = {
-  AppPlanRoute: AppPlanRoute,
+  AppOnboardingRoute: AppOnboardingRoute,
   AppIndexRoute: AppIndexRoute,
   AppAdminInvitacionesRoute: AppAdminInvitacionesRoute,
   AppEntrenarActividadRoute: AppEntrenarActividadRoute,
@@ -585,6 +625,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppPerfilCiudadRoute: AppPerfilCiudadRoute,
   AppPerfilCompromisoRoute: AppPerfilCompromisoRoute,
   AppPerfilVinculosRoute: AppPerfilVinculosRoute,
+  AppPlanElegirRoute: AppPlanElegirRoute,
   AppProgresoCargaRoute: AppProgresoCargaRoute,
   AppProgresoCumplimientoRoute: AppProgresoCumplimientoRoute,
   AppProgresoFotosRoute: AppProgresoFotosRoute,
@@ -595,6 +636,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppProgresoResumenRoute: AppProgresoResumenRoute,
   AppEntrenarIndexRoute: AppEntrenarIndexRoute,
   AppPerfilIndexRoute: AppPerfilIndexRoute,
+  AppPlanIndexRoute: AppPlanIndexRoute,
   AppProgresoIndexRoute: AppProgresoIndexRoute,
   AppEntrenarHistorialSessionIdRoute: AppEntrenarHistorialSessionIdRoute,
   AppProgresoEjercicioExerciseIdRoute: AppProgresoEjercicioExerciseIdRoute,

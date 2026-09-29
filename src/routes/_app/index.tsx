@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, Play } from 'lucide-react'
 import { ComingSoon, Page } from '@/components/page'
 import { UsCard, WeekAdherenceCard } from '@/components/progress/adherence'
@@ -8,6 +8,7 @@ import { AcwrAlert } from '@/components/progress/load'
 import { StartSessionButtons } from '@/components/workout/start-session'
 import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
+import { useTrainingProfile } from '@/lib/plan/hooks'
 
 export const Route = createFileRoute('/_app/')({
   component: TodayPage,
@@ -17,10 +18,19 @@ function TodayPage() {
   const { auth } = Route.useRouteContext()
   const { session } = useActiveSession()
   const name = auth.profile.display_name
+  const navigate = useNavigate()
+  const training = useTrainingProfile(auth.userId)
 
   useEffect(() => {
     void loadActiveSession(auth.userId)
   }, [auth.userId])
+
+  // Primera vez (sin perfil de entrenamiento): onboarding. Sin conexión y sin copia no se sabe,
+  // así que no se redirige.
+  const needsOnboarding = training.isSuccess && training.data === null
+  useEffect(() => {
+    if (needsOnboarding) void navigate({ to: '/onboarding', replace: true })
+  }, [needsOnboarding, navigate])
 
   return (
     <Page title={name ? `Hola, ${name}` : 'Hoy'}>

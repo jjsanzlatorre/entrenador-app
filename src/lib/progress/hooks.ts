@@ -78,6 +78,7 @@ export function useSessionLog(userId: string) {
           durationMin: s.durationMin,
           rpe: s.rpe,
           distanceM: s.distanceM ?? totalDistanceM(s),
+          plannedSessionId: s.plannedSessionId ?? null,
           tonnageKg: stats.tonnageKg,
           totalReps: stats.totalReps,
         }

@@ -488,7 +488,7 @@ Las frases pueden generarse con plantillas (v1). En la Fase 6, la IA puede reesc
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **4 hecha** (typecheck, lint, Vitest, build y E2E de Playwright en verde; mapa revisado a 375 px en claro y oscuro). Falta validar en móvil real. Siguiente: **Fase 5** (onboarding y planes plantilla).
+- Fase actual: **5A hecha** (onboarding, plantillas, elegir plan y calendario; typecheck, lint, Vitest, build y E2E en verde; pantallas revisadas a 375 px). Falta validar en móvil real. Siguiente: **Fase 5B** («Hoy» con la sesión del plan, sugerencia de peso, check-in diario y adherencia al plan).
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -550,10 +550,26 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Mini mapa en el resumen de sesión y en el detalle del historial (misma pantalla), con la aproximación de cardio y deportes.
   - Toasts de éxito/error también en medidas, fotos, ejercicios propios, registrar actividad, borrar/editar sesión e invitaciones de admin.
   - Tests: Vitest de volumen por músculo, aproximación de cardio, semanas, escala, descuidados, geometría del mapa (16 paths) y ACWR; PGlite de `session_exercise_sets` (calentamiento, sin completar, sin terminar, rango, RLS entre usuarios, anon); E2E `tests/e2e/muscle-map.spec.ts` (pierna + carrera de 30 min colorean el mapa, detalle, mini mapa y «datos insuficientes»; `E2E_SCREENSHOTS=<dir>` guarda capturas a 375 px).
+- Hecho (Fase 5A):
+  - Migraciones `0017_plans.sql` (`plan_templates` global de solo lectura; `user_plans` con un solo plan activo por usuario; `planned_sessions`; FK `workout_sessions.planned_session_id`; trigger `link_planned_session`; RPC `create_user_plan` y `set_planned_session_done`), `0018_seed_exercises_phase5.sql` (zonas de DEKA: `ram_reverse_lunge`, `tank_push_pull`, `ram_burpee`, con músculos) y `0019`–`0021` (plantillas: carrera y natación; fuerza e híbrido; HYROX y DEKA).
+  - Plantillas (§9): 6 familias × principiante/intermedio, 4 semanas con la 4.ª de descarga (≈ −40 % de volumen, sin sesiones intensas ni pierna pesada). Se escriben en TypeScript (`scripts/plan-templates.ts`) y `npm run seed:sql` genera `supabase/seed/plan_templates.json` y las migraciones (tests que fallan si no están sincronizados). Solo usan `exercise_id` de la biblioteca (test).
+  - HYROX y DEKA: formato comúnmente conocido; **todas** las distancias, reps y pesos de competición están en `src/lib/plan/competition.ts`, marcados «PENDIENTE DE VERIFICAR».
+  - Onboarding `/onboarding` (6 pasos, barra de progreso, «Saltar paso» y «Saltar todo», sin navegación inferior): objetivos + principal, nivel y marcas (1RM, 5K, 100 m) + año de nacimiento y altura, días/semana, minutos y días preferidos, lugar, material y molestias, actividades fijas (frontón, surf, yoga, otra: días y minutos), compromiso y ciudad. Reutiliza `commitments` (precargado; solo crea uno si no hay o si se marca «cambiar») y la ciudad de referencia (`CitySearch`, compartido con `/perfil/ciudad`). Sale desde «Hoy» si no hay fila en `training_profiles`; se reabre desde Perfil → «Perfil de entrenamiento». Al terminar lleva a elegir plan.
+  - `/plan/elegir`: plantilla recomendada por reglas (familia por objetivo principal, nivel por experiencia, variante con menos días si no le caben), filtros por familia y nivel, detalle con la semana 1 ya repartida en sus días, avisos y elección del lunes de inicio. Crear sustituye el plan activo (con confirmación).
+  - Programador (`src/lib/plan/schedule.ts`): prueba todas las combinaciones de días de cada semana y elige la de menor coste (días preferidos, días de actividad fija, pierna pesada el día antes o el mismo día de frontón/surf, dos intensas seguidas incluso domingo→lunes, días seguidos y orden de la plantilla). Determinista; si algo no se puede evitar, avisa.
+  - Pestaña Plan (`/plan`): semana a semana (`?semana=`), planificado frente a hecho (incluidas sesiones hechas fuera del plan y las pendientes de subir), actividades fijas en su día, «N de M hechas», semana del plan. Por sesión: detalle de la prescripción, «Empezar ahora» (crea la sesión en curso prellenada con series, reps del suelo del rango, pesos de la última vez, intervalos, EMOM/AMRAP y circuitos, enlazada con `plannedSessionId`), «Hecha» (enlazando una sesión registrada ese día o sin registrar), «Mover» (a otro día; guarda el original) y «Saltar», con deshacer. Terminar o cambiar el plan.
+  - Enlace: `save_workout_session` ya guardaba `planned_session_id`; el trigger marca la planificada como hecha al guardar la sesión terminada, la libera si se cambia el enlace y la devuelve a pendiente si se borra la sesión.
+  - Service worker: se cachean también `/progreso/musculos`, `/progreso/carga`, `/plan`, `/plan/elegir` y `/onboarding` (abren sin conexión en frío); el plan activo, las plantillas y el perfil de entrenamiento se copian en IndexedDB.
+  - Tests: Vitest de plantillas (12, formato, descarga, días, ejercicios existentes, sin ejercicios repetidos por bloque, +10 % de la tirada larga), programador, recomendación, conversión a sesión, calendario, perfil y textos; PGlite de plantillas (solo lectura), `create_user_plan`, RLS, permisos por columna, trigger de enlace y `set_planned_session_done`; E2E `tests/e2e/onboarding-plan.spec.ts` (usuario nuevo → onboarding → Híbrido → 16 sesiones en L/X/V/S sin pierna el día antes del frontón → sesión desde el plan queda «Hecha»).
 - Pendiente / deuda técnica:
+  - **Verificar con los reglamentos oficiales** los datos de `src/lib/plan/competition.ts` (HYROX y DEKA) y regenerar (`npm run seed:sql`) si cambia algo.
+  - Fase 5B: sesión del día en «Hoy» (el hueco de «Hoy» sigue como «Llega en la fase 5»), sugerencia de peso con progresión doble (ahora se precarga el peso de la última vez), check-in diario, adherencia al plan y «usar como compromiso las sesiones del plan». El aviso de subcarga (< 0,8) sigue con `HAS_ACTIVE_PLAN = false`: conectarlo a `user_plans` en 5B.
+  - Cambios del plan (crear, mover, saltar, marcar hecha) necesitan conexión; sin red se ve la última copia. Una sesión hecha desde el plan sin conexión se ve «Hecha» enseguida y se enlaza al sincronizar.
+  - Mover una sesión no vuelve a comprobar las reglas (pierna antes de frontón, intensas seguidas).
+  - Nivel «avanzado» usa las plantillas de intermedio.
+- Pendiente / deuda técnica (fases anteriores):
   - Aviso de subcarga (< 0,8): preparado (`acuteChronicRatio(…, { hasActivePlan })`, `HAS_ACTIVE_PLAN = false` en `src/components/progress/load.tsx`); conectarlo a `user_plans` en la fase 5.
   - El mapa muscular sin conexión usa la última copia del rango consultado; si no se había abierto ese rango, solo cuentan las sesiones guardadas en el móvil.
-  - `/progreso/musculos` y `/progreso/carga` no están en la caché de páginas del service worker (sí funcionan al navegar dentro de la app ya abierta).
   - Validar en móvil real (sobre todo iOS: Wake Lock, sonido en segundo plano, PWA instalada y caché de páginas; cámara y compresión de fotos HEIC).
   - Botón «Compartir» de la tarjeta de logro (imagen): fase 7. Reescritura de frases con IA: fase 6.
   - «Mis logros» solo muestra el periodo en curso (sin navegar a semanas o meses anteriores).
@@ -561,7 +577,6 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Los valores de las semillas de equivalencias son aproximados: revisarlos si se quiere más precisión.
   - Reacciones rápidas (👏 🔥 💪) sobre la semana de la pareja: no hechas (opcionales; fase 7).
   - Ver las sesiones de la pareja (`can_view_sessions`) y sus medidas (`can_view_metrics`): la RLS ya lo permite, falta la UI (fase 7).
-  - «Usar como compromiso las sesiones del plan» y adherencia al plan: fase 5.
   - Los récords solo se ven con conexión y tras sincronizar (se calculan en el servidor); el resumen lo indica.
   - Medidas y fotos requieren conexión (sin cola offline).
   - Los E2E necesitan `npm run build` antes y, en este contenedor, `PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome`.
@@ -569,7 +584,6 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - El ritmo medio en el historial usa la duración total de la sesión (incluye recuperaciones); el detalle usa el tiempo en movimiento.
   - E2E contra Supabase real: el test usa un mock de PostgREST/Auth (`tests/e2e/mock-supabase.ts`); no cubre RLS reales (eso lo cubren los tests PGlite).
   - Sustitución con IA: fase 7. Filtro por material usa `training_profiles.equipment`, vacío hasta el onboarding (fase 5).
-  - `planned_session_id` sin FK hasta que exista `planned_sessions` (fase 5).
   - Si el usuario cierra sesión con sesiones sin sincronizar, se quedan en la cola del dispositivo y se suben cuando vuelva a entrar ese usuario.
   - Warnings de build `MODULE_LEVEL_DIRECTIVE` ("use client"): inofensivos.
   - Componentes shadcn copiados a mano (registro no accesible desde el entorno).
@@ -598,6 +612,10 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Escala del mapa con decimales: 0 si 0; 1–5 si ≤ 5; 6–10 si ≤ 10; 11–20 si ≤ 20; >20 el resto (5,5 va a 6–10).
   - Descuidado = 0 series (incluida la aproximación) en la semana elegida y la anterior o más (se mira hasta 4 semanas; «4+»). Solo si la primera sesión es anterior a esas 2 semanas, para no marcar todo a un usuario nuevo.
   - ACWR «acoplado»: agudo = carga de los últimos 7 días (hoy incluido); crónico = carga de los últimos 28 días / 4. Datos insuficientes si la primera sesión es posterior a hoy − 27 días o la carga crónica es 0. Las sesiones sin RPE no suman carga (se avisa de cuántas hay).
+  - Planes: `planned_sessions.blocks` guarda la **prescripción** en el formato de las plantillas (§9: series, rango de reps, RIR, distancias…), no el de `session_blocks`; se convierte en bloques reales al empezar la sesión (`src/lib/plan/to-session.ts`). Columnas añadidas a `planned_sessions`: `week`, `intensity`, `duration_min`, `notes` y `original_date`. `moved` = pendiente cambiada de día.
+  - Cada sesión de plantilla lleva `intensity` (easy/moderate/hard) y `heavy_legs` para el programador; en los circuitos cada ejercicio aparece una vez por ronda (la carrera de DEKA va en un solo ejercicio «en tramos»).
+  - `user_plans` y `planned_sessions` solo se crean por RPC (security definer con `auth.uid()` e `is_active()`); el usuario solo puede actualizar `date`, `original_date` y `status` de las planificadas (y `status`, `name`, `notes` del plan). El enlace con la sesión registrada solo lo escriben el trigger y `set_planned_session_done`. Crear un plan archiva el activo y borra sus pendientes desde la fecha de inicio del nuevo; lo hecho se conserva.
+  - Onboarding hecho = existe la fila de `training_profiles` («Saltar todo» la crea con lo que haya). Formato jsonb: `goals {selected, main}`, `availability {days_per_week, minutes_per_session, preferred_days (1 = lunes), places}`, `fixed_activities [{type, days, minutes, label}]`, `benchmarks {squat_1rm_kg, bench_1rm_kg, deadlift_1rm_kg, run_5k_s, swim_100m_s}`; se valida con Zod al leer (`src/lib/plan/profile.ts`). Objetivo «Nadar mejor» añadido a los de §11.1 para poder recomendar natación.
   - Diagnóstico: `/api/health` (qué variables existen en runtime y en build, solo true/false), `errorComponent` raíz en español renderizado en servidor y logs `console.error` con stack (root `beforeLoad`, `onCatch`, middleware global en `src/start.ts`).
 
 ---

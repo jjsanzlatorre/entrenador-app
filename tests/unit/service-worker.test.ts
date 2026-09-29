@@ -14,3 +14,23 @@ describe('service worker', () => {
     expect(sw).toContain('const PRECACHE = ["/assets/a.js","/icons/icon-192.png"]')
   })
 })
+
+describe('páginas para abrir sin conexión', () => {
+  it('todas las rutas de PAGES_TO_CACHE existen, incluidas las de la fase 4 y el plan', async () => {
+    const { PAGES_TO_CACHE } = await import('../../src/lib/pwa')
+    const tree = readFileSync(join(import.meta.dirname, '../../src/routeTree.gen.ts'), 'utf8')
+    for (const path of PAGES_TO_CACHE) {
+      if (path === '/') continue
+      expect(tree, path).toContain(`'${path}': typeof`)
+    }
+    for (const path of [
+      '/progreso/musculos',
+      '/progreso/carga',
+      '/plan',
+      '/plan/elegir',
+      '/onboarding',
+    ]) {
+      expect(PAGES_TO_CACHE).toContain(path)
+    }
+  })
+})

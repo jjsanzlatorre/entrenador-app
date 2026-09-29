@@ -3,6 +3,7 @@ import { getAuthState } from '@/server/auth.functions'
 import type { AuthState } from '@/server/auth.server'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { clearCachedPages } from '@/lib/pwa'
+import { disablePush } from '@/lib/notifications/push'
 
 export const authQueryKey = ['auth'] as const
 
@@ -61,6 +62,8 @@ export function resetAuthState(queryClient: QueryClient) {
 
 // Cierra sesión y borra lo que permitiría ver la app sin conexión.
 export async function signOut(queryClient: QueryClient) {
+  // Este dispositivo deja de recibir las notificaciones de quien sale (antes de perder la sesión).
+  await disablePush().catch(() => {})
   await getSupabaseBrowserClient().auth.signOut()
   try {
     localStorage.removeItem(AUTH_CACHE_KEY)

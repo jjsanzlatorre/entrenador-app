@@ -2,7 +2,9 @@ import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
+  Bell,
   ChevronRight,
+  Download,
   ClipboardList,
   Info,
   KeyRound,
@@ -20,6 +22,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Page } from '@/components/page'
+import { Switch } from '@/components/ui/switch'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState, signOut } from '@/lib/auth'
 import { notifyError, notifySaved } from '@/lib/notify'
@@ -107,6 +110,22 @@ function ProfilePage() {
           <Link to="/perfil/vinculos">
             <span className="flex items-center gap-2">
               <Users /> Pareja y amigos
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/notificaciones">
+            <span className="flex items-center gap-2">
+              <Bell /> Notificaciones
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/exportar">
+            <span className="flex items-center gap-2">
+              <Download /> Exportar mis datos
             </span>
             <ChevronRight />
           </Link>
@@ -289,19 +308,12 @@ function PopupsToggle({ enabled }: { enabled: boolean }) {
           </p>
           {status && <p className="text-destructive text-sm">{status}</p>}
         </div>
-        <button
-          type="button"
-          role="switch"
-          aria-checked={enabled}
-          aria-label="Pop-ups de logros"
+        <Switch
+          checked={enabled}
+          label="Pop-ups de logros"
           disabled={saving}
-          onClick={() => void toggle()}
-          className={`relative h-8 w-14 shrink-0 rounded-full transition-colors ${enabled ? 'bg-primary' : 'bg-muted-foreground/40'}`}
-        >
-          <span
-            className={`bg-background absolute top-1 left-1 size-6 rounded-full shadow transition-transform ${enabled ? 'translate-x-6' : ''}`}
-          />
-        </button>
+          onChange={() => void toggle()}
+        />
       </CardContent>
     </Card>
   )

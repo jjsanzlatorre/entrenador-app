@@ -17,6 +17,7 @@ import {
   type AdherenceLevel,
 } from '@/lib/progress/adherence'
 import {
+  addDays,
   formatDayMonth,
   formatMonth,
   formatWeekRange,
@@ -30,6 +31,8 @@ import { useMyAdherenceData, usePartnerAdherence, usePartnerLinks } from '@/lib/
 import type { PartnerLink } from '@/lib/progress/api'
 import type { ActivityDay, Commitment } from '@/lib/progress/types'
 import { cn } from '@/lib/utils'
+import { ShareCardButton } from '@/components/share/share-card-button'
+import { weekCard } from '@/lib/share/cards'
 
 // < 50 % neutro, 50–99 % intermedio, ≥ 100 % logro (CLAUDE.md §10A).
 const FILL: Record<AdherenceLevel, string> = {
@@ -291,6 +294,14 @@ export function AdherenceOverview({
   const history = weekHistory(commitments, days, today)
   const streak = streaks(commitments, days, today)
   const avg = averagePct(commitments, days, today)
+  // Semana completada para compartir: la actual si ya está, si no la pasada.
+  const lastWeek = weekAdherence(commitments, days, addDays(weekStartOf(today), -7))
+  const completed =
+    week.pct !== null && week.pct >= 1
+      ? week
+      : lastWeek.pct !== null && lastWeek.pct >= 1
+        ? lastWeek
+        : null
 
   return (
     <>
@@ -328,6 +339,13 @@ export function AdherenceOverview({
             />
           )}
           {self && <p className="text-sm font-medium">{weekMessage(week, today)}</p>}
+          {self && completed && (
+            <ShareCardButton
+              className="self-start"
+              label={completed === week ? 'Compartir la semana' : 'Compartir la semana pasada'}
+              card={weekCard(completed, streak.current)}
+            />
+          )}
         </CardContent>
       </Card>
 

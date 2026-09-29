@@ -155,3 +155,42 @@ self.addEventListener('message', (event) => {
     event.waitUntil(caches.delete(PAGES_CACHE))
   }
 })
+
+// ── Notificaciones push (fase 7B) ───────────────────────────
+// El servidor manda { title, body, url, tag }. Al tocarla se abre (o se enfoca) la app en esa ruta.
+self.addEventListener('push', (event) => {
+  let data = {}
+  try {
+    data = event.data ? event.data.json() : {}
+  } catch {
+    data = { body: event.data ? event.data.text() : '' }
+  }
+  const title = typeof data.title === 'string' && data.title ? data.title : 'Entrenador'
+  const url = typeof data.url === 'string' && data.url.startsWith('/') ? data.url : '/'
+  event.waitUntil(
+    self.registration.showNotification(title, {
+      body: typeof data.body === 'string' ? data.body : '',
+      icon: '/icons/icon-192.png',
+      badge: '/icons/icon-192.png',
+      lang: 'es-ES',
+      tag: typeof data.tag === 'string' ? data.tag : undefined,
+      data: { url },
+    }),
+  )
+})
+
+self.addEventListener('notificationclick', (event) => {
+  event.notification.close()
+  const path = (event.notification.data && event.notification.data.url) || '/'
+  const target = new URL(path, self.location.origin).href
+  event.waitUntil(
+    self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((windows) => {
+      for (const client of windows) {
+        if (new URL(client.url).origin === self.location.origin && 'focus' in client) {
+          return client.focus().then((c) => (c && 'navigate' in c ? c.navigate(target) : c))
+        }
+      }
+      return self.clients.openWindow(target)
+    }),
+  )
+})

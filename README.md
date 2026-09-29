@@ -1,55 +1,170 @@
 # Entrenador
 
-PWA privada de entrenamiento personal. Especificación completa en [`CLAUDE.md`](./CLAUDE.md).
+PWA privada de entrenamiento personal para un grupo pequeño (por invitación). Especificación
+completa en [`CLAUDE.md`](./CLAUDE.md).
 
-Stack: TanStack Start (React + TypeScript) · Tailwind + shadcn/ui · Supabase · Vercel.
+Stack: TanStack Start (React + TypeScript) · Tailwind + shadcn/ui · Supabase · Vercel. Todo en
+planes gratuitos (Supabase Free, Vercel Hobby, Gemini gratis).
 
-## Puesta en marcha (solo con la web de Supabase y Vercel)
+---
 
-### 1. Supabase
+## Manual de uso
+
+### Instalar la app en el móvil
+
+- **iPhone / iPad (Safari)**: abre la web → botón **Compartir** → **Añadir a pantalla de inicio**.
+  Ábrela siempre desde ese icono (las notificaciones solo funcionan así, con iOS 16.4 o posterior).
+- **Android (Chrome)**: menú ⋮ → **Instalar aplicación** (o «Añadir a pantalla de inicio»).
+- Para entrar: tu email → te llega un enlace y un código de 6 dígitos. En la app instalada de
+  iPhone usa el **código** (el enlace se abre en Safari, que no comparte sesión con la app).
+  También puedes poner una contraseña en **Perfil → Contraseña**.
+
+### Invitar a alguien (solo admin)
+
+**Perfil → Invitaciones y usuarios** → escribe su email → **Invitar**. Le llega un correo para
+entrar. Desde ahí también puedes desactivar (y reactivar) a un usuario. Nadie puede registrarse
+por su cuenta.
+
+### Vincularse con la pareja o amigos
+
+1. **Perfil → Pareja y amigos** → escribe el email de la otra persona (tiene que tener cuenta).
+2. La otra persona acepta en la misma pantalla.
+3. Al aceptar, los dos veis el **cumplimiento** del otro (tarjeta «Nosotros» en Hoy). El resto
+   está desactivado hasta que cada uno lo active, persona a persona: **Entrenos**, **Mapa
+   muscular y carga**, **Logros** y **Medidas**. Las fotos nunca se comparten.
+4. Tocando su nombre en «Nosotros» ves **Evolución de {nombre}** con lo que te comparte.
+5. **Entrenar juntos**: «Entrenar con…» en Hoy o en una sesión del plan. Le llega la misma sesión
+   (sin tus pesos) y cada uno apunta los suyos. En un entreno libre, si añades, quitas o
+   reordenas ejercicios antes de que se una, le llegan solos.
+6. Reacciones 👏 🔥 💪 a su semana y a sus sesiones compartidas.
+
+### Notificaciones
+
+**Perfil → Notificaciones** → activa «Recibir notificaciones aquí» en cada móvil y pulsa
+**Enviar una prueba**. Eliges qué recibir: invitaciones a entrenar, reacciones, recordatorio de
+la sesión del día (a la hora que elijas) y un aviso suave si la semana va por detrás del
+compromiso (como mucho uno al día). Todo se puede desactivar.
+
+### Compartir un logro
+
+En **Mis logros**, en el resumen de una sesión con récord, en **Cumplimiento** (semana
+completada) o en el pop-up de un logro, pulsa **Compartir**: se genera una imagen vertical que
+se comparte con la hoja nativa del móvil (Instagram, WhatsApp…) o se descarga. No lleva medidas,
+fotos ni notas.
+
+### Exportar mis datos (copia de seguridad)
+
+**Perfil → Exportar mis datos**:
+
+- **CSV (ZIP)**: sesiones, series, medidas, récords y compromisos, para Excel/Numbers/Sheets.
+- **JSON**: todo lo tuyo; guárdalo de vez en cuando como copia de seguridad.
+- **Fotos (ZIP)**: opcional, aparte.
+
+---
+
+## Mantenimiento (para el admin)
+
+### Aplicar migraciones
+
+No hay CLI: se pegan en **Supabase → SQL Editor**, en orden numérico, de una en una
+(`supabase/migrations/0001_…` → la última). Son **idempotentes**: si dudas de si una ya está
+aplicada, vuelve a ejecutarla. Cuando una entrega trae migraciones nuevas, pega solo las nuevas,
+en orden. `supabase/snippets/` contiene SQL de un solo uso (no son migraciones).
+
+### Puesta en marcha desde cero
+
+**Supabase**
 
 1. Crea un proyecto (plan Free).
-2. **SQL Editor** → pega y ejecuta, en este orden:
-   1. `supabase/migrations/0001_profiles.sql`
-   2. `supabase/migrations/0002_training_profiles.sql`
-   3. `supabase/migrations/0003_catalog.sql`
-   4. `supabase/migrations/0004_workouts.sql`
-   5. `supabase/migrations/0005_seed_muscles.sql`
-   6. `supabase/migrations/0006_seed_exercises_strength.sql`
-   7. `supabase/migrations/0007_seed_exercises_functional_cardio.sql`
-   8. `supabase/migrations/0008_personal_records.sql`
-   9. `supabase/migrations/0009_body_metrics_photos.sql`
-   10. `supabase/migrations/0010_storage_progress_photos.sql` (crea el bucket privado `progress-photos` y sus políticas)
-   11. `supabase/migrations/0011_commitments.sql`
-   12. `supabase/migrations/0012_partner_links.sql`
+2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0029`).
+   Comprueba en **Storage** que el bucket `progress-photos` es privado.
+3. **Authentication → Sign In / Providers**: desactiva **Allow new users to sign up**.
+4. **Authentication → URL Configuration**: Site URL `https://TU-APP.vercel.app` y Redirect URL
+   `https://TU-APP.vercel.app/auth/callback`.
+5. **Emails**: el correo de Supabase solo envía a miembros del proyecto y con un límite bajo.
+   Configura un SMTP gratuito en **Authentication → Emails → SMTP Settings** (Gmail con
+   contraseña de aplicación o Brevo). Opcional: añade `{{ .Token }}` a la plantilla de Magic
+   Link para que llegue también el código de 6 dígitos.
+6. Primer admin: **Authentication → Users → Add user** (con Auto Confirm) y ejecuta
+   `supabase/snippets/make_admin.sql` con tu email.
 
-   Son idempotentes: si dudas, puedes volver a ejecutarlos.
-   Comprueba en **Storage** que existe el bucket `progress-photos` marcado como privado (no «Public»).
+**Vercel**
 
-3. **Authentication → Sign In / Providers**: desactiva **Allow new users to sign up**. Deja activado el proveedor Email.
-4. **Authentication → URL Configuration**:
-   - Site URL: `https://TU-APP.vercel.app`
-   - Redirect URLs: añade `https://TU-APP.vercel.app/auth/callback`
-5. **Emails**: el servidor de correo por defecto de Supabase solo envía a los miembros del equipo del proyecto y con un límite bajo por hora. Para invitar a otra persona, configura un SMTP gratuito en **Authentication → Emails → SMTP Settings** (por ejemplo Gmail con contraseña de aplicación, o Brevo en plan gratuito).
-6. (Opcional, recomendado) **Authentication → Emails → Magic Link**: añade `{{ .Token }}` a la plantilla para que el email incluya también el código de 6 dígitos. Sirve para entrar desde la app instalada en iOS.
-7. **Primer admin**:
-   1. **Authentication → Users → Add user → Create new user**: tu email y una contraseña, con **Auto Confirm User** marcado.
-   2. **SQL Editor**: abre `supabase/snippets/make_admin.sql`, cambia el email por el tuyo y ejecútalo.
+1. **Add New → Project** → importa el repo. Preset **TanStack Start** (o **Other**); build y
+   salida por defecto.
+2. **Settings → Environment Variables** (Production y Preview), ver tabla abajo.
+3. Deploy. Tras cambiar variables, **Redeploy**.
+4. Comprueba `https://TU-APP.vercel.app/api/health` (solo muestra `true`/`false`, nunca valores).
 
-### 2. Vercel
+### Variables de entorno
 
-1. **Add New → Project** → importa este repositorio.
-2. Framework Preset: **TanStack Start** (si no aparece, **Other**). No hace falta tocar el comando de build ni el directorio de salida.
-3. **Environment Variables** (Production y Preview):
+| Variable                    | Obligatoria | Dónde se obtiene                                              |
+| --------------------------- | ----------- | ------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`         | sí          | Supabase → Project Settings → API → Project URL               |
+| `VITE_SUPABASE_ANON_KEY`    | sí          | clave `anon` / publishable                                    |
+| `SUPABASE_SERVICE_ROLE_KEY` | sí          | clave `service_role` / secret (**nunca** con prefijo `VITE_`) |
+| `AI_PROVIDER`               | no          | `gemini` (por defecto) o `anthropic`                          |
+| `GEMINI_API_KEY`            | no          | Google AI Studio → Get API key                                |
+| `GEMINI_MODEL`              | no          | por defecto `gemini-2.5-flash`                                |
+| `GEMINI_FALLBACK_MODEL`     | no          | modelo de reserva si el principal devuelve 429                |
+| `ANTHROPIC_API_KEY`         | no          | console.anthropic.com (solo con `AI_PROVIDER=anthropic`)      |
+| `AI_MODEL`                  | no          | por defecto `claude-sonnet-5`                                 |
+| `AI_DAILY_LIMIT`            | no          | consultas por usuario y día (20)                              |
+| `VAPID_PUBLIC_KEY`          | no          | Perfil → Notificaciones → «Generar claves nuevas» (admin)     |
+| `VAPID_PRIVATE_KEY`         | no          | ídem (secreta)                                                |
+| `VAPID_SUBJECT`             | no          | `mailto:tu@email`                                             |
+| `CRON_SECRET`               | no          | ídem; el mismo valor va en `supabase/snippets/push_cron.sql`  |
 
-   | Variable                    | Valor (Supabase → Project Settings → API Keys)                |
-   | --------------------------- | ------------------------------------------------------------- |
-   | `VITE_SUPABASE_URL`         | Project URL                                                   |
-   | `VITE_SUPABASE_ANON_KEY`    | clave `anon` / publishable                                    |
-   | `SUPABASE_SERVICE_ROLE_KEY` | clave `service_role` / secret (**nunca** con prefijo `VITE_`) |
+Solo las `VITE_*` llegan al navegador. El resto solo existen en el servidor.
 
-4. Deploy. Tras cambiar variables, haz **Redeploy**.
-5. Comprueba `https://TU-APP.vercel.app/api/health`: debe devolver `"ok": true`. Muestra qué variables existen (solo `true`/`false`, nunca los valores).
+### Activar las notificaciones push
+
+1. Aplica `0028_push_notifications.sql` y `0029_security_hardening.sql`.
+2. En la app, como admin: **Perfil → Notificaciones → Generar claves nuevas**. Las claves se
+   generan en tu navegador; copia las tres.
+3. Vercel → Environment Variables: `VAPID_PUBLIC_KEY`, `VAPID_PRIVATE_KEY`, `CRON_SECRET` y
+   `VAPID_SUBJECT` (`mailto:tu@email`) → **Redeploy**. `/api/health` debe mostrar
+   `"push": { "configured": true, "CRON_SECRET": true }`.
+4. Invitaciones y reacciones ya funcionan: cada persona activa las notificaciones en su móvil.
+5. Recordatorios programados: Supabase → SQL Editor → abre
+   `supabase/snippets/push_cron.sql`, cambia la URL de tu app y el `CRON_SECRET`, y ejecútalo.
+   Activa `pg_cron` y `pg_net` (incluidas en el plan Free) y programa una llamada cada 15 min a
+   `/api/push/cron`. Al final del archivo tienes consultas para comprobar que va (código 200) y
+   para desactivarlo.
+
+Por qué así: Vercel Cron en el plan Hobby solo permite un cron **diario** con ±59 min de
+precisión, que no sirve para avisar a la hora que elige cada persona. pg_cron (Supabase Free)
+permite ejecutar cada minuto y pg_net hace la llamada HTTP; el envío (cifrado Web Push) lo hace
+Vercel. Son unas 3.000 llamadas al mes, muy por debajo de los límites gratuitos.
+
+Si cambias las claves VAPID, cada persona tiene que volver a activar las notificaciones.
+
+### Si Supabase pausa el proyecto
+
+En el plan Free, Supabase pausa los proyectos tras ~1 semana sin actividad. Con los
+recordatorios activos (pg_cron llama a Vercel y este consulta la base de datos cada 15 min)
+normalmente no ocurre, pero si pasa:
+
+1. Supabase → tu proyecto → **Restore project** (tarda unos minutos). Los datos no se pierden.
+2. La app vuelve a funcionar sola; no hay que tocar Vercel.
+3. Si el proyecto lleva pausado más de 90 días puede que ya no se pueda restaurar: por eso
+   conviene descargar de vez en cuando la copia JSON desde **Exportar mis datos**.
+
+### Cambiar el proveedor de IA
+
+- Gemini (gratis): `AI_PROVIDER=gemini`, `GEMINI_API_KEY` y, opcional, `GEMINI_MODEL` /
+  `GEMINI_FALLBACK_MODEL`.
+- Anthropic: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` y, opcional, `AI_MODEL`.
+- Cambia las variables en Vercel y haz **Redeploy**. Sin clave, la app funciona sin IA y lo dice.
+- `AI_DAILY_LIMIT` limita las consultas por persona y día.
+
+### Copias de seguridad
+
+El plan Free no da copias descargables. Cada persona puede bajar su JSON en **Exportar mis
+datos**. Para una copia de todo el proyecto, Supabase → Database → **Backups** (plan de pago) o
+un `pg_dump` desde un ordenador con la cadena de conexión.
+
+---
 
 ## Desarrollo (lo hace Claude Code en la nube)
 
@@ -58,14 +173,14 @@ npm install
 npm run dev        # http://localhost:3000
 npm run typecheck
 npm run lint
-npm test           # Vitest: lógica, cola offline y SQL (migraciones en PGlite)
+npm test           # Vitest: lógica, cola offline y SQL (migraciones en PGlite, RLS, seguridad)
 npm run build
 npm run test:e2e   # Playwright contra un Supabase simulado (requiere build previo)
-npm run seed:sql   # regenera 0005–0007 desde supabase/seed/*.json
+npm run seed:sql   # regenera las migraciones de semillas desde supabase/seed/*.json
 ```
 
 En este contenedor Playwright usa el Chromium preinstalado:
-`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium npm run test:e2e`.
+`PW_CHROMIUM_PATH=/opt/pw-browsers/chromium-1194/chrome-linux/chrome npm run test:e2e`.
 
 ## Estructura
 
@@ -73,18 +188,21 @@ En este contenedor Playwright usa el Chromium preinstalado:
 src/
   routes/            rutas (TanStack Router, basado en archivos)
     _app/            zona autenticada con navegación inferior
-  server/            funciones de servidor (*.functions.ts) y helpers solo servidor (*.server.ts)
+    api/             endpoints (health, push/cron)
+  server/            funciones de servidor (*.functions.ts) y lógica solo servidor (ai/, push/)
   lib/workout/       dominio del registro (operaciones de sesión, cálculos, búsqueda, API)
   lib/offline/       IndexedDB, cola de escritura y motor de sincronización
+  lib/notifications/ push en el cliente y lógica de recordatorios
+  lib/export/        exportar datos (CSV, ZIP, JSON)
+  lib/share/         imagen para compartir
   sw/sw.js           plantilla del service worker (el build genera /sw.js)
-  lib/               utilidades de cliente
   components/ui/     componentes shadcn
   types/database.ts  tipos de Supabase escritos a mano
 supabase/
   migrations/        SQL numerado e idempotente (pegar en el SQL Editor en orden)
-  seed/              semillas en JSON (fuente de verdad de 0005–0007)
-  snippets/          SQL de un solo uso (no son migraciones)
-public/              manifest e iconos de la PWA
-tests/db/            tests de migraciones, RLS y RPC con PGlite
+  seed/              semillas en JSON
+  snippets/          SQL de un solo uso (admin, pg_cron)
+public/              manifest, iconos e imágenes de ejercicios
+tests/db/            migraciones, RLS, RPC y revisión de seguridad con PGlite
 tests/e2e/           Playwright + Supabase simulado
 ```

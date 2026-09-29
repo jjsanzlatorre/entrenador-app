@@ -124,7 +124,7 @@ function SessionDetailPage() {
       <BackLink />
 
       {nueva ? (
-        <div className="rounded-2xl bg-emerald-600 p-4 text-white">
+        <div className="rounded-2xl bg-emerald-700 p-4 text-white">
           <p className="text-2xl font-bold">¡Sesión guardada! 💪</p>
           <p className="text-sm opacity-90">
             {query.data?.pending
@@ -156,7 +156,7 @@ function SessionDetailPage() {
         </p>
         <div className="mt-1 flex items-center gap-2">
           {query.data?.pending && (
-            <span className="inline-flex items-center gap-1 text-xs text-amber-600">
+            <span className="text-warning inline-flex items-center gap-1 text-xs">
               <CloudUpload className="size-4" /> Pendiente de sincronizar
             </span>
           )}

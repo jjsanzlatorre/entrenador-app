@@ -94,7 +94,7 @@ export function RecordsList({
                       {g.name}
                       {recent && (
                         <Trophy
-                          className="size-4 shrink-0 text-amber-500"
+                          className="text-trophy size-4 shrink-0"
                           aria-label="Récord reciente"
                         />
                       )}

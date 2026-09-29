@@ -64,7 +64,7 @@ export function ExerciseProgressView({
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
-              <Trophy className="size-5 text-amber-500" /> Récords
+              <Trophy className="text-trophy size-5" /> Récords
             </CardTitle>
           </CardHeader>
           <CardContent>

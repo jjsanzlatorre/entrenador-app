@@ -33,7 +33,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { title: 'Entrenador' },
       { name: 'description', content: 'Tu entrenador personal' },
-      { name: 'theme-color', content: '#2563eb' },
+      { name: 'theme-color', content: '#2563eb', media: '(prefers-color-scheme: light)' },
+      { name: 'theme-color', content: '#0a0a0a', media: '(prefers-color-scheme: dark)' },
+      // Controles nativos (select, fecha…) en oscuro cuando el sistema lo está.
+      { name: 'color-scheme', content: 'light dark' },
       { name: 'mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-capable', content: 'yes' },
       { name: 'apple-mobile-web-app-status-bar-style', content: 'black-translucent' },
@@ -46,6 +49,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
     ],
     links: [
+      // Adelanta la conexión con Supabase (DNS + TLS): «Hoy» pide datos nada más cargar.
+      ...supabasePreconnect(),
       { rel: 'stylesheet', href: appCss },
       { rel: 'manifest', href: '/manifest.webmanifest' },
       { rel: 'icon', href: '/favicon.ico', sizes: '32x32' },
@@ -80,6 +85,16 @@ function RootComponent() {
       <Toaster />
     </QueryClientProvider>
   )
+}
+
+function supabasePreconnect() {
+  const url = readPublicEnv().env?.supabaseUrl
+  if (!url) return []
+  try {
+    return [{ rel: 'preconnect', href: new URL(url).origin, crossOrigin: 'anonymous' as const }]
+  } catch {
+    return []
+  }
 }
 
 function serializePublicEnv() {

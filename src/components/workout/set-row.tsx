@@ -95,7 +95,7 @@ export function SetRow({
           className={cn(
             'flex h-12 items-center justify-center rounded-lg border-2 transition-colors active:scale-95',
             set.completed
-              ? 'border-emerald-600 bg-emerald-600 text-white'
+              ? 'border-emerald-700 bg-emerald-700 text-white'
               : 'border-primary text-primary bg-background',
           )}
         >
@@ -161,7 +161,7 @@ export function SetRow({
               type="button"
               onClick={onRemove}
               aria-label={`Borrar ${label}`}
-              className="text-destructive ml-1 flex h-9 w-10 items-center justify-center rounded-md"
+              className="text-destructive relative ml-1 flex h-9 w-10 items-center justify-center rounded-md after:absolute after:-inset-1 after:content-['']"
             >
               <Trash2 className="size-4" />
             </button>

@@ -207,3 +207,47 @@ test('unirse a un entreno en pareja: misma estructura, sin sus pesos y con el mi
       ],
     })
 })
+
+test('7B: en un entreno libre en pareja, la estructura le llega sola al añadir ejercicios', async ({
+  page,
+  request,
+}) => {
+  await request.post(`${MOCK}/__seed`, {
+    data: { partnerLinks: [link({ they_share_adherence: true })] },
+  })
+  await page.goto('/')
+  await page.getByRole('button', { name: 'Entrenar con…' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: /Bea/ }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /Fuerza/ })
+    .click()
+  await expect(page).toHaveURL(/\/entrenar\/sesion/)
+  await expect(page.getByText('Esperando a que Bea se una')).toBeVisible()
+  await expect(page.getByText('Los cambios en los ejercicios le llegan solos')).toBeVisible()
+  // Sin fallos, no hay botón manual.
+  await expect(page.getByRole('button', { name: 'Enviarle la estructura actual' })).toHaveCount(0)
+
+  await page.getByRole('button', { name: 'Añadir ejercicio' }).click()
+  const dialog = page.getByRole('dialog')
+  await dialog.getByRole('searchbox', { name: 'Buscar ejercicio' }).fill('press banca')
+  await dialog.getByRole('button').filter({ hasText: 'Press banca' }).first().click()
+  await expect(page.getByRole('heading', { name: 'Press banca', exact: true })).toBeVisible()
+
+  await expect
+    .poll(async () => {
+      const s = (await (await request.get(`${MOCK}/__state`)).json()) as {
+        pairInvites: {
+          updates?: number
+          payload: { blocks: { exercises: { exercise_id: string }[] }[] }
+        }[]
+      }
+      const invite = s.pairInvites[0]
+      return {
+        updated: (invite?.updates ?? 0) > 0,
+        exercises: invite?.payload.blocks.flatMap((b) => b.exercises.map((e) => e.exercise_id)),
+      }
+    })
+    .toEqual({ updated: true, exercises: ['bench_press'] })
+  await expect(page.getByRole('button', { name: 'Enviarle la estructura actual' })).toHaveCount(0)
+})

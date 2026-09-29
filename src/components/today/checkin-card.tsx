@@ -55,7 +55,7 @@ export function CheckinCard({ userId, today }: { userId: string; today: DateKey 
         aria-label="Check-in de hoy"
         className="flex items-center gap-3 rounded-xl border p-3 text-sm"
       >
-        <Check className="size-5 shrink-0 text-emerald-600" />
+        <Check className="text-success size-5 shrink-0" />
         <p className="min-w-0 flex-1">
           <span className="font-medium">Check-in: </span>
           {CHECKIN_FIELDS.map((f) => `${CHECKIN_LABELS[f].label} ${saved[f]}`).join(' · ')}

@@ -4,12 +4,12 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, ChevronRight, Lock } from 'lucide-react'
 import { PERMISSION_INFO, sharedSummary } from '@/components/partners/permissions'
 import { Button } from '@/components/ui/button'
+import { Switch } from '@/components/ui/switch'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { notifyError, notifySaved } from '@/lib/notify'
 import { usePartnerLink } from '@/lib/partners/hooks'
 import { revokePartner, updateSharing, type SharePerm } from '@/lib/progress/api'
 import { partnersKey } from '@/lib/progress/hooks'
-import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/perfil/vinculos/$partnerId')({
   ssr: false,
@@ -110,25 +110,12 @@ function PartnerSettingsPage() {
                     </p>
                     <p className="text-muted-foreground text-xs">{p.hint}</p>
                   </div>
-                  <button
-                    type="button"
-                    role="switch"
-                    aria-checked={on}
-                    aria-labelledby={id}
+                  <Switch
+                    checked={on}
+                    labelledBy={id}
                     disabled={saving !== null}
-                    onClick={() => void toggle(p.key, !on)}
-                    className={cn(
-                      'relative h-8 w-14 shrink-0 rounded-full transition-colors disabled:opacity-60',
-                      on ? 'bg-primary' : 'bg-muted-foreground/30',
-                    )}
-                  >
-                    <span
-                      className={cn(
-                        'bg-background absolute top-1 left-1 size-6 rounded-full shadow transition-transform',
-                        on && 'translate-x-6',
-                      )}
-                    />
-                  </button>
+                    onChange={(next) => void toggle(p.key, next)}
+                  />
                 </li>
               )
             })}

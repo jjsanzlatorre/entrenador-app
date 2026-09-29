@@ -318,7 +318,7 @@ function PlanPage() {
                         {s.durationMin ? ` · ${s.durationMin} min` : ''}
                       </span>
                     </span>
-                    <Check className="size-4 text-emerald-600" />
+                    <Check className="text-success size-4" />
                   </Link>
                 </li>
               ))}

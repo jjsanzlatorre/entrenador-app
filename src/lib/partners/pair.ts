@@ -134,6 +134,24 @@ export function pairTemplateFromSession(
   }
 }
 
+// Firma estable de una plantilla (claves ordenadas): la que vuelve de la base de datos (jsonb
+// reordena las claves) y la calculada en el móvil coinciden si la estructura es la misma.
+export function pairTemplateSignature(value: unknown): string {
+  const norm = (v: unknown): unknown => {
+    if (Array.isArray(v)) return v.map(norm)
+    if (v && typeof v === 'object') {
+      return Object.fromEntries(
+        Object.entries(v as Record<string, unknown>)
+          .filter(([, x]) => x !== undefined)
+          .sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0))
+          .map(([k, x]) => [k, norm(x)]),
+      )
+    }
+    return v
+  }
+  return JSON.stringify(norm(value))
+}
+
 export function parsePairTemplate(payload: unknown): PairTemplate | null {
   const parsed = pairTemplateSchema.safeParse(payload)
   return parsed.success ? parsed.data : null

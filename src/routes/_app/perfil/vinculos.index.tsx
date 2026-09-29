@@ -117,7 +117,7 @@ function InviteForm({ userId }: { userId: string }) {
             </Button>
           </div>
           {status && (
-            <p className={status.ok ? 'text-sm text-emerald-700' : 'text-destructive text-sm'}>
+            <p className={status.ok ? 'text-success text-sm' : 'text-destructive text-sm'}>
               {status.text}
             </p>
           )}

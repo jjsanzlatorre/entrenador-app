@@ -10,8 +10,11 @@ import {
 import { addTimedBlock } from '@/lib/workout/timed-blocks'
 import { sequentialIds } from '@/lib/workout/test-helpers'
 import type { LastPerformance, LocalSession } from '@/lib/workout/types'
+import { createActivitySession } from '@/lib/workout/session-kinds'
 import {
+  activityNameKey,
   comparePairSessions,
+  matchPairActivity,
   pairTemplateFromSession,
   parsePairTemplate,
   sessionFromPairTemplate,
@@ -132,6 +135,85 @@ describe('entreno en pareja: plantilla', () => {
       'kb_swing',
     ])
     expect(s.blocks.map((b) => b.order)).toEqual([0, 1])
+  })
+})
+
+describe('entreno en pareja: actividades personalizadas', () => {
+  const escalada = { name: 'Escalada', emoji: '🧗', muscles: ['lats', 'forearms', 'biceps'] }
+
+  function customSession() {
+    const s = createActivitySession('ana', 'other', T0, sequentialIds('c'))
+    return {
+      ...s,
+      sessionType: 'custom' as const,
+      activityTypeId: 'a_ana_escalada',
+      title: 'Rocódromo',
+    }
+  }
+
+  it('la invitación lleva su nombre, emoji y músculos (y «other» para versiones antiguas)', () => {
+    const { template } = pairTemplateFromSession(
+      customSession(),
+      () => true,
+      (id) => (id === 'a_ana_escalada' ? escalada : undefined),
+    )
+    expect(template.session_type).toBe('other')
+    expect(template.activity).toEqual(escalada)
+    expect(parsePairTemplate(JSON.parse(JSON.stringify(template)))).toEqual(template)
+    // Una invitación sin actividad (versión anterior) sigue valiendo.
+    const { activity: _a, ...old } = template
+    void _a
+    expect(parsePairTemplate(old)?.activity).toBeUndefined()
+  })
+
+  it('quien se une la guarda como su actividad personalizada', () => {
+    const { template } = pairTemplateFromSession(
+      customSession(),
+      () => true,
+      () => escalada,
+    )
+    const joined = sessionFromPairTemplate(template, {
+      userId: 'bea',
+      pairGroupId: 'g',
+      now: T0,
+      known: () => true,
+      newId: sequentialIds('b'),
+      activityTypeId: 'a_bea_escalada',
+    })
+    expect(joined.sessionType).toBe('custom')
+    expect(joined.activityTypeId).toBe('a_bea_escalada')
+    expect(toPayload(joined).session).toMatchObject({
+      session_type: 'custom',
+      activity_type_id: 'a_bea_escalada',
+    })
+    // Sin actividad propia (no se pudo crear): «otra», como antes.
+    const fallback = sessionFromPairTemplate(template, {
+      userId: 'bea',
+      pairGroupId: 'g',
+      now: T0,
+      known: () => true,
+    })
+    expect(fallback.sessionType).toBe('other')
+    expect(fallback.activityTypeId).toBeUndefined()
+  })
+
+  it('reutiliza la actividad propia con el mismo nombre (sin mayúsculas ni acentos)', () => {
+    const mine = [
+      { id: 'a_1', name: 'Pádel playa', archived: false },
+      { id: 'a_2', name: 'ESCALADA ', archived: true },
+      { id: 'a_3', name: 'escalada', archived: false },
+    ]
+    expect(matchPairActivity(escalada, mine)?.id).toBe('a_3')
+    expect(matchPairActivity({ ...escalada, name: 'Surf skate' }, mine)).toBeUndefined()
+    expect(activityNameKey('  Pádel   Playa ')).toBe('padel playa')
+  })
+
+  it('las globales viajan por su tipo (sin datos de actividad)', () => {
+    const s = createActivitySession('ana', 'padel', T0, sequentialIds('p'))
+    const { template } = pairTemplateFromSession(s, () => true)
+    expect(template.session_type).toBe('padel')
+    expect(template.activity).toBeUndefined()
+    expect(s.blocks[0]!.exercises[0]!.exerciseId).toBe('padel')
   })
 })
 

@@ -306,6 +306,51 @@ function sessionRow(p: Payload) {
   }
 }
 
+type CreatePlanArgs = {
+  p_template_id: string | null
+  p_name: string
+  p_start_date: string
+  p_sessions: Record<string, unknown>[]
+  p_source?: string
+  p_notes?: string | null
+}
+
+// Como create_user_plan (0024): archiva el activo y crea el nuevo con sus sesiones.
+function createUserPlan(b: CreatePlanArgs) {
+  for (const p of userPlans) if (p.status === 'active') p.status = 'archived'
+  const id = crypto.randomUUID()
+  userPlans.push({
+    id,
+    user_id: MOCK_USER_ID,
+    template_id: b.p_template_id,
+    name: b.p_name,
+    start_date: b.p_start_date,
+    status: 'active',
+    source: b.p_source ?? 'template',
+    notes: b.p_notes ?? null,
+  })
+  for (const s of b.p_sessions) {
+    plannedSessions.push({
+      id: crypto.randomUUID(),
+      user_plan_id: id,
+      user_id: MOCK_USER_ID,
+      date: s.date,
+      original_date: null,
+      week: s.week ?? 1,
+      session_type: s.session_type,
+      title: s.title,
+      intensity: s.intensity ?? 'moderate',
+      heavy_legs: s.heavy_legs ?? false,
+      duration_min: s.duration_min ?? null,
+      notes: s.notes ?? null,
+      blocks: s.blocks ?? [],
+      status: 'planned',
+      workout_session_id: null,
+    })
+  }
+  return id
+}
+
 function rows(req: http.IncomingMessage, list: unknown[]) {
   return (req.headers.accept ?? '').includes('vnd.pgrst.object') ? (list[0] ?? null) : list
 }
@@ -622,6 +667,7 @@ export function startMockSupabase(port: number) {
         model: b.p_model,
         period,
         responses: {},
+        action_results: {},
         created_at: new Date(Date.now() + aiInteractions.length).toISOString(),
       })
       return send(res, 200, id)
@@ -748,6 +794,71 @@ export function startMockSupabase(port: number) {
           })
         }
       }
+      return send(res, 200, null)
+    }
+    // ── Acciones del chat (como 0033) ──
+    if (path === '/rest/v1/rpc/link_chat_plan') {
+      const b = (await readBody(req)) as { p_chat: string; p_plan: string }
+      const chat = aiInteractions.find((x) => x.id === b.p_chat && x.kind === 'chat')
+      const plan = aiInteractions.find(
+        (x) => x.id === b.p_plan && x.kind === 'plan_generation' && x.status === 'ok',
+      )
+      if (!chat || !(chat.output as { plan_request?: unknown } | null)?.plan_request) {
+        return send(res, 400, { message: 'la respuesta no propone un plan' })
+      }
+      if (!plan) return send(res, 400, { message: 'plan no encontrado' })
+      const results = chat.action_results as Record<string, unknown>
+      results.plan = { status: 'prepared', interaction_id: plan.id }
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/rpc/accept_chat_plan') {
+      const b = (await readBody(req)) as {
+        p_chat: string
+        p_name: string
+        p_start_date: string
+        p_sessions: Record<string, unknown>[]
+      }
+      const chat = aiInteractions.find((x) => x.id === b.p_chat && x.kind === 'chat')
+      const results = (chat?.action_results ?? {}) as Record<string, Record<string, unknown>>
+      if (!chat || results.plan?.status !== 'prepared') {
+        return send(res, 400, { message: 'no hay ningún plan preparado' })
+      }
+      const plan = aiInteractions.find((x) => x.id === results.plan!.interaction_id)!
+      const proposal = (plan.output as { proposal: Record<string, unknown> }).proposal
+      const replaced = userPlans.find((p) => p.status === 'active')?.name ?? null
+      const name = b.p_name.trim() || String(proposal.name)
+      const planId = createUserPlan({
+        p_template_id: (proposal.baseTemplateId as string | null) ?? null,
+        p_name: name,
+        p_start_date: b.p_start_date,
+        p_sessions: b.p_sessions,
+        p_source: 'ai',
+        p_notes: String(proposal.summary),
+      })
+      const mine = plannedSessions.filter((x) => x.user_plan_id === planId)
+      const byWeek = new Map<unknown, number>()
+      for (const x of mine) byWeek.set(x.week, (byWeek.get(x.week) ?? 0) + 1)
+      const result = {
+        status: 'accepted',
+        interaction_id: plan.id,
+        plan_id: planId,
+        name,
+        start_date: b.p_start_date,
+        sessions: mine.length,
+        weeks: byWeek.size,
+        per_week: Math.max(0, ...byWeek.values()),
+        replaced,
+      }
+      plan.accepted = true
+      chat.accepted = true
+      results.plan = result
+      return send(res, 200, result)
+    }
+    if (path === '/rest/v1/rpc/discard_chat_action') {
+      const b = (await readBody(req)) as { p_chat: string; p_key: string }
+      const chat = aiInteractions.find((x) => x.id === b.p_chat && x.kind === 'chat')
+      if (!chat) return send(res, 400, { message: 'consulta de chat no encontrada' })
+      ;(chat.action_results as Record<string, unknown>)[b.p_key] = { status: 'discarded' }
       return send(res, 200, null)
     }
     if (path === '/rest/v1/rpc/respond_ai_change') {
@@ -1040,46 +1151,7 @@ export function startMockSupabase(port: number) {
       return send(res, 200, id)
     }
     if (path === '/rest/v1/rpc/create_user_plan') {
-      const b = (await readBody(req)) as {
-        p_template_id: string
-        p_name: string
-        p_start_date: string
-        p_sessions: Record<string, unknown>[]
-        p_source?: string
-        p_notes?: string | null
-      }
-      for (const p of userPlans) if (p.status === 'active') p.status = 'archived'
-      const id = crypto.randomUUID()
-      userPlans.push({
-        id,
-        user_id: MOCK_USER_ID,
-        template_id: b.p_template_id,
-        name: b.p_name,
-        start_date: b.p_start_date,
-        status: 'active',
-        source: b.p_source ?? 'template',
-        notes: b.p_notes ?? null,
-      })
-      for (const s of b.p_sessions) {
-        plannedSessions.push({
-          id: crypto.randomUUID(),
-          user_plan_id: id,
-          user_id: MOCK_USER_ID,
-          date: s.date,
-          original_date: null,
-          week: s.week ?? 1,
-          session_type: s.session_type,
-          title: s.title,
-          intensity: s.intensity ?? 'moderate',
-          heavy_legs: s.heavy_legs ?? false,
-          duration_min: s.duration_min ?? null,
-          notes: s.notes ?? null,
-          blocks: s.blocks ?? [],
-          status: 'planned',
-          workout_session_id: null,
-        })
-      }
-      return send(res, 200, id)
+      return send(res, 200, createUserPlan((await readBody(req)) as CreatePlanArgs))
     }
     if (path === '/rest/v1/rpc/set_planned_session_done') {
       const b = (await readBody(req)) as { p_planned: string; p_done: boolean; p_workout?: string }

@@ -15,13 +15,14 @@ import {
   aiPlanSchema,
   chatReplySchema,
   dailyAdjustSchema,
+  type ChatPlanRequest,
+  type ChatResult,
   swapSchema,
   toPlanStructure,
   weeklyReviewSchema,
   type AdjustProposal,
   type AiResult,
   type ChangeResponses,
-  type PlanChange,
   type PlanProposal,
   type SwapProposal,
   type WeeklyReview,
@@ -30,13 +31,16 @@ import {
   adjustIssues,
   attachStandards,
   changeIssues,
+  chatActionIssues,
   dropInvalidAlternatives,
   dropInvalidChanges,
   dropUnknownFromAdjust,
   dropUnknownFromPlan,
   planIssues,
+  resolveChatActions,
   swapIssues,
   type ChangeRules,
+  type ChatActionRules,
 } from '@/lib/ai/validate'
 import { addDays, weekStartOf, type DateKey } from '@/lib/progress/dates'
 import type { PlanStructure } from '@/lib/plan/types'
@@ -135,9 +139,17 @@ async function runTask<T, R>(
 export type PlanRequest = {
   data: AiContextInput
   base: { id: string; name: string; structure: PlanStructure } | null
+  // Desde el chat (create_plan): sesiones por semana pedidas e indicaciones del usuario.
+  sessionsPerWeek?: number | null
+  focus?: string | null
 }
 
-export function sessionsPerWeekFor(data: AiContextInput, base: PlanRequest['base']) {
+export function sessionsPerWeekFor(
+  data: AiContextInput,
+  base: PlanRequest['base'],
+  requested: number | null = null,
+) {
+  if (requested) return requested
   const available = data.training?.availability.days_per_week ?? null
   const template = base?.structure.weeks[0]?.sessions.length ?? null
   if (available && template) return Math.min(available, template)
@@ -149,7 +161,7 @@ export async function proposePlan(
   req: PlanRequest,
 ): Promise<AiResult<{ proposal: PlanProposal }>> {
   const known = new Set(req.data.exercises.map((e) => e.id))
-  const perWeek = sessionsPerWeekFor(req.data, req.base)
+  const perWeek = sessionsPerWeekFor(req.data, req.base, req.sessionsPerWeek ?? null)
   const context = buildAiContext(req.data, { includeExercises: true, baseTemplate: req.base })
   const maxPerWeek = Math.max(perWeek ?? 5, req.base?.structure.weeks[0]?.sessions.length ?? 0)
   let dropped: string[] = []
@@ -163,7 +175,11 @@ export async function proposePlan(
         provider: deps.provider,
         schema: aiPlanSchema,
         system: SYSTEM_PROMPT,
-        prompt: planPrompt({ hasBase: req.base !== null, sessionsPerWeek: perWeek }),
+        prompt: planPrompt({
+          hasBase: req.base !== null,
+          sessionsPerWeek: perWeek,
+          focus: req.focus ?? null,
+        }),
         context,
         check: (plan) => planIssues(plan, known, maxPerWeek),
         repair: (plan) => {
@@ -381,7 +397,15 @@ export async function weeklyReview(
 // Días en los que el chat puede proponer cambios: de hoy a 2 semanas.
 export const CHAT_CHANGE_DAYS = 14
 
-export type ChatResult = { reply: string; changes: PlanChange[]; dropped: string[] }
+// Reglas de las acciones del chat: las de los cambios + plantillas y sesión pendiente de hoy.
+export function chatRules(data: AiContextInput & { planned?: ContextPlanned[] }): ChatActionRules {
+  const today = data.today
+  return {
+    ...changeRules(data, today, addDays(today, CHAT_CHANGE_DAYS - 1)),
+    templates: new Set((data.templates ?? []).map((t) => t.id)),
+    todayPending: pendingToday(data.plan?.sessions ?? [], today)?.id ?? null,
+  }
+}
 
 export async function chatReply(
   deps: CoachDeps,
@@ -393,14 +417,14 @@ export async function chatReply(
 ): Promise<AiResult<ChatResult>> {
   const today = req.data.today
   const to = addDays(today, CHAT_CHANGE_DAYS - 1)
-  const rules = changeRules(req.data, today, to)
+  const rules = chatRules(req.data)
   const context = buildAiContext(req.data, {
     includeExercises: true,
+    includeTemplates: true,
     upcoming: { from: today, to },
     conversation: req.history,
     message: req.message,
   })
-  let dropped: string[] = []
 
   return runTask(
     deps,
@@ -413,17 +437,68 @@ export async function chatReply(
         system: SYSTEM_PROMPT,
         prompt: CHAT_PROMPT,
         context,
-        check: (reply) => changeIssues(reply.changes ?? [], rules),
-        repair: (reply) => {
-          const fixed = dropInvalidChanges(reply.changes ?? [], rules)
-          dropped = fixed.dropped
-          return { ...reply, changes: fixed.changes }
-        },
+        check: (reply) => chatActionIssues(reply.actions ?? [], rules),
+        // Las acciones que no se pueden aplicar se quitan en toResult (con aviso).
+        repair: (reply) => reply,
         maxOutputTokens: 8192,
         timeoutMs: 40_000,
       }),
-    (res): ChatResult => ({ reply: res.data.reply, changes: res.data.changes ?? [], dropped }),
+    (res): ChatResult => ({
+      reply: res.data.reply,
+      ...resolveChatActions(res.data.actions ?? [], rules),
+    }),
   )
+}
+
+// ── Plan pedido desde el chat (create_plan) ────────────────
+
+type TemplateOption = {
+  id: string
+  family: string
+  level: string
+  name: string
+  days_per_week: number
+  structure: PlanStructure
+}
+
+// Plantilla base de un create_plan: la indicada si existe y es de la familia; si no, la de la
+// familia y el nivel (el pedido o el del perfil; avanzado usa intermedio) con los días más
+// cercanos a los pedidos (mejor sin pasarse).
+export function templateForChatRequest(
+  templates: TemplateOption[],
+  request: Pick<ChatPlanRequest, 'family' | 'level' | 'days_per_week' | 'template_id'>,
+  profileLevel: string | null,
+): TemplateOption | null {
+  const chosen = request.template_id
+    ? templates.find((t) => t.id === request.template_id && t.family === request.family)
+    : undefined
+  if (chosen) return chosen
+  const family = templates.filter((t) => t.family === request.family)
+  if (family.length === 0) return null
+  const wanted =
+    request.level ??
+    (profileLevel === 'beginner' ? 'beginner' : profileLevel ? 'intermediate' : 'beginner')
+  const sameLevel = family.filter((t) => t.level === wanted)
+  const pool = sameLevel.length > 0 ? sameLevel : family
+  const score = (t: TemplateOption) => {
+    const diff = t.days_per_week - request.days_per_week
+    return diff > 0 ? diff * 2 : -diff
+  }
+  return [...pool].sort((a, b) => score(a) - score(b) || a.id.localeCompare(b.id))[0] ?? null
+}
+
+// Genera el plan de un create_plan con el mismo flujo que «Personalizar con IA» (proposePlan).
+export async function proposeChatPlan(
+  deps: CoachDeps,
+  req: { data: AiContextInput; request: ChatPlanRequest; templates: TemplateOption[] },
+) {
+  const base = templateForChatRequest(req.templates, req.request, req.data.training?.level ?? null)
+  return proposePlan(deps, {
+    data: req.data,
+    base: base ? { id: base.id, name: base.name, structure: base.structure } : null,
+    sessionsPerWeek: req.request.days_per_week,
+    focus: req.request.focus ?? null,
+  })
 }
 
 // ── Sustituir ejercicio (exercise_swap) ────────────────────

@@ -480,8 +480,18 @@ describe('chat: validación de los cambios propuestos', () => {
     const deps: CoachDeps = { provider, usage: usage.store, dailyLimit: 20 }
     return { deps, provider, requests, rows: usage.rows }
   }
+  // Los cambios de sesiones llegan como acciones del chat (add_session, move_session…).
+  const TYPES = {
+    add: 'add_session',
+    move: 'move_session',
+    skip: 'skip_session',
+    modify: 'modify_session',
+  } as const
   const reply = (changes?: PlanChange[]): string =>
-    JSON.stringify({ reply: 'Te lo cambio a algo más suave.', changes } satisfies ChatReply)
+    JSON.stringify({
+      reply: 'Te lo cambio a algo más suave.',
+      actions: changes?.map(({ action, ...c }) => ({ type: TYPES[action], ...c })),
+    } satisfies ChatReply)
 
   it('envía el historial y el mensaje; sin cambios si no los pide', async () => {
     const { deps, requests, rows } = chatDeps([reply()])
@@ -626,12 +636,12 @@ describe('chat: validación de los cambios propuestos', () => {
   it('formato incorrecto (move sin fecha) → reintento con el error', async () => {
     const noDate = JSON.stringify({
       reply: 'ok',
-      changes: [{ action: 'move', planned_session_id: 'p-wed', title: 'x', reason: 'x' }],
+      actions: [{ type: 'move_session', planned_session_id: 'p-wed', title: 'x', reason: 'x' }],
     })
     const { deps, requests } = chatDeps([noDate, reply()])
     const res = await chatReply(deps, { data: withPlan(), message: 'x', history: [] })
     expect(res.ok).toBe(true)
-    expect(requests[1]!.prompt).toContain('con move hay que indicar date')
+    expect(requests[1]!.prompt).toContain('con move_session hay que indicar date')
   })
 })
 

@@ -5,7 +5,7 @@
 // los ajustes de los temporizadores; nunca pesos ni notas. Cada uno registra sus propios pesos:
 // al unirse, los pesos se precargan con los de SU última vez.
 import { z } from 'zod'
-import { normalizeSessionType } from '@/lib/activities/catalog'
+import { getActivityType, normalizeSessionType } from '@/lib/activities/catalog'
 import type { BlockType, SessionLocation, SessionType } from '@/types/database'
 import { toCamel, toSnake } from '@/lib/workout/payload'
 import { createSession, type IdFn } from '@/lib/workout/session-ops'
@@ -61,6 +61,15 @@ export const pairTemplateSchema = z.object({
   session_type: z.preprocess((v) => (v === 'padel_fronton' ? 'fronton' : v), z.enum(SESSION_TYPES)),
   title: z.string().max(120),
   location: z.enum(LOCATIONS).nullable(),
+  // Actividad personalizada de quien invita (session_type llega como «other» para las versiones
+  // anteriores de la app): al unirse, se usa la del mismo nombre o se crea con estos datos.
+  activity: z
+    .object({
+      name: z.string().min(1).max(40),
+      emoji: z.string().min(1).max(16),
+      muscles: z.array(z.string().min(1).max(40)).max(16),
+    })
+    .optional(),
   blocks: z
     .array(
       z.object({
@@ -95,9 +104,12 @@ export type PairTemplate = z.infer<typeof pairTemplateSchema>
 
 // Estructura de mi sesión para la otra persona. Los ejercicios propios no se mandan (la otra
 // persona no los tiene en su biblioteca); `skipped` cuenta los que se han quitado.
+export type PairActivity = NonNullable<PairTemplate['activity']>
+
 export function pairTemplateFromSession(
-  session: Pick<LocalSession, 'sessionType' | 'title' | 'location' | 'blocks'>,
+  session: Pick<LocalSession, 'sessionType' | 'title' | 'location' | 'blocks' | 'activityTypeId'>,
   isShareable: (exerciseId: string) => boolean,
+  activityOf: (id: string) => PairActivity | undefined = getActivityType,
 ): { template: PairTemplate; skipped: number } {
   const skippedIds = new Set<string>()
   const blocks = session.blocks.flatMap((b) => {
@@ -129,15 +141,27 @@ export function pairTemplateFromSession(
       },
     ]
   })
+  const custom =
+    session.sessionType === 'custom' && session.activityTypeId
+      ? activityOf(session.activityTypeId)
+      : undefined
   return {
     template: {
       v: 1,
-      // Las actividades personalizadas no se comparten: a la otra persona le llega «otra».
       session_type: (session.sessionType === 'custom'
         ? 'other'
         : normalizeSessionType(session.sessionType)) as PairTemplate['session_type'],
       title: session.title.slice(0, 120),
       location: session.location,
+      ...(custom
+        ? {
+            activity: {
+              name: custom.name.slice(0, 40),
+              emoji: custom.emoji.slice(0, 16),
+              muscles: custom.muscles.slice(0, 16),
+            },
+          }
+        : {}),
       blocks,
     },
     skipped: skippedIds.size,
@@ -162,6 +186,25 @@ export function pairTemplateSignature(value: unknown): string {
   return JSON.stringify(norm(value))
 }
 
+// Nombre para comparar actividades: sin mayúsculas, acentos ni espacios de más.
+export function activityNameKey(name: string) {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .replace(/\s+/g, ' ')
+    .toLowerCase()
+}
+
+// Actividad personalizada propia con el mismo nombre que la de la invitación (sin archivar).
+export function matchPairActivity<T extends { id: string; name: string; archived: boolean }>(
+  activity: PairActivity,
+  mine: T[],
+): T | undefined {
+  const key = activityNameKey(activity.name)
+  return mine.find((a) => !a.archived && activityNameKey(a.name) === key)
+}
+
 export function parsePairTemplate(payload: unknown): PairTemplate | null {
   const parsed = pairTemplateSchema.safeParse(payload)
   return parsed.success ? parsed.data : null
@@ -183,6 +226,8 @@ export function sessionFromPairTemplate(
     known: (exerciseId: string) => boolean
     last?: Map<string, LastPerformance>
     newId?: IdFn
+    // Actividad personalizada propia equivalente a la de la invitación (template.activity).
+    activityTypeId?: string | null
   },
 ): LocalSession {
   const newId = opts.newId ?? (() => crypto.randomUUID())
@@ -237,6 +282,9 @@ export function sessionFromPairTemplate(
   })
   return {
     ...base,
+    ...(opts.activityTypeId
+      ? { sessionType: 'custom' as const, activityTypeId: opts.activityTypeId }
+      : {}),
     pairGroupId: opts.pairGroupId,
     blocks: blocks.map((b, i) => ({ ...b, order: i })),
   }

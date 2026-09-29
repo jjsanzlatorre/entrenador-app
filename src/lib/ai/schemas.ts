@@ -255,22 +255,133 @@ export const weeklyReviewSchema = z.object({
 export type WeeklyReviewAi = z.infer<typeof weeklyReviewSchema>
 
 // ── Chat (§11.5) ────────────────────────────────────────────
+// Conjunto cerrado de acciones que el chat puede proponer. Cada una llega al usuario como una
+// tarjeta con su botón: nunca se aplica sola. Lo que no está en la lista, la IA lo dice en el
+// texto y sugiere lo más parecido que sí puede hacer.
 
 export const CHAT_MAX_MESSAGE = 1000
 // Mensajes anteriores que se envían a la IA (para ahorrar tokens).
 export const CHAT_HISTORY_MESSAGES = 10
-export const MAX_CHAT_CHANGES = 3
+export const MAX_CHAT_ACTIONS = 3
+// Cambios de sesiones como máximo en una respuesta (compatibilidad con las guardadas antes).
+export const MAX_CHAT_CHANGES = MAX_CHAT_ACTIONS
+
+export const CHAT_ACTION_TYPES = [
+  'create_plan',
+  'add_session',
+  'move_session',
+  'skip_session',
+  'modify_session',
+  'adjust_today',
+] as const
+export type ChatActionType = (typeof CHAT_ACTION_TYPES)[number]
+
+// Acciones de sesiones del chat → cambios del plan que aplica respond_ai_change (0025).
+export const CHAT_SESSION_ACTIONS: Partial<Record<ChatActionType, PlanChangeAction>> = {
+  add_session: 'add',
+  move_session: 'move',
+  skip_session: 'skip',
+  modify_session: 'modify',
+}
+
+export const PLAN_FAMILIES = ['running', 'swimming', 'strength', 'hyrox', 'deka', 'hybrid'] as const
+export type PlanFamilyName = (typeof PLAN_FAMILIES)[number]
+
+// create_plan: qué plan pide el usuario. El plan en sí se genera después con el mismo flujo que
+// «Personalizar con IA» (proposePlan), con la plantilla elegida y las mismas validaciones.
+export const chatPlanRequestSchema = z.object({
+  family: z.enum(PLAN_FAMILIES).describe('familia de plantilla'),
+  level: z.enum(['beginner', 'intermediate']).optional(),
+  days_per_week: z.number().int().min(1).max(7).describe('sesiones por semana'),
+  template_id: z.string().max(80).optional().describe('id exacto de «plan_templates», si encaja'),
+  focus: z
+    .string()
+    .max(300)
+    .optional()
+    .describe('indicaciones del usuario para el plan (objetivo, material, preferencias)'),
+})
+
+export type ChatPlanRequest = z.infer<typeof chatPlanRequestSchema>
+
+// Una acción propuesta. Los campos que necesita cada tipo se comprueban aparte
+// (validateChatActions): si falta algo, se reintenta y, si no, se descarta con un aviso.
+export const chatActionSchema = z.object({
+  type: z.enum(CHAT_ACTION_TYPES),
+  title: z.string().min(1).max(100).describe('qué propones, en pocas palabras'),
+  reason: z.string().min(1).max(300).describe('por qué, en 1 frase'),
+  planned_session_id: z
+    .string()
+    .optional()
+    .describe('move_session, skip_session, modify_session: id de upcoming_sessions'),
+  date: z
+    .string()
+    .regex(ISO_DATE, 'date debe ser AAAA-MM-DD')
+    .optional()
+    .describe('move_session: nuevo día; add_session: día de la sesión nueva'),
+  session: aiChangeSessionSchema
+    .optional()
+    .describe('add_session y modify_session: la sesión completa'),
+  plan: chatPlanRequestSchema.optional().describe('solo create_plan'),
+})
+
+export type ChatAction = z.infer<typeof chatActionSchema>
 
 export const chatReplySchema = z.object({
   reply: z.string().min(1).max(1500).describe('respuesta al usuario, breve y en español'),
-  changes: z
-    .array(planChangeSchema)
-    .max(MAX_CHAT_CHANGES)
+  actions: z
+    .array(chatActionSchema)
+    .max(MAX_CHAT_ACTIONS)
     .optional()
-    .describe('solo si propones cambiar el plan: tarjetas que el usuario acepta o descarta'),
+    .describe('solo si propones algo de la lista: tarjetas que el usuario acepta o descarta'),
 })
 
 export type ChatReply = z.infer<typeof chatReplySchema>
+
+// Ajuste del día pedido desde el chat: se genera con el ajuste del día (daily_adjust).
+export type ChatAdjustRequest = { title: string; reason: string; planned_session_id: string }
+
+// Lo que se guarda en ai_interactions.output y llega al cliente. `changes` conserva el formato de
+// 0025 (respond_ai_change los aplica por índice).
+export type ChatResult = {
+  reply: string
+  changes: PlanChange[]
+  // exercise_id inventados por la IA que se han descartado.
+  dropped: string[]
+  plan_request?: ChatPlanRequest & { title: string; reason: string }
+  adjust_today?: ChatAdjustRequest
+  // Acciones descartadas por no poderse aplicar (se avisa en la tarjeta).
+  discarded?: string[]
+}
+
+// Resultado real (de la base de datos, 0033) de las acciones del chat.
+export type ChatPlanResult =
+  | { status: 'prepared'; interaction_id: string }
+  | {
+      status: 'accepted'
+      interaction_id: string
+      plan_id: string
+      name: string
+      start_date: string
+      sessions: number
+      weeks: number
+      per_week: number
+      replaced: string | null
+    }
+  | { status: 'discarded' }
+
+export type ChatAdjustResult =
+  | {
+      status: 'accepted'
+      interaction_id: string
+      decision: AdjustDecision
+      planned_session_id: string
+      date: string
+      title: string
+      session_status: string
+    }
+  | { status: 'discarded' }
+
+export type ChatActionResults = { plan?: ChatPlanResult; adjust?: ChatAdjustResult }
 
 // ── Sustituir ejercicio (§11.6) ─────────────────────────────
 

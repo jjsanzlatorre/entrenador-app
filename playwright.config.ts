@@ -38,6 +38,8 @@ export default defineConfig({
         GEMINI_API_KEY: 'e2e-gemini-key',
         GEMINI_BASE_URL: `http://localhost:${MOCK_PORT}/gemini/v1beta`,
         GEMINI_FALLBACK_MODEL: 'gemini-e2e-fallback',
+        // Planes y revisión semanal con el modelo «pesado»; chat y ajuste con el normal.
+        GEMINI_MODEL_HEAVY: 'gemini-e2e-heavy',
         AI_DAILY_LIMIT: '5',
       },
     },

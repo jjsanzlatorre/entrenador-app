@@ -853,6 +853,8 @@ export type Database = {
           // 0025: semana de la revisión semanal y respuesta a cada cambio propuesto.
           period: string | null
           responses: Json
+          // 0033: resultado de las acciones del chat («plan», «adjust»); solo por RPC.
+          action_results: Json
         }
         Insert: {
           id?: string
@@ -871,6 +873,7 @@ export type Database = {
           finished_at?: string | null
           period?: string | null
           responses?: Json
+          action_results?: Json
         }
         Update: {
           accepted?: boolean | null
@@ -1253,6 +1256,17 @@ export type Database = {
         Args: { p_interaction: string; p_index: number; p_accept: boolean }
         Returns: string
       }
+      // 0033_chat_actions.sql
+      link_chat_plan: { Args: { p_chat: string; p_plan: string }; Returns: undefined }
+      accept_chat_plan: {
+        Args: { p_chat: string; p_name: string; p_start_date: string; p_sessions: Json }
+        Returns: Json
+      }
+      apply_chat_adjust: {
+        Args: { p_chat: string; p_adjust: string; p_planned: string }
+        Returns: Json
+      }
+      discard_chat_action: { Args: { p_chat: string; p_key: string }; Returns: undefined }
       // 0028_push_notifications.sql
       save_push_subscription: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null }

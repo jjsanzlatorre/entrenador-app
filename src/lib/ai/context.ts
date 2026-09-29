@@ -2,6 +2,7 @@
 // compacto. Solo lo necesario para entrenar: nunca nombre, email, fotos, notas de sesiones ni
 // medidas corporales (peso, perímetros). Del perfil solo sexo (estándares de competición) y edad.
 // Función pura: los datos los carga el servidor (src/server/ai/load-context.ts).
+import { activityKey, DEFAULT_ACTIVITY_TYPES, type ActivityType } from '@/lib/activities/catalog'
 import type { Commitment } from '@/lib/progress/types'
 import { acuteChronicRatio, weeklyLoads } from '@/lib/progress/load'
 import { addDays, daysBetween, isoWeekday, weekStartOf, type DateKey } from '@/lib/progress/dates'
@@ -22,10 +23,21 @@ export type ContextSession = {
   // Día local (en la zona horaria del usuario).
   date: DateKey
   sessionType: SessionType
+  // Actividad personalizada (session_type custom).
+  activityTypeId?: string | null
   title: string | null
   durationMin: number | null
   rpe: number | null
   distanceM: number | null
+}
+
+// Plantilla de plan disponible (el chat elige una para create_plan).
+export type ContextTemplate = {
+  id: string
+  family: string
+  level: string
+  name: string
+  daysPerWeek: number
 }
 
 export type ContextPlanned = {
@@ -83,6 +95,10 @@ export type AiContextInput = {
   exercises: ContextExercise[]
   prs: ContextPr[]
   checkins: ContextCheckin[]
+  // Tipos de actividad del usuario: globales y sus personalizadas (sin archivar), con su
+  // aproximación muscular. Sin ellos se usan los globales de la semilla.
+  activityTypes?: ActivityType[]
+  templates?: ContextTemplate[]
 }
 
 export type AiContextOptions = {
@@ -99,6 +115,8 @@ export type AiContextOptions = {
   // Últimos mensajes del chat (los más antiguos primero) y el mensaje nuevo.
   conversation?: { role: 'user' | 'assistant'; text: string }[] | null
   message?: string | null
+  // Plantillas de plan disponibles (chat: create_plan).
+  includeTemplates?: boolean
 }
 
 // Sesiones pendientes que la IA puede cambiar (revisión semanal y chat).
@@ -119,11 +137,45 @@ function asLoadSession(s: ContextSession) {
   return {
     id: s.id,
     sessionType: s.sessionType,
+    activityTypeId: s.activityTypeId ?? null,
     startedAt: iso,
     endedAt: iso,
     durationMin: s.durationMin ?? 0,
     rpe: s.rpe,
   }
+}
+
+// Tipos de actividad del usuario: los globales de la semilla + los de la base de datos.
+function activityMap(input: Pick<AiContextInput, 'activityTypes'>) {
+  const map = new Map<string, ActivityType>(DEFAULT_ACTIVITY_TYPES.map((a) => [a.id, a]))
+  for (const a of input.activityTypes ?? []) map.set(a.id, a)
+  return map
+}
+
+function approxLookup(map: Map<string, ActivityType>) {
+  return (key: string) => {
+    const a = map.get(key)
+    return a && a.muscles.length > 0 && a.setsPer30Min > 0
+      ? { muscles: a.muscles, setsPer30Min: a.setsPer30Min }
+      : undefined
+  }
+}
+
+// Actividades que la IA debe conocer (planes, ajuste del día y chat): id | nombre | emoji |
+// músculos aproximados | series equivalentes por 30 min | reglas del planificador.
+export function activityLines(input: Pick<AiContextInput, 'activityTypes'>) {
+  return [...activityMap(input).values()]
+    .filter((a) => !a.archived)
+    .map((a) => {
+      const flags = [
+        a.ownerId !== null ? 'personalizada' : null,
+        a.legLoading ? 'carga piernas' : null,
+        a.hardLegs ? 'intensa de pierna' : null,
+        a.freeActivity ? 'actividad libre' : null,
+      ].filter(Boolean)
+      const muscles = a.muscles.length ? a.muscles.join(',') : '-'
+      return `${a.id} | ${a.name} | ${a.emoji} | ${muscles} | ${a.setsPer30Min} | ${flags.join(', ') || '-'}`
+    })
 }
 
 function withoutNulls<T extends Record<string, unknown>>(obj: T) {
@@ -134,6 +186,7 @@ function withoutNulls<T extends Record<string, unknown>>(obj: T) {
 
 function athlete(input: AiContextInput) {
   const t = input.training
+  const activities = activityMap(input)
   const year = Number(input.today.slice(0, 4))
   return withoutNulls({
     sex: input.sex,
@@ -150,7 +203,13 @@ function athlete(input: AiContextInput) {
     limitations: t?.limitations ?? null,
     fixed_activities: t?.fixedActivities.length
       ? t.fixedActivities.map((f) =>
-          withoutNulls({ type: f.type, label: f.label, days: days(f.days), minutes: f.minutes }),
+          withoutNulls({
+            type: f.type,
+            name: activities.get(f.type)?.name ?? null,
+            label: f.label,
+            days: days(f.days),
+            minutes: f.minutes,
+          }),
         )
       : null,
     benchmarks: t ? withoutNulls(t.benchmarks) : null,
@@ -185,6 +244,7 @@ function planSummary(input: AiContextInput) {
 
 function recent(input: AiContextInput) {
   const today = input.today
+  const activities = activityMap(input)
   const loadSessions = input.sessions.map(asLoadSession)
   const acwr = acuteChronicRatio(loadSessions, today, { hasActivePlan: input.plan !== null })
   const weeks = weeklyLoads(loadSessions, weekStartOf(today), 4).map((w) => {
@@ -208,6 +268,7 @@ function recent(input: AiContextInput) {
       ),
       input.setCounts,
       catalog,
+      approxLookup(activities),
     )
   const last7 = volumeFor(addDays(today, -6))
   const last14 = volumeFor(addDays(today, -13))
@@ -231,7 +292,8 @@ function recent(input: AiContextInput) {
     .map((s) =>
       withoutNulls({
         date: s.date,
-        type: s.sessionType,
+        type: activityKey(s),
+        activity: s.sessionType === 'custom' ? (activities.get(activityKey(s))?.name ?? null) : null,
         title: s.title,
         min: s.durationMin,
         rpe: s.rpe,
@@ -318,6 +380,20 @@ export function buildAiContext(input: AiContextInput, opts: AiContextOptions = {
       : null,
     conversation: opts.conversation?.length ? opts.conversation : null,
     message: opts.message ?? null,
+    activity_types: {
+      format:
+        'id | nombre | emoji | músculos aproximados | series equivalentes por 30 min | reglas',
+      list: activityLines(input),
+    },
+    plan_templates:
+      opts.includeTemplates && input.templates?.length
+        ? {
+            format: 'template_id | familia | nivel | sesiones por semana | nombre',
+            list: input.templates.map(
+              (t) => `${t.id} | ${t.family} | ${t.level} | ${t.daysPerWeek} | ${t.name}`,
+            ),
+          }
+        : null,
     base_template: opts.baseTemplate
       ? { id: opts.baseTemplate.id, name: opts.baseTemplate.name, ...opts.baseTemplate.structure }
       : null,
@@ -333,8 +409,16 @@ export function buildAiContext(input: AiContextInput, opts: AiContextOptions = {
 // Resumen de lo que se envió (se guarda en ai_interactions.input_summary; sin la lista de
 // ejercicios ni la plantilla para no ocupar espacio).
 export function summarizeContext(ctx: ReturnType<typeof buildAiContext>) {
-  const { exercises: _exercises, base_template, ...rest } = ctx as Record<string, unknown>
+  const {
+    exercises: _exercises,
+    activity_types: _activities,
+    plan_templates: _templates,
+    base_template,
+    ...rest
+  } = ctx as Record<string, unknown>
   void _exercises
+  void _activities
+  void _templates
   const base = base_template as { id?: string } | undefined
   return { ...rest, base_template: base?.id ?? null }
 }

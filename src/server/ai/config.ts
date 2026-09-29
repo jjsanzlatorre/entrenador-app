@@ -1,6 +1,7 @@
 // Configuración del entrenador IA (solo servidor). El proveedor se elige con AI_PROVIDER:
-// - gemini (por defecto): GEMINI_API_KEY, GEMINI_MODEL y GEMINI_FALLBACK_MODEL (opcional: modelo
-//   de reserva si el principal devuelve 429 o cuota agotada).
+// - gemini (por defecto): GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MODEL_HEAVY (opcional: modelo para
+//   las tareas pesadas: generar o personalizar un plan, create_plan del chat y revisión semanal) y
+//   GEMINI_FALLBACK_MODEL (opcional: modelo de reserva si el que toca devuelve 429 o cuota agotada).
 // - anthropic: ANTHROPIC_API_KEY y AI_MODEL.
 // AI_DAILY_LIMIT: llamadas por usuario y día (por defecto 20).
 // GEMINI_BASE_URL (opcional): otra URL de la API de Gemini (los E2E usan un simulador).
@@ -15,9 +16,15 @@ export const DEFAULT_MODELS: Record<AiProviderName, string> = {
 
 export const DEFAULT_DAILY_LIMIT = 20
 
+// Tipo de tarea: heavy = generar o personalizar un plan y revisión semanal; light = el resto
+// (chat, ajuste del día, sustituir ejercicio).
+export type AiTier = 'light' | 'heavy'
+
 export type AiConfig = {
   provider: AiProviderName
   model: string
+  // Solo Gemini: modelo de las tareas pesadas (null = el mismo que `model`).
+  heavyModel: string | null
   // Solo Gemini: modelo de reserva ante 429 / cuota agotada (null = sin reserva).
   fallbackModel: string | null
   apiKey: string | null
@@ -45,6 +52,9 @@ export function getAiConfig(env: Env = process.env): AiConfig {
     (provider === 'gemini' ? clean(env.GEMINI_MODEL) : clean(env.AI_MODEL)) ??
     DEFAULT_MODELS[provider]
 
+  const heavy = provider === 'gemini' ? clean(env.GEMINI_MODEL_HEAVY) : undefined
+  const heavyModel = heavy && heavy !== model ? heavy : null
+
   const fallback = provider === 'gemini' ? clean(env.GEMINI_FALLBACK_MODEL) : undefined
   const fallbackModel = fallback && fallback !== model ? fallback : null
 
@@ -61,6 +71,7 @@ export function getAiConfig(env: Env = process.env): AiConfig {
   return {
     provider,
     model,
+    heavyModel,
     fallbackModel,
     apiKey: apiKey ?? null,
     dailyLimit,
@@ -70,12 +81,19 @@ export function getAiConfig(env: Env = process.env): AiConfig {
   }
 }
 
+// Modelo que se usa para un tipo de tarea.
+export function modelFor(config: AiConfig, tier: AiTier) {
+  return tier === 'heavy' && config.heavyModel ? config.heavyModel : config.model
+}
+
 // Para /api/health: solo booleanos y nombres, nunca claves.
 export function describeAiEnv(env: Env = process.env) {
   const c = getAiConfig(env)
   return {
     AI_PROVIDER: c.provider,
     model: c.model,
+    heavyModel: c.heavyModel,
+    GEMINI_MODEL_HEAVY: Boolean(clean(env.GEMINI_MODEL_HEAVY)),
     fallbackModel: c.fallbackModel,
     configured: c.configured,
     GEMINI_API_KEY: Boolean(clean(env.GEMINI_API_KEY)),

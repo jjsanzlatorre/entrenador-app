@@ -109,6 +109,29 @@ export type QuickActivityInput = {
   calories: number | null
 }
 
+// Sesión en curso de una actividad (p. ej. un entreno en pareja de pádel o de una actividad
+// personalizada): cronómetro continuo con el ejercicio de la actividad.
+export function createActivitySession(
+  userId: string,
+  activityId: string,
+  now: number,
+  newId?: IdFn,
+): LocalSession {
+  const activity = getActivityType(activityId) ?? getActivityType('other')!
+  const { sessionType, activityTypeId } = sessionTypeForActivity(activity)
+  const session = {
+    ...createSession(userId, now, newId, activity.name, sessionType, activity.location),
+    activityTypeId,
+  }
+  return addTimedBlock(
+    session,
+    { kind: 'free' },
+    [{ exercise: { id: activity.exerciseId, defaultRestS: 0 }, targetReps: null }],
+    now,
+    newId,
+  )
+}
+
 // Crea una sesión ya terminada, lista para guardar y sincronizar.
 export function createQuickActivity(
   userId: string,

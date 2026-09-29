@@ -208,6 +208,82 @@ test('unirse a un entreno en pareja: misma estructura, sin sus pesos y con el mi
     })
 })
 
+test('entreno en pareja con una actividad personalizada: llega con su nombre y emoji', async ({
+  page,
+  request,
+}) => {
+  await request.post(`${MOCK}/__seed`, {
+    data: {
+      partnerLinks: [link({ they_share_adherence: true })],
+      pairInvites: [
+        {
+          id: '55555555-5555-4555-8555-555555555555',
+          pair_group_id: GROUP,
+          from_user: PARTNER_ID,
+          to_user: '11111111-1111-4111-8111-111111111111',
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          payload: {
+            v: 1,
+            // «other» para las versiones anteriores; la actividad viaja aparte.
+            session_type: 'other',
+            title: 'Rocódromo',
+            location: 'other',
+            activity: { name: 'Escalada', emoji: '🧗', muscles: ['lats', 'forearms', 'biceps'] },
+            blocks: [
+              {
+                block_type: 'free',
+                settings: { kind: 'free' },
+                exercises: [{ exercise_id: 'other_activity', rest_s: 0 }],
+                sets: [
+                  {
+                    exercise_id: 'other_activity',
+                    is_warmup: false,
+                    reps: null,
+                    duration_s: null,
+                    distance_m: null,
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      ],
+    },
+  })
+
+  await page.goto('/')
+  const card = page.getByText('Bea te invita a entrenar juntos').locator('../..')
+  await expect(card.getByText('🧗')).toBeVisible()
+  await expect(card.getByText(/Escalada · Rocódromo/)).toBeVisible()
+  await page.getByRole('button', { name: 'Unirme' }).click()
+  await expect(page).toHaveURL(/\/entrenar\/sesion/)
+  await expect(page.getByText('Entrenando con Bea')).toBeVisible()
+
+  // No tenía «Escalada»: se crea como actividad propia y la sesión se guarda con ella.
+  await expect
+    .poll(async () => {
+      const s = (await (await request.get(`${MOCK}/__state`)).json()) as {
+        customActivities: { id: string; name: string; emoji: string; muscles: string[] }[]
+        sessions: {
+          session: { title: string; session_type: string; activity_type_id: string | null }
+        }[]
+      }
+      const activity = s.customActivities.find((a) => a.name === 'Escalada')
+      const mine = s.sessions.find((x) => x.session.title === 'Rocódromo')
+      return {
+        activity: activity && [activity.emoji, activity.muscles],
+        type: mine?.session.session_type,
+        sameActivity: Boolean(activity && mine?.session.activity_type_id === activity.id),
+      }
+    })
+    .toEqual({
+      activity: ['🧗', ['lats', 'forearms', 'biceps']],
+      type: 'custom',
+      sameActivity: true,
+    })
+})
+
 test('7B: en un entreno libre en pareja, la estructura le llega sola al añadir ejercicios', async ({
   page,
   request,

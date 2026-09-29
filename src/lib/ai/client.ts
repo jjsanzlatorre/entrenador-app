@@ -10,13 +10,23 @@ import {
   generatePlanProposal,
   getAiStatus,
   getWeeklyReview,
+  prepareChatPlan,
   proposeExerciseSwap,
   proposeTodayAdjust,
   sendChatMessage,
 } from '@/server/ai.functions'
 import type { AiChatRole, Json } from '@/types/database'
 import { reviewWeekOf } from './review'
-import { aiFailure, type AiFailure, type ChangeResponses, type PlanChange } from './schemas'
+import {
+  aiFailure,
+  type AiFailure,
+  type ChangeResponses,
+  type ChatActionResults,
+  type ChatAdjustResult,
+  type ChatPlanResult,
+  type ChatResult,
+  type PlanChange,
+} from './schemas'
 
 export const aiStatusKey = ['ai-status'] as const
 
@@ -57,6 +67,7 @@ export function useAiRequests() {
   const reviewFn = useServerFn(getWeeklyReview)
   const chatFn = useServerFn(sendChatMessage)
   const swapFn = useServerFn(proposeExerciseSwap)
+  const chatPlanFn = useServerFn(prepareChatPlan)
   const base = () => ({ today: localDateKey(new Date()), tz: userTimeZone() })
   return {
     proposePlan: (templateId: string | null) =>
@@ -66,6 +77,9 @@ export function useAiRequests() {
       call(() => reviewFn({ data: { ...base(), ...opts } })),
     sendChat: (text: string) => call(() => chatFn({ data: { ...base(), text } })),
     proposeSwap: (exerciseId: string) => call(() => swapFn({ data: { ...base(), exerciseId } })),
+    // create_plan del chat: genera (o devuelve el ya generado) el plan de esa respuesta.
+    prepareChatPlan: (chatInteractionId: string) =>
+      call(() => chatPlanFn({ data: { ...base(), chatInteractionId } })),
   }
 }
 
@@ -141,9 +155,15 @@ export type ChatMessage = {
   content: string
   createdAt: string
   interactionId: string | null
-  // Solo en las respuestas: cambios propuestos y lo respondido.
+  // Solo en las respuestas: acciones propuestas y lo respondido.
   changes: PlanChange[]
   responses: ChangeResponses
+  planRequest: ChatResult['plan_request'] | null
+  adjustToday: ChatResult['adjust_today'] | null
+  // Acciones que la app ha descartado por no poderse aplicar.
+  discarded: string[]
+  // Resultado real de crear el plan o ajustar el día (0033).
+  results: ChatActionResults
 }
 
 export const chatKey = (userId: string) => ['ai-chat', userId] as const
@@ -152,6 +172,14 @@ export const CHAT_PAGE = 60
 function asChanges(output: unknown): PlanChange[] {
   const changes = (output as { changes?: unknown } | null)?.changes
   return Array.isArray(changes) ? (changes as PlanChange[]) : []
+}
+
+function asObject<T>(value: unknown): T | null {
+  return value && typeof value === 'object' && !Array.isArray(value) ? (value as T) : null
+}
+
+function asStrings(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
 }
 
 function asResponses(value: unknown): ChangeResponses {
@@ -182,7 +210,10 @@ export async function fetchChat(userId: string): Promise<ChatMessage[]> {
   const interactions = ids.length
     ? (check(
         await withTimeout(
-          db().from('ai_interactions').select('id, output, responses').in('id', ids),
+          db()
+            .from('ai_interactions')
+            .select('id, output, responses, action_results')
+            .in('id', ids),
         ),
       ) ?? [])
     : []
@@ -197,6 +228,10 @@ export async function fetchChat(userId: string): Promise<ChatMessage[]> {
       interactionId: r.interaction_id,
       changes: i ? asChanges(i.output) : [],
       responses: i ? asResponses(i.responses) : {},
+      planRequest: i ? asObject(asObject<ChatResult>(i.output)?.plan_request) : null,
+      adjustToday: i ? asObject(asObject<ChatResult>(i.output)?.adjust_today) : null,
+      discarded: i ? asStrings(asObject<ChatResult>(i.output)?.discarded) : [],
+      results: (i && asObject<ChatActionResults>(i.action_results)) || {},
     }
   })
 }
@@ -222,6 +257,53 @@ export async function refreshAfterChange(queryClient: QueryClient, userId: strin
     queryClient.invalidateQueries({ queryKey: chatKey(userId) }),
     queryClient.invalidateQueries({ queryKey: ['weekly-review', userId] }),
   ])
+}
+
+// ── Acciones del chat (0033) ────────────────────────────────
+
+// Crea el plan preparado desde el chat; devuelve lo que ha quedado en la base de datos.
+export async function acceptChatPlan(input: {
+  chatInteractionId: string
+  name: string
+  startDate: string
+  sessions: ScheduledSession[]
+}) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para crear el plan')
+  return check(
+    await withTimeout(
+      db().rpc('accept_chat_plan', {
+        p_chat: input.chatInteractionId,
+        p_name: input.name,
+        p_start_date: input.startDate,
+        p_sessions: input.sessions as unknown as Json,
+      }),
+    ),
+  ) as unknown as Extract<ChatPlanResult, { status: 'accepted' }>
+}
+
+// Aplica el ajuste del día pedido desde el chat (apply_daily_adjust + resultado en el chat).
+export async function applyChatAdjust(
+  chatInteractionId: string,
+  adjustId: string,
+  plannedId: string,
+) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para cambiar el plan')
+  return check(
+    await withTimeout(
+      db().rpc('apply_chat_adjust', {
+        p_chat: chatInteractionId,
+        p_adjust: adjustId,
+        p_planned: plannedId,
+      }),
+    ),
+  ) as unknown as Extract<ChatAdjustResult, { status: 'accepted' }>
+}
+
+export async function discardChatAction(chatInteractionId: string, key: 'plan' | 'adjust') {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión')
+  check(
+    await withTimeout(db().rpc('discard_chat_action', { p_chat: chatInteractionId, p_key: key })),
+  )
 }
 
 // ── Sustituir ejercicio ─────────────────────────────────────

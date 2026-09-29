@@ -2,6 +2,8 @@ import { useEffect } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, MessageCircle, Play } from 'lucide-react'
 import { WeeklyReviewCard } from '@/components/ai/weekly-review'
+import { PairInviteCards } from '@/components/partners/pair'
+import { ReactionsNotice } from '@/components/partners/reactions'
 import { Page } from '@/components/page'
 import { UsCard, WeekAdherenceCard } from '@/components/progress/adherence'
 import { MonthSummaryPopup } from '@/components/progress/achievements'
@@ -48,7 +50,9 @@ function TodayPage() {
   return (
     <Page title={name ? `Hola, ${name}` : 'Hoy'}>
       <WeekAdherenceCard userId={auth.userId} />
+      <ReactionsNotice userId={auth.userId} />
       <AcwrAlert userId={auth.userId} />
+      <PairInviteCards userId={auth.userId} canStart={!session} />
       {session ? (
         <Link
           to="/entrenar/sesion"

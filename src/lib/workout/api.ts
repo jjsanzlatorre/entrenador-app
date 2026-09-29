@@ -79,7 +79,13 @@ export async function fetchCatalog(userId: string): Promise<Exercise[]> {
   if (isOnline()) {
     try {
       const { data, error } = await withTimeout(
-        db().from('exercises').select('*, exercise_muscles(muscle_id, role)').order('name'),
+        // Globales + propios: con un vínculo, la RLS también deja ver los propios de la otra
+        // persona (para su historial), pero no deben aparecer en mi biblioteca.
+        db()
+          .from('exercises')
+          .select('*, exercise_muscles(muscle_id, role)')
+          .or(`owner_id.is.null,owner_id.eq.${userId}`)
+          .order('name'),
       )
       if (error) throw new Error(error.message)
       const exercises = (data as ExerciseWithMuscles[]).map(toExercise)

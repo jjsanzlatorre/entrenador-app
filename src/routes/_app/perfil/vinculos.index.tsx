@@ -1,22 +1,17 @@
 import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, UserPlus, X } from 'lucide-react'
+import { Check, ChevronLeft, ChevronRight, UserPlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import {
-  invitePartner,
-  respondPartner,
-  revokePartner,
-  updateSharing,
-  type PartnerLink,
-} from '@/lib/progress/api'
+import { sharedSummary } from '@/components/partners/permissions'
+import { invitePartner, respondPartner, revokePartner, type PartnerLink } from '@/lib/progress/api'
 import { partnersKey, usePartnerLinks } from '@/lib/progress/hooks'
 import { notifyError, notifySaved } from '@/lib/notify'
 
-export const Route = createFileRoute('/_app/perfil/vinculos')({
+export const Route = createFileRoute('/_app/perfil/vinculos/')({
   ssr: false,
   component: PartnersPage,
 })
@@ -38,8 +33,9 @@ function PartnersPage() {
       </Link>
       <h1 className="text-2xl font-bold">Pareja y amigos</h1>
       <p className="text-muted-foreground text-sm">
-        Vincúlate con alguien que ya use la app para ver vuestro cumplimiento juntos en la tarjeta
-        «Nosotros». Cada uno decide qué comparte. Las fotos nunca se comparten.
+        Vincúlate con quien ya use la app (tu pareja o amigos) para ver vuestro cumplimiento juntos
+        en la tarjeta «Nosotros» y entrenar juntos. Cada uno decide, persona a persona, qué
+        comparte. Las fotos nunca se comparten.
       </p>
 
       <InviteForm userId={auth.userId} />
@@ -50,9 +46,13 @@ function PartnersPage() {
       {received.map((l) => (
         <ReceivedCard key={l.partnerId} userId={auth.userId} link={l} />
       ))}
-      {accepted.map((l) => (
-        <LinkedCard key={l.partnerId} userId={auth.userId} link={l} />
-      ))}
+      {accepted.length > 0 && (
+        <ul className="flex flex-col gap-2" aria-label="Personas vinculadas">
+          {accepted.map((l) => (
+            <LinkedRow key={l.partnerId} link={l} />
+          ))}
+        </ul>
+      )}
       {sent.map((l) => (
         <SentCard key={l.partnerId} userId={auth.userId} link={l} />
       ))}
@@ -145,7 +145,8 @@ function ReceivedCard({ userId, link }: { userId: string; link: PartnerLink }) {
         <CardTitle>{link.displayName} quiere vincularse contigo</CardTitle>
         <CardDescription>
           Al aceptar, los dos veréis el cumplimiento del otro (porcentajes, rachas y nº de sesiones
-          por tipo). Ni pesos, ni notas, ni medidas, salvo que lo actives.
+          por tipo). Entrenos, mapa muscular, logros y medidas solo si cada uno lo activa. Las
+          fotos, nunca.
         </CardDescription>
       </CardHeader>
       <CardContent className="grid grid-cols-2 gap-2">
@@ -186,83 +187,23 @@ function SentCard({ userId, link }: { userId: string; link: PartnerLink }) {
   )
 }
 
-const PERMISSIONS: { key: keyof PartnerLink['iShare']; label: string; hint: string }[] = [
-  {
-    key: 'adherence',
-    label: 'Mi cumplimiento',
-    hint: 'Porcentajes, rachas y nº de sesiones por tipo.',
-  },
-  {
-    key: 'sessions',
-    label: 'Mis sesiones',
-    hint: 'Ejercicios, pesos y series (se podrán ver en la fase 7).',
-  },
-  { key: 'metrics', label: 'Mi peso y medidas', hint: 'Nunca las fotos.' },
-]
-
-function LinkedCard({ userId, link }: { userId: string; link: PartnerLink }) {
-  const refresh = useRefresh(userId)
-  const [error, setError] = useState<string | null>(null)
-
-  async function toggle(key: keyof PartnerLink['iShare'], value: boolean) {
-    setError(null)
-    try {
-      await updateSharing(userId, link.partnerId, { [key]: value })
-      await refresh()
-    } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
-      notifyError(e, 'guardar el permiso')
-    }
-  }
-
-  async function revoke() {
-    if (!confirm(`¿Deshacer el vínculo con ${link.displayName}? Dejaréis de ver vuestros datos.`))
-      return
-    try {
-      await revokePartner(link.partnerId)
-      await refresh()
-    } catch (e) {
-      notifyError(e, 'deshacer el vínculo')
-    }
-  }
-
-  const theyShare = PERMISSIONS.filter((p) => link.theyShare[p.key]).map((p) =>
-    p.label.replace('Mi ', 'su ').replace('Mis ', 'sus '),
-  )
-
+function LinkedRow({ link }: { link: PartnerLink }) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{link.displayName}</CardTitle>
-        <CardDescription>
-          Te comparte: {theyShare.length > 0 ? theyShare.join(', ') : 'nada por ahora'}.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-3">
-        <p className="text-sm font-medium">Lo que compartes tú</p>
-        {PERMISSIONS.map((p) => (
-          <label key={p.key} className="flex items-start gap-3 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5 size-5"
-              checked={link.iShare[p.key]}
-              onChange={(e) => void toggle(p.key, e.target.checked)}
-            />
-            <span>
-              <span className="font-medium">{p.label}</span>
-              <span className="text-muted-foreground block">{p.hint}</span>
-            </span>
-          </label>
-        ))}
-        {error && <p className="text-destructive text-sm">{error}</p>}
-        <Button
-          variant="ghost"
-          className="text-destructive self-start"
-          onClick={() => void revoke()}
-        >
-          Deshacer vínculo
-        </Button>
-      </CardContent>
-    </Card>
+    <li>
+      <Link
+        to="/perfil/vinculos/$partnerId"
+        params={{ partnerId: link.partnerId }}
+        className="bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-4"
+      >
+        <div className="min-w-0 flex-1">
+          <p className="truncate font-semibold">{link.displayName}</p>
+          <p className="text-muted-foreground text-xs">Compartes: {sharedSummary(link.iShare)}</p>
+          <p className="text-muted-foreground text-xs">
+            Te comparte: {sharedSummary(link.theyShare)}
+          </p>
+        </div>
+        <ChevronRight className="text-muted-foreground size-5 shrink-0" />
+      </Link>
+    </li>
   )
 }

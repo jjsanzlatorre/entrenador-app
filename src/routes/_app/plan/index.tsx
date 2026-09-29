@@ -46,6 +46,7 @@ import { refreshPlan, useActivePlan, useTrainingProfile } from '@/lib/plan/hooks
 import { moveWarnings } from '@/lib/plan/move-rules'
 import { WEEKDAY_LONG, WEEKDAY_SHORT, type FixedActivity } from '@/lib/plan/profile'
 import { useStartPlanned } from '@/lib/plan/start'
+import { PlannedPairButton } from '@/components/partners/pair'
 import {
   addDays,
   formatDayMonth,
@@ -444,6 +445,7 @@ function PlannedSheet({
               <Button size="lg" disabled={busy} onClick={() => void starter.start(planned)}>
                 <Play /> Empezar ahora
               </Button>
+              <PlannedPairButton userId={userId} planned={planned} disabled={busy} />
               <div className="grid grid-cols-3 gap-2">
                 <Button variant="outline" disabled={busy} onClick={() => setLinking((v) => !v)}>
                   <Check /> Hecha

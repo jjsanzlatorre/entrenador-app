@@ -27,6 +27,20 @@ export function acwrMessage(acwr: Acwr) {
   }
 }
 
+// Lo mismo, visto por una persona vinculada (sin consejos en segunda persona).
+export function acwrMessageOther(acwr: Acwr) {
+  switch (acwr.status) {
+    case 'high':
+      return `Esta semana lleva bastante más carga que su media (ratio > ${formatRatio(ACWR_HIGH)}).`
+    case 'low':
+      return `Carga por debajo de lo habitual (ratio < ${formatRatio(ACWR_LOW)}).`
+    case 'ok':
+      return `Carga equilibrada: entre ${formatRatio(ACWR_LOW)} y ${formatRatio(ACWR_HIGH)}.`
+    default:
+      return 'Datos insuficientes: el ratio necesita al menos 4 semanas de entrenos con RPE.'
+  }
+}
+
 // Aviso compacto (en «Hoy» y Progreso): solo cuando hay algo que avisar.
 export function AcwrAlert({ userId }: { userId: string }) {
   const log = useSessionLog(userId)

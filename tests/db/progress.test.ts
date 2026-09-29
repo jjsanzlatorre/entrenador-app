@@ -327,7 +327,7 @@ describe('vínculos', () => {
     they_share_adherence: boolean
     they_share_sessions: boolean
   }
-  const links = (uid: string) => asUser<Link>(db, uid, 'select * from public.list_partner_links()')
+  const links = (uid: string) => asUser<Link>(db, uid, 'select * from public.list_partners()')
   const partnerDays = (uid: string, partner: string) =>
     asUser<{ day: Date; session_type: string }>(
       db,

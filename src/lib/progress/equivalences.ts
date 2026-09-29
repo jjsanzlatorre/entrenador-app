@@ -442,3 +442,11 @@ export function bestEquivalence(acc: Accumulated, ctx: EquivalenceContext) {
 export function accumulatedFor(sessions: SessionLogEntry[], kind: PeriodKind, day: DateKey) {
   return accumulate(sessions, periodFor(kind, day))
 }
+
+// Frases vistas por una persona vinculada: «Has corrido…» → «Ha corrido…» (fase 7A).
+export function thirdPerson(text: string) {
+  return text
+    .replace(/\b([Hh])as\b/g, '$1a')
+    .replace(/\b([Ll])levas\b/g, '$1leva')
+    .replace(/\btu ciudad\b/g, 'su ciudad')
+}

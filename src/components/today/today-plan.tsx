@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Play, SkipForward } from 'lucide-react'
 import { AdjustedNotice, AiAdjust } from '@/components/ai/ai-adjust'
+import { PlannedPairButton } from '@/components/partners/pair'
 import { PlannedBlocks } from '@/components/plan/planned-blocks'
 import { Button } from '@/components/ui/button'
 import { notifyError, notifySaved } from '@/lib/notify'
@@ -130,6 +131,9 @@ export function TodayPlan({
                   >
                     <Play className="size-5" /> Empezar planificada
                   </Button>
+                )}
+                {canStart && (
+                  <PlannedPairButton userId={userId} planned={p} disabled={starter.busy} />
                 )}
                 <Button
                   variant="ghost"

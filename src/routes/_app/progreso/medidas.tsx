@@ -3,7 +3,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Trash2 } from 'lucide-react'
 import { BackLink } from '@/components/progress/common'
-import { SeriesChart } from '@/components/progress/line-chart'
+import { FIELDS, MetricsChart, type Field } from '@/components/progress/body-metrics'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -18,7 +18,6 @@ import {
 } from '@/lib/progress/api'
 import { formatDayMonth, localDateKey } from '@/lib/progress/dates'
 import { formatKg, parseDecimal } from '@/lib/workout/format'
-import { cn } from '@/lib/utils'
 import { notifyError, notifySaved } from '@/lib/notify'
 
 export const Route = createFileRoute('/_app/progreso/medidas')({
@@ -26,33 +25,14 @@ export const Route = createFileRoute('/_app/progreso/medidas')({
   component: BodyMetricsPage,
 })
 
-type Field = Exclude<keyof BodyMetric, 'id' | 'date' | 'notes'>
-
-const FIELDS: { key: Field; label: string; unit: string }[] = [
-  { key: 'weightKg', label: 'Peso', unit: 'kg' },
-  { key: 'bodyFatPct', label: 'Grasa', unit: '%' },
-  { key: 'waistCm', label: 'Cintura', unit: 'cm' },
-  { key: 'hipCm', label: 'Cadera', unit: 'cm' },
-  { key: 'chestCm', label: 'Pecho', unit: 'cm' },
-  { key: 'armCm', label: 'Brazo', unit: 'cm' },
-  { key: 'thighCm', label: 'Muslo', unit: 'cm' },
-]
-
 function BodyMetricsPage() {
   const { auth } = Route.useRouteContext()
   const queryClient = useQueryClient()
   const key = ['body-metrics', auth.userId]
   const metrics = useQuery({ queryKey: key, queryFn: () => fetchBodyMetrics(auth.userId) })
-  const [chartField, setChartField] = useState<Field>('weightKg')
   const [editing, setEditing] = useState<BodyMetric | null>(null)
 
   const list = metrics.data ?? []
-  const chartMeta = FIELDS.find((f) => f.key === chartField)!
-  const points = list.flatMap((m) => {
-    const v = m[chartField]
-    return v === null ? [] : [{ x: m.date, y: v }]
-  })
-  const available = FIELDS.filter((f) => list.some((m) => m[f.key] !== null))
 
   async function refresh() {
     await queryClient.invalidateQueries({ queryKey: key })
@@ -75,35 +55,7 @@ function BodyMetricsPage() {
 
       {metrics.isError && <p className="text-destructive text-sm">{metrics.error.message}</p>}
 
-      {available.length > 0 && (
-        <>
-          <div className="flex flex-wrap gap-1.5" role="tablist" aria-label="Medida de la gráfica">
-            {available.map((f) => (
-              <button
-                key={f.key}
-                type="button"
-                role="tab"
-                aria-selected={chartField === f.key}
-                onClick={() => setChartField(f.key)}
-                className={cn(
-                  'h-9 rounded-full border px-3 text-sm font-medium',
-                  chartField === f.key
-                    ? 'bg-primary text-primary-foreground border-primary'
-                    : 'bg-card',
-                )}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-          <SeriesChart
-            title={`${chartMeta.label} (${chartMeta.unit})`}
-            points={points}
-            formatY={(v) => `${formatKg(v)} ${chartMeta.unit}`}
-            formatX={formatDayMonth}
-          />
-        </>
-      )}
+      <MetricsChart list={list} />
 
       {list.length > 0 && (
         <Card>

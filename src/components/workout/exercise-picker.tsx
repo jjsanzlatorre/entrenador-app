@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { AiSwap } from '@/components/ai/ai-swap'
 import { Sheet } from '@/components/ui/sheet'
 import { searchExercises } from '@/lib/workout/search'
 import { suggestAlternatives } from '@/lib/workout/substitution'
@@ -71,9 +72,21 @@ export function ExercisePicker({
               Trabajan los mismos músculos
             </h3>
             {suggestions.length === 0 ? (
-              <p className="text-muted-foreground text-sm">
-                No hay alternativas con esos músculos. Busca abajo cualquier otro ejercicio.
-              </p>
+              <div className="flex flex-col gap-2">
+                <p className="text-muted-foreground text-sm">
+                  No hay alternativas con esos músculos y tu material. Busca abajo cualquier otro
+                  ejercicio o pídesela a la IA.
+                </p>
+                <AiSwap
+                  key={mode.exercise.id}
+                  exercise={mode.exercise}
+                  exercises={exercises}
+                  onPick={(e) => {
+                    setFilter(EMPTY_FILTER)
+                    onPick(e)
+                  }}
+                />
+              </div>
             ) : (
               <ul className="divide-y">
                 {suggestions.map((e) => (

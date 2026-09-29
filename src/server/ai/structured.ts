@@ -34,6 +34,8 @@ export type StructuredResult<T> = {
   repaired: boolean
   tokensIn: number
   tokensOut: number
+  // Modelo que dio la última respuesta.
+  model?: string
 }
 
 // Quita ```json … ``` si el modelo lo añade.
@@ -56,6 +58,7 @@ export async function generateStructured<T>(
   let tokensOut = 0
   let issues: string[] = []
   let lastValid: T | null = null
+  let model: string | undefined
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     const prompt =
@@ -75,12 +78,21 @@ export async function generateStructured<T>(
       })
       tokensIn += res.tokensIn
       tokensOut += res.tokensOut
+      model = res.model ?? model
       text = res.text
     } catch (error) {
       // Una respuesta cortada se trata como no válida (se reintenta); el resto se propaga.
       if (error instanceof AiProviderError && error.kind === 'truncated' && attempt === 1) {
         issues = ['La respuesta se cortó: sé más conciso (notas breves).']
         continue
+      }
+      // Si el reintento falla por el proveedor (p. ej. cuota), vale la primera respuesta
+      // corregida quitando lo inválido.
+      if (attempt === 2 && lastValid !== null && req.repair) {
+        const fixed = req.repair(lastValid)
+        if (fixed !== null) {
+          return { data: fixed, attempts: 2, repaired: true, tokensIn, tokensOut, model }
+        }
       }
       throw error
     }
@@ -100,15 +112,15 @@ export async function generateStructured<T>(
     lastValid = parsed.data
     issues = req.check?.(parsed.data) ?? []
     if (issues.length === 0) {
-      return { data: parsed.data, attempts: attempt, repaired: false, tokensIn, tokensOut }
+      return { data: parsed.data, attempts: attempt, repaired: false, tokensIn, tokensOut, model }
     }
   }
 
   if (lastValid !== null && req.repair) {
     const fixed = req.repair(lastValid)
     if (fixed !== null) {
-      return { data: fixed, attempts: 2, repaired: true, tokensIn, tokensOut }
+      return { data: fixed, attempts: 2, repaired: true, tokensIn, tokensOut, model }
     }
   }
-  throw Object.assign(new AiInvalidOutputError(issues), { tokensIn, tokensOut })
+  throw Object.assign(new AiInvalidOutputError(issues), { tokensIn, tokensOut, model })
 }

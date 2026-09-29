@@ -48,6 +48,8 @@ export type SessionIntensity = 'easy' | 'moderate' | 'hard'
 export type AiInteractionKind =
   'plan_generation' | 'daily_adjust' | 'weekly_review' | 'chat' | 'exercise_swap'
 export type AiInteractionStatus = 'pending' | 'ok' | 'invalid' | 'error'
+export type AiChatRole = 'user' | 'assistant'
+export type AiChangeResponse = 'accepted' | 'discarded'
 
 export type Database = {
   public: {
@@ -779,6 +781,9 @@ export type Database = {
           tokens_out: number | null
           created_at: string
           finished_at: string | null
+          // 0025: semana de la revisión semanal y respuesta a cada cambio propuesto.
+          period: string | null
+          responses: Json
         }
         Insert: {
           id?: string
@@ -795,10 +800,34 @@ export type Database = {
           tokens_out?: number | null
           created_at?: string
           finished_at?: string | null
+          period?: string | null
+          responses?: Json
         }
         Update: {
           accepted?: boolean | null
         }
+        Relationships: []
+      }
+      // 0025_ai_coach_review_chat.sql
+      ai_chat_messages: {
+        Row: {
+          id: string
+          seq: number
+          user_id: string
+          role: AiChatRole
+          content: string
+          interaction_id: string | null
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          role: AiChatRole
+          content: string
+          interaction_id?: string | null
+          created_at?: string
+        }
+        Update: { [_ in never]: never }
         Relationships: []
       }
     }
@@ -918,6 +947,7 @@ export type Database = {
           p_tz?: string
           p_provider?: string | null
           p_model?: string | null
+          p_period?: string | null
         }
         Returns: string
       }
@@ -929,11 +959,17 @@ export type Database = {
           p_tokens_in?: number | null
           p_tokens_out?: number | null
           p_error?: string | null
+          p_model?: string | null
         }
         Returns: undefined
       }
       apply_daily_adjust: { Args: { p_interaction: string; p_planned: string }; Returns: string }
       revert_daily_adjust: { Args: { p_planned: string }; Returns: undefined }
+      save_chat_turn: { Args: { p_interaction: string; p_user_text: string }; Returns: undefined }
+      respond_ai_change: {
+        Args: { p_interaction: string; p_index: number; p_accept: boolean }
+        Returns: string
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -968,3 +1004,4 @@ export type UserPlanRow = Tables<'user_plans'>
 export type PlannedSessionRow = Tables<'planned_sessions'>
 export type DailyCheckinRow = Tables<'daily_checkins'>
 export type AiInteractionRow = Tables<'ai_interactions'>
+export type AiChatMessageRow = Tables<'ai_chat_messages'>

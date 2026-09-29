@@ -144,6 +144,9 @@ let dailyCheckins: Record<string, unknown>[] = []
 // Fase 6A: consultas a la IA y simulador de Gemini (respuestas en cola con POST /__seed).
 type AiRow = Record<string, unknown> & { id: string; status: string; accepted: boolean | null }
 let aiInteractions: AiRow[] = []
+// Fase 6B: mensajes del chat (como ai_chat_messages).
+let chatMessages: Record<string, unknown>[] = []
+let chatSeq = 0
 let geminiQueue: unknown[] = []
 let geminiRequests: { model: string; key: string | undefined; body: unknown }[] = []
 
@@ -205,6 +208,7 @@ export function startMockSupabase(port: number) {
         dailyCheckins,
         commitments: progressSeed.commitments,
         aiInteractions,
+        chatMessages,
         geminiRequests,
       })
     }
@@ -243,6 +247,8 @@ export function startMockSupabase(port: number) {
       plannedSessions = []
       dailyCheckins = []
       aiInteractions = []
+      chatMessages = []
+      chatSeq = 0
       geminiQueue = []
       geminiRequests = []
       return send(res, 200, { ok: true })
@@ -258,7 +264,12 @@ export function startMockSupabase(port: number) {
         body,
       })
       const next = geminiQueue.shift()
-      if (next === undefined) return send(res, 429, { error: { message: 'Resource exhausted' } })
+      // Cola vacía o { __status: 429 }: cuota agotada (para probar el modelo de reserva).
+      if (next === undefined || (next as { __status?: number }).__status === 429) {
+        return send(res, 429, {
+          error: { message: 'Resource exhausted', status: 'RESOURCE_EXHAUSTED' },
+        })
+      }
       return send(res, 200, {
         candidates: [
           { content: { parts: [{ text: JSON.stringify(next) }] }, finishReason: 'STOP' },
@@ -274,6 +285,15 @@ export function startMockSupabase(port: number) {
     if (path === '/rest/v1/rpc/begin_ai_interaction') {
       const b = (await readBody(req)) as Record<string, unknown>
       const used = aiInteractions.filter((a) => a.status !== 'error').length
+      const period = (b.p_period as string | null | undefined) ?? null
+      if (
+        period &&
+        aiInteractions.some(
+          (a) => a.kind === b.p_kind && a.period === period && a.status === 'pending',
+        )
+      ) {
+        return send(res, 400, { code: 'P0001', message: 'ai_in_progress' })
+      }
       if (used >= Number(b.p_daily_limit)) {
         return send(res, 400, { code: 'P0001', message: 'ai_daily_limit' })
       }
@@ -286,13 +306,22 @@ export function startMockSupabase(port: number) {
         input_summary: b.p_input_summary,
         output: null,
         accepted: null,
+        model: b.p_model,
+        period,
+        responses: {},
+        created_at: new Date(Date.now() + aiInteractions.length).toISOString(),
       })
       return send(res, 200, id)
     }
     if (path === '/rest/v1/rpc/finish_ai_interaction') {
       const b = (await readBody(req)) as Record<string, unknown>
       for (const a of aiInteractions.filter((x) => x.id === b.p_id && x.status === 'pending')) {
-        Object.assign(a, { status: b.p_status, output: b.p_output ?? null, error: b.p_error })
+        Object.assign(a, {
+          status: b.p_status,
+          output: b.p_output ?? null,
+          error: b.p_error,
+          model: b.p_model ?? a.model,
+        })
       }
       return send(res, 200, null)
     }
@@ -347,16 +376,142 @@ export function startMockSupabase(port: number) {
     }
     if (path === '/rest/v1/ai_interactions') {
       const id = eqParam(url, 'id')
-      const hit = aiInteractions.filter((a) => a.id === id)
       if (req.method === 'PATCH') {
+        const hit = aiInteractions.filter((a) => a.id === id)
         const patch = (await readBody(req)) as { accepted: boolean }
         for (const a of hit) a.accepted = patch.accepted
+        return send(
+          res,
+          200,
+          hit.map((a) => ({ id: a.id })),
+        )
       }
+      // Lecturas (6B): revisión guardada por kind/status/period y cambios del chat por id=in.(…).
+      const ids = /^in\.\((.*)\)$/
+        .exec(url.searchParams.get('id') ?? '')?.[1]
+        ?.split(',')
+        .map((x) => x.replace(/"/g, ''))
+      const filters = ['kind', 'status', 'period'].map((c) => [c, eqParam(url, c)] as const)
+      const list = aiInteractions
+        .filter((a) => !id || a.id === id)
+        .filter((a) => !ids || ids.includes(a.id))
+        .filter((a) => filters.every(([c, v]) => v === null || a[c] === v))
+        .sort((a, b) => String(b.created_at).localeCompare(String(a.created_at)))
+      return send(res, 200, rows(req, list))
+    }
+    if (path === '/rest/v1/ai_chat_messages') {
+      if (req.method === 'DELETE') {
+        const removed = chatMessages
+        chatMessages = []
+        return send(res, 200, removed)
+      }
+      const limit = Number(url.searchParams.get('limit') ?? 1000)
       return send(
         res,
         200,
-        hit.map((a) => ({ id: a.id })),
+        [...chatMessages].sort((a, b) => Number(b.seq) - Number(a.seq)).slice(0, limit),
       )
+    }
+    if (path === '/rest/v1/rpc/save_chat_turn') {
+      const b = (await readBody(req)) as { p_interaction: string; p_user_text: string }
+      const a = aiInteractions.find(
+        (x) => x.id === b.p_interaction && x.kind === 'chat' && x.status === 'ok',
+      )
+      const reply = (a?.output as { reply?: string } | null)?.reply
+      if (!a || !reply) return send(res, 400, { message: 'consulta de chat no encontrada' })
+      if (!chatMessages.some((m) => m.interaction_id === a.id)) {
+        for (const [role, content] of [
+          ['user', b.p_user_text],
+          ['assistant', reply],
+        ]) {
+          chatMessages.push({
+            id: crypto.randomUUID(),
+            seq: ++chatSeq,
+            user_id: MOCK_USER_ID,
+            role,
+            content,
+            interaction_id: a.id,
+            created_at: new Date().toISOString(),
+          })
+        }
+      }
+      return send(res, 200, null)
+    }
+    if (path === '/rest/v1/rpc/respond_ai_change') {
+      const b = (await readBody(req)) as {
+        p_interaction: string
+        p_index: number
+        p_accept: boolean
+      }
+      const a = aiInteractions.find(
+        (x) =>
+          x.id === b.p_interaction &&
+          (x.kind === 'weekly_review' || x.kind === 'chat') &&
+          x.status === 'ok',
+      )
+      const changes = (a?.output as { changes?: Record<string, unknown>[] } | null)?.changes
+      const change = changes?.[b.p_index]
+      if (!a || !change) return send(res, 400, { message: 'propuesta no encontrada' })
+      const responses = (a.responses ?? {}) as Record<string, string>
+      if (responses[String(b.p_index)]) return send(res, 400, { message: 'cambio ya respondido' })
+      if (b.p_accept) {
+        const ps = plannedSessions.find((x) => x.id === change.planned_session_id)
+        const session = change.session as Record<string, unknown> | undefined
+        if (change.action !== 'add' && (!ps || !['planned', 'moved'].includes(ps.status))) {
+          return send(res, 400, { message: 'sesión planificada no encontrada' })
+        }
+        const original = ps && {
+          title: ps.title,
+          intensity: ps.intensity,
+          duration_min: ps.duration_min,
+          notes: ps.notes,
+          blocks: ps.blocks,
+          heavy_legs: ps.heavy_legs,
+        }
+        if (change.action === 'modify' && ps && session) {
+          ps.adjusted_from ??= original
+          Object.assign(ps, {
+            title: session.title,
+            intensity: session.intensity,
+            duration_min: session.duration_min,
+            heavy_legs: session.heavy_legs,
+            blocks: session.blocks,
+            notes: `Cambio de la IA: ${String(change.reason)}`,
+          })
+        } else if (change.action === 'skip' && ps) {
+          ps.adjusted_from ??= original
+          ps.status = 'skipped'
+          ps.notes = `Descanso (IA): ${String(change.reason)}`
+        } else if (change.action === 'move' && ps) {
+          ps.original_date ??= ps.date
+          ps.date = change.date
+          ps.status = 'moved'
+        } else if (change.action === 'add' && session) {
+          const plan = userPlans.find((p) => p.status === 'active')
+          if (!plan) return send(res, 400, { message: 'no hay plan activo' })
+          plannedSessions.push({
+            id: crypto.randomUUID(),
+            user_plan_id: plan.id,
+            user_id: MOCK_USER_ID,
+            date: change.date,
+            original_date: null,
+            week: 1,
+            session_type: session.session_type,
+            title: session.title,
+            intensity: session.intensity,
+            heavy_legs: session.heavy_legs,
+            duration_min: session.duration_min,
+            notes: `Añadida por la IA: ${String(change.reason)}`,
+            blocks: session.blocks,
+            status: 'planned',
+            workout_session_id: null,
+          })
+        }
+      }
+      responses[String(b.p_index)] = b.p_accept ? 'accepted' : 'discarded'
+      a.responses = responses
+      if (b.p_accept) a.accepted = true
+      return send(res, 200, b.p_accept ? change.action : 'discarded')
     }
     if (path.startsWith('/auth/v1/user')) return send(res, 200, user)
     if (path.startsWith('/auth/v1/logout')) return send(res, 204, undefined)

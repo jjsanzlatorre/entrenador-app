@@ -9,11 +9,20 @@ export class DailyLimitError extends Error {
   }
 }
 
+// Ya hay una consulta igual en curso (p. ej. la revisión de esta semana desde otro móvil).
+export class InProgressError extends Error {
+  constructor() {
+    super('ai_in_progress')
+    this.name = 'InProgressError'
+  }
+}
+
 export type FinishStatus = 'ok' | 'invalid' | 'error'
 
 export interface UsageStore {
-  // Abre la consulta; lanza DailyLimitError si ya se ha llegado al límite.
-  begin(kind: AiInteractionKind, inputSummary: unknown): Promise<string>
+  // Abre la consulta; lanza DailyLimitError si ya se ha llegado al límite. period: semana de la
+  // revisión semanal (InProgressError si ya hay una en curso para ese periodo).
+  begin(kind: AiInteractionKind, inputSummary: unknown, period?: string): Promise<string>
   finish(
     id: string,
     result: {
@@ -22,6 +31,7 @@ export interface UsageStore {
       tokensIn?: number
       tokensOut?: number
       error?: string
+      model?: string
     },
   ): Promise<void>
   usedToday(): Promise<number>
@@ -32,7 +42,7 @@ export function supabaseUsageStore(
   opts: { dailyLimit: number; tz: string; provider: string; model: string },
 ): UsageStore {
   return {
-    async begin(kind, inputSummary) {
+    async begin(kind, inputSummary, period) {
       const { data, error } = await supabase.rpc('begin_ai_interaction', {
         p_kind: kind,
         p_input_summary: (inputSummary ?? null) as Json,
@@ -40,9 +50,11 @@ export function supabaseUsageStore(
         p_tz: opts.tz,
         p_provider: opts.provider,
         p_model: opts.model,
+        p_period: period ?? null,
       })
       if (error) {
         if (/ai_daily_limit/.test(error.message)) throw new DailyLimitError()
+        if (/ai_in_progress/.test(error.message)) throw new InProgressError()
         throw new Error(error.message)
       }
       return data
@@ -55,6 +67,7 @@ export function supabaseUsageStore(
         p_tokens_in: r.tokensIn ?? null,
         p_tokens_out: r.tokensOut ?? null,
         p_error: r.error ?? null,
+        p_model: r.model ?? null,
       })
       // No se interrumpe la respuesta al usuario por un fallo del registro.
       if (error) console.error('[ai] no se pudo cerrar la consulta', error.message)

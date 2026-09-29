@@ -6,11 +6,14 @@ import {
   ChevronLeft,
   ChevronRight,
   CloudOff,
+  MessageCircle,
   MoveRight,
   Play,
   RotateCcw,
   SkipForward,
+  Sparkles,
 } from 'lucide-react'
+import { useAiStatus } from '@/lib/ai/client'
 import { z } from 'zod'
 import { Chip } from '@/components/plan/chip'
 import { PlanAdherenceBar } from '@/components/plan/plan-adherence'
@@ -99,6 +102,7 @@ function PlanPage() {
   const today = localDateKey(new Date())
   const weekStart = weekStartOf(semana ?? today)
   const [open, setOpen] = useState<string | null>(null)
+  const ai = useAiStatus()
 
   const setWeek = (w: string) =>
     void navigate({
@@ -181,6 +185,20 @@ function PlanPage() {
             </Button>
             <ArchiveButton plan={plan.data} userId={auth.userId} />
           </div>
+          {ai.data?.configured && (
+            <div className="grid grid-cols-2 gap-2">
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/plan/revision">
+                  <Sparkles /> Revisión semanal
+                </Link>
+              </Button>
+              <Button asChild variant="secondary" size="sm">
+                <Link to="/entrenador">
+                  <MessageCircle /> Preguntar
+                </Link>
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 

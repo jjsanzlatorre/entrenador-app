@@ -6,6 +6,12 @@ import { MOCK, authCookie } from './helpers'
 //
 // El reloj del navegador está simulado: «bloquear la pantalla» = pasar a segundo plano y
 // adelantar el reloj sin que se ejecuten los ticks intermedios.
+//
+// Mientras corre el temporizador el reloj está PARADO: solo avanza con fastForward. Antes
+// seguía el tiempo real entre pasos y, con la máquina cargada (batería completa), la deriva
+// superaba el margen de 1 s que queda tras cada recuperación (la serie siguiente empieza 1 s
+// antes de acabar el bloqueo de 91 s): se leía 1:31 o el parcial salía de 91 s. Con el reloj
+// parado los tiempos son exactos.
 
 type SavedState = {
   sessions: {
@@ -34,6 +40,12 @@ async function lockScreen(page: Page, ms: number) {
   await setVisibility(page, 'hidden')
   await page.clock.fastForward(ms)
   await setVisibility(page, 'visible')
+}
+
+// Para el reloj (1 s por delante del actual) antes de empezar el temporizador.
+async function pauseClock(page: Page) {
+  const now = await page.evaluate(() => Date.now())
+  await page.clock.pauseAt(now + 1000)
 }
 
 async function startSession(page: Page, type: RegExp) {
@@ -90,31 +102,33 @@ test('EMOM de 12 minutos con la pantalla bloqueada a ratos', async ({ page }) =>
 
   const block = page.getByRole('region', { name: 'Bloque A' })
   const timer = block.getByRole('timer')
+  await pauseClock(page)
   await block.getByRole('button', { name: 'Empezar con cuenta atrás de 10 segundos' }).click()
   await expect(timer).toContainText('Prepárate')
 
   // 40 s: 10 s de preparación + 30 s del primer minuto.
   await lockScreen(page, 40_000)
   await expect(timer).toContainText('Minuto 1 de 12')
-  await expect(timer).toContainText(/0:(29|30)/)
+  await expect(timer).toContainText('0:30')
   await expect(timer).toContainText('15 × Kettlebell swing')
 
   // Pantalla bloqueada 4 min → t = 4:40 → minuto 5.
   await lockScreen(page, 240_000)
   await expect(timer).toContainText('Minuto 5 de 12')
-  await expect(timer).toContainText(/0:(29|30)/)
+  await expect(timer).toContainText('0:30')
 
   // La app se cierra 2 min y se vuelve a abrir → t = 6:40 → minuto 7.
   await page.clock.fastForward(120_000)
   await page.reload()
   await expect(timer).toContainText('Minuto 7 de 12', { timeout: 20_000 })
-  await expect(timer).toContainText(/0:(29|30)/)
+  await expect(timer).toContainText('0:30')
 
   // Pantalla bloqueada hasta pasado el final (12:10): el bloque se cierra solo.
   await lockScreen(page, 7 * 60_000)
   await expect(block.getByText('EMOM terminado')).toBeVisible()
   await expect(block.getByText('12 de 12 minutos')).toBeVisible()
 
+  await page.clock.resume()
   await finishSession(page)
   const saved = await savedSession(page)
   expect(saved.blocks).toHaveLength(1)
@@ -141,14 +155,19 @@ test('6×400 m con recuperación de 90 s y la pantalla bloqueada a ratos', async
 
   const block = page.getByRole('region', { name: 'Bloque B' })
   const timer = block.getByRole('timer')
+  await pauseClock(page)
   await block.getByRole('button', { name: 'Empezar sin cuenta atrás' }).click()
+  // Con el reloj parado no hay ticks: se fuerza uno (la app refresca al cambiar la visibilidad).
+  await setVisibility(page, 'visible')
 
-  // Cada 400 m en 88 s (3:40/km) con la pantalla bloqueada mientras se corre. El reloj
-  // simulado sigue avanzando en tiempo real entre pasos: margen de 1–2 s.
+  // Cada 400 m en 88 s (3:40/km) con la pantalla bloqueada mientras se corre. Tras un
+  // bloqueo de 91 s en la recuperación de 90 s, la serie empieza 1 s antes de desbloquear:
+  // 89 s (la 4.ª sale de una recuperación de 45 + 45 s exactos: 88 s).
+  const expected = [88, 89, 89, 88, 89, 89]
   for (let rep = 1; rep <= 6; rep++) {
     await expect(timer).toContainText(`Serie ${rep} de 6 · 400 m`)
     await lockScreen(page, 88_000)
-    await expect(timer).toContainText(/1:(2[89]|30)/)
+    await expect(timer).toContainText(`1:${expected[rep - 1]! - 60}`)
     await block.getByRole('button', { name: 'Vuelta hecha' }).click()
     if (rep === 6) break
     await expect(timer).toContainText(`Recuperación ${rep} de 6`)
@@ -157,7 +176,7 @@ test('6×400 m con recuperación de 90 s y la pantalla bloqueada a ratos', async
       await page.clock.fastForward(45_000)
       await page.reload()
       await expect(timer).toContainText('Recuperación 3 de 6', { timeout: 20_000 })
-      await expect(timer).toContainText(/0:4[45]/)
+      await expect(timer).toContainText('0:45')
       await lockScreen(page, 45_000)
     } else {
       await lockScreen(page, 91_000)
@@ -167,6 +186,7 @@ test('6×400 m con recuperación de 90 s y la pantalla bloqueada a ratos', async
   await expect(block.getByText('Intervalos terminado')).toBeVisible()
   await expect(block.getByText('6 series', { exact: true })).toBeVisible()
 
+  await page.clock.resume()
   await finishSession(page)
   const saved = await savedSession(page)
   expect(saved.session.session_type).toBe('running')
@@ -174,11 +194,8 @@ test('6×400 m con recuperación de 90 s y la pantalla bloqueada a ratos', async
   const intervals = saved.blocks.find((b) => b.block_type === 'intervals')
   const splits = intervals?.result?.splits as { distance_m: number; duration_s: number }[]
   expect(splits).toHaveLength(6)
-  for (const s of splits) {
-    expect(s.distance_m).toBe(400)
-    expect(s.duration_s).toBeGreaterThanOrEqual(88)
-    expect(s.duration_s).toBeLessThanOrEqual(90)
-  }
+  expect(splits.map((s) => s.distance_m)).toEqual([400, 400, 400, 400, 400, 400])
+  expect(splits.map((s) => s.duration_s)).toEqual(expected)
   const runSets = saved.sets.filter((s) => s.completed && s.distance_m === 400)
   expect(runSets).toHaveLength(6)
 })

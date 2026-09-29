@@ -1,14 +1,22 @@
 // Entrenador IA en el cliente: estado (configurado, uso de hoy), peticiones al servidor y
 // aceptar / descartar propuestas. Nada se aplica sin que el usuario pulse «Aceptar».
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query'
 import { useServerFn } from '@tanstack/react-start'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { isOnline, OfflineError, withTimeout } from '@/lib/workout/api'
 import type { ScheduledSession } from '@/lib/plan/schedule'
 import { localDateKey } from '@/lib/progress/dates'
-import { generatePlanProposal, getAiStatus, proposeTodayAdjust } from '@/server/ai.functions'
-import type { Json } from '@/types/database'
-import { aiFailure, type AiFailure } from './schemas'
+import {
+  generatePlanProposal,
+  getAiStatus,
+  getWeeklyReview,
+  proposeExerciseSwap,
+  proposeTodayAdjust,
+  sendChatMessage,
+} from '@/server/ai.functions'
+import type { AiChatRole, Json } from '@/types/database'
+import { reviewWeekOf } from './review'
+import { aiFailure, type AiFailure, type ChangeResponses, type PlanChange } from './schemas'
 
 export const aiStatusKey = ['ai-status'] as const
 
@@ -46,12 +54,184 @@ async function call<T>(run: () => Promise<T>): Promise<T | AiFailure> {
 export function useAiRequests() {
   const planFn = useServerFn(generatePlanProposal)
   const adjustFn = useServerFn(proposeTodayAdjust)
+  const reviewFn = useServerFn(getWeeklyReview)
+  const chatFn = useServerFn(sendChatMessage)
+  const swapFn = useServerFn(proposeExerciseSwap)
   const base = () => ({ today: localDateKey(new Date()), tz: userTimeZone() })
   return {
     proposePlan: (templateId: string | null) =>
       call(() => planFn({ data: { ...base(), templateId } })),
     proposeAdjust: (plannedId: string) => call(() => adjustFn({ data: { ...base(), plannedId } })),
+    weeklyReview: (opts: { generate: boolean; force: boolean }) =>
+      call(() => reviewFn({ data: { ...base(), ...opts } })),
+    sendChat: (text: string) => call(() => chatFn({ data: { ...base(), text } })),
+    proposeSwap: (exerciseId: string) => call(() => swapFn({ data: { ...base(), exerciseId } })),
   }
+}
+
+// ── Revisión semanal ────────────────────────────────────────
+
+export const weeklyReviewKey = (userId: string, weekStart: string) =>
+  ['weekly-review', userId, weekStart] as const
+
+// Generación automática: una vez por semana y dispositivo (si falla, se reintenta a mano).
+const autoKey = (userId: string, weekStart: string) => `weekly-review-auto:${userId}:${weekStart}`
+
+export function autoReviewAllowed(userId: string, weekStart: string) {
+  try {
+    return localStorage.getItem(autoKey(userId, weekStart)) === null
+  } catch {
+    return false
+  }
+}
+
+export function markAutoReview(userId: string, weekStart: string) {
+  try {
+    localStorage.setItem(autoKey(userId, weekStart), new Date().toISOString())
+  } catch {
+    // sin almacenamiento: no se genera sola
+  }
+}
+
+// Revisión de la semana pasada: la guardada o, la primera vez de la semana, una nueva.
+export function useWeeklyReview(userId: string, opts: { auto: boolean; enabled?: boolean }) {
+  const ai = useAiRequests()
+  const status = useAiStatus()
+  const queryClient = useQueryClient()
+  const weekStart = reviewWeekOf(localDateKey(new Date()))
+  const configured = status.data?.configured === true
+  return useQuery({
+    queryKey: weeklyReviewKey(userId, weekStart),
+    enabled: status.isSuccess && opts.enabled !== false,
+    queryFn: async () => {
+      const left = (status.data?.limit ?? 0) - (status.data?.usedToday ?? 0)
+      const generate =
+        opts.auto && configured && left > 0 && isOnline() && autoReviewAllowed(userId, weekStart)
+      if (generate) markAutoReview(userId, weekStart)
+      const res = await ai.weeklyReview({ generate, force: false })
+      if (generate) void queryClient.invalidateQueries({ queryKey: aiStatusKey })
+      return res
+    },
+    staleTime: 10 * 60_000,
+    retry: false,
+  })
+}
+
+// ── Cambios del plan propuestos (revisión y chat) ───────────
+
+// Aceptar aplica en la base de datos el cambio guardado (no el del cliente).
+export async function respondChange(interactionId: string, index: number, accept: boolean) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para cambiar el plan')
+  return check(
+    await withTimeout(
+      db().rpc('respond_ai_change', {
+        p_interaction: interactionId,
+        p_index: index,
+        p_accept: accept,
+      }),
+    ),
+  )
+}
+
+// ── Chat ────────────────────────────────────────────────────
+
+export type ChatMessage = {
+  id: string
+  role: AiChatRole
+  content: string
+  createdAt: string
+  interactionId: string | null
+  // Solo en las respuestas: cambios propuestos y lo respondido.
+  changes: PlanChange[]
+  responses: ChangeResponses
+}
+
+export const chatKey = (userId: string) => ['ai-chat', userId] as const
+export const CHAT_PAGE = 60
+
+function asChanges(output: unknown): PlanChange[] {
+  const changes = (output as { changes?: unknown } | null)?.changes
+  return Array.isArray(changes) ? (changes as PlanChange[]) : []
+}
+
+function asResponses(value: unknown): ChangeResponses {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+  return Object.fromEntries(
+    Object.entries(value).filter(([, v]) => v === 'accepted' || v === 'discarded'),
+  ) as ChangeResponses
+}
+
+export async function fetchChat(userId: string): Promise<ChatMessage[]> {
+  const rows = (
+    check(
+      await withTimeout(
+        db()
+          .from('ai_chat_messages')
+          .select('id, role, content, created_at, interaction_id')
+          .eq('user_id', userId)
+          .order('seq', { ascending: false })
+          .limit(CHAT_PAGE),
+      ),
+    ) ?? []
+  ).reverse()
+  const ids = [
+    ...new Set(
+      rows.flatMap((r) => (r.role === 'assistant' && r.interaction_id ? [r.interaction_id] : [])),
+    ),
+  ]
+  const interactions = ids.length
+    ? (check(
+        await withTimeout(
+          db().from('ai_interactions').select('id, output, responses').in('id', ids),
+        ),
+      ) ?? [])
+    : []
+  const byId = new Map(interactions.map((i) => [i.id, i]))
+  return rows.map((r) => {
+    const i = r.role === 'assistant' && r.interaction_id ? byId.get(r.interaction_id) : undefined
+    return {
+      id: r.id,
+      role: r.role,
+      content: r.content,
+      createdAt: r.created_at,
+      interactionId: r.interaction_id,
+      changes: i ? asChanges(i.output) : [],
+      responses: i ? asResponses(i.responses) : {},
+    }
+  })
+}
+
+export function useChat(userId: string) {
+  return useQuery({
+    queryKey: chatKey(userId),
+    queryFn: () => fetchChat(userId),
+    staleTime: 60_000,
+    retry: 1,
+  })
+}
+
+export async function clearChat(userId: string) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión')
+  check(await withTimeout(db().from('ai_chat_messages').delete().eq('user_id', userId)))
+}
+
+// Tras responder a un cambio: el plan y las respuestas guardadas cambian.
+export async function refreshAfterChange(queryClient: QueryClient, userId: string) {
+  await Promise.all([
+    queryClient.invalidateQueries({ queryKey: ['active-plan'] }),
+    queryClient.invalidateQueries({ queryKey: chatKey(userId) }),
+    queryClient.invalidateQueries({ queryKey: ['weekly-review', userId] }),
+  ])
+}
+
+// ── Sustituir ejercicio ─────────────────────────────────────
+
+// Elegir una alternativa de la IA la marca como aceptada (sin esperar: no bloquea la sesión).
+export function markSwapAccepted(interactionId: string) {
+  if (!isOnline()) return
+  void setAccepted(interactionId, true).catch((error: unknown) =>
+    console.error('[ai] no se marcó la sustitución como aceptada', error),
+  )
 }
 
 function db() {

@@ -5,6 +5,7 @@
 // proveedor es sencillo y lo aceptan Gemini y Anthropic. Los límites (mínimos, máximos) solo
 // los comprueba Zod: si no se cumplen, se reintenta una vez con los errores.
 import { z } from 'zod'
+import type { ReviewFacts } from './review'
 import type { PlanBlock, PlanExercise, PlanSession, PlanStructure } from '@/lib/plan/types'
 
 const SESSION_TYPES = [
@@ -145,6 +146,148 @@ export const dailyAdjustSchema = z
 
 export type DailyAdjust = z.infer<typeof dailyAdjustSchema>
 
+// ── Cambios del plan (revisión semanal y chat) ──────────────
+// Se aplican en la base de datos (respond_ai_change, 0025) leyendo la propuesta guardada.
+
+export const PLAN_CHANGE_ACTIONS = ['modify', 'move', 'skip', 'add'] as const
+export type PlanChangeAction = (typeof PLAN_CHANGE_ACTIONS)[number]
+
+export const CHANGE_LABELS: Record<PlanChangeAction, { label: string; emoji: string }> = {
+  modify: { label: 'Cambiar sesión', emoji: '🔄' },
+  move: { label: 'Mover sesión', emoji: '📅' },
+  skip: { label: 'Descanso en vez de sesión', emoji: '🛌' },
+  add: { label: 'Añadir sesión', emoji: '➕' },
+}
+
+const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/
+
+export const aiChangeSessionSchema = z.object({
+  session_type: z
+    .enum(SESSION_TYPES)
+    .optional()
+    .describe('obligatorio con add; con modify, solo si cambia'),
+  title: z.string().min(1).max(80),
+  intensity: z.enum(['easy', 'moderate', 'hard']),
+  heavy_legs: z.boolean(),
+  duration_min: z.number().int().min(10).max(240),
+  notes: z.string().max(300).optional(),
+  blocks: z.array(aiBlockSchema).min(1).max(10),
+})
+
+export const planChangeSchema = z
+  .object({
+    action: z.enum(PLAN_CHANGE_ACTIONS),
+    planned_session_id: z
+      .string()
+      .optional()
+      .describe('id de la sesión planificada (modify, move y skip), de upcoming_sessions'),
+    date: z
+      .string()
+      .regex(ISO_DATE, 'date debe ser AAAA-MM-DD')
+      .optional()
+      .describe('AAAA-MM-DD: nuevo día (move) o día de la sesión nueva (add)'),
+    title: z.string().min(1).max(100).describe('qué cambia, en pocas palabras'),
+    reason: z.string().min(1).max(300).describe('por qué, en 1 frase'),
+    session: aiChangeSessionSchema
+      .optional()
+      .describe('modify y add: la sesión completa; move y skip: no'),
+  })
+  .superRefine((c, ctx) => {
+    if (c.action !== 'add' && !c.planned_session_id) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['planned_session_id'],
+        message: `con ${c.action} hay que indicar planned_session_id`,
+      })
+    }
+    if ((c.action === 'move' || c.action === 'add') && !c.date) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['date'],
+        message: `con ${c.action} hay que indicar date`,
+      })
+    }
+    if ((c.action === 'modify' || c.action === 'add') && !c.session) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['session'],
+        message: `con ${c.action} hay que incluir la sesión completa`,
+      })
+    }
+    if (c.action === 'add' && c.session && !c.session.session_type) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['session', 'session_type'],
+        message: 'con add hay que indicar session_type',
+      })
+    }
+  })
+
+export type PlanChange = z.infer<typeof planChangeSchema>
+
+// ── Revisión semanal (§11.4) ────────────────────────────────
+
+export const REVIEW_RECOMMENDATIONS = 3
+export const MAX_REVIEW_CHANGES = 4
+
+export const weeklyReviewSchema = z.object({
+  headline: z.string().min(1).max(120).describe('titular de la semana, con tono de ánimo'),
+  summary: z
+    .string()
+    .min(1)
+    .max(800)
+    .describe('2–4 frases: adherencia, carga, músculos y récords de la semana revisada'),
+  recommendations: z
+    .array(
+      z.object({
+        title: z.string().min(1).max(80),
+        detail: z.string().min(1).max(300),
+      }),
+    )
+    .length(REVIEW_RECOMMENDATIONS)
+    .describe('exactamente 3 recomendaciones concretas y accionables'),
+  changes: z
+    .array(planChangeSchema)
+    .max(MAX_REVIEW_CHANGES)
+    .describe('cambios para la semana siguiente (vacío si no hacen falta o no hay plan)'),
+})
+
+export type WeeklyReviewAi = z.infer<typeof weeklyReviewSchema>
+
+// ── Chat (§11.5) ────────────────────────────────────────────
+
+export const CHAT_MAX_MESSAGE = 1000
+// Mensajes anteriores que se envían a la IA (para ahorrar tokens).
+export const CHAT_HISTORY_MESSAGES = 10
+export const MAX_CHAT_CHANGES = 3
+
+export const chatReplySchema = z.object({
+  reply: z.string().min(1).max(1500).describe('respuesta al usuario, breve y en español'),
+  changes: z
+    .array(planChangeSchema)
+    .max(MAX_CHAT_CHANGES)
+    .optional()
+    .describe('solo si propones cambiar el plan: tarjetas que el usuario acepta o descarta'),
+})
+
+export type ChatReply = z.infer<typeof chatReplySchema>
+
+// ── Sustituir ejercicio (§11.6) ─────────────────────────────
+
+export const swapSchema = z.object({
+  alternatives: z
+    .array(
+      z.object({
+        exercise_id: z.string().min(1).describe('id exacto de la lista de ejercicios'),
+        reason: z.string().min(1).max(200).describe('por qué sirve, en 1 frase'),
+      }),
+    )
+    .min(1)
+    .max(3),
+})
+
+export type SwapAi = z.infer<typeof swapSchema>
+
 // ── Resultado de las funciones de servidor ─────────────────
 
 export const AI_ERROR_CODES = [
@@ -155,6 +298,10 @@ export const AI_ERROR_CODES = [
   'provider_unavailable',
   'invalid_output',
   'no_planned_session',
+  'in_progress',
+  'rules_available',
+  'not_generated',
+  'no_data',
   'failed',
 ] as const
 export type AiErrorCode = (typeof AI_ERROR_CODES)[number]
@@ -174,6 +321,11 @@ export const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
   invalid_output:
     'La IA ha devuelto una propuesta que no se puede usar. Prueba de nuevo; tu plan no ha cambiado.',
   no_planned_session: 'Hoy no tienes ninguna sesión pendiente en el plan.',
+  not_generated: 'Aún no hay revisión de esta semana.',
+  no_data: 'La semana pasada no hubo sesiones ni plan: no hay nada que revisar todavía.',
+  in_progress: 'La IA ya está preparando esto. Espera un momento y vuelve a abrirlo.',
+  rules_available:
+    'Hay alternativas con los mismos músculos y tu material: elige una de la lista sin gastar consultas.',
   failed: 'No se ha podido completar la consulta a la IA. Prueba de nuevo.',
 }
 
@@ -219,6 +371,23 @@ export type PlanProposal = {
   structure: PlanStructure
   // exercise_id inventados por la IA que se han descartado.
   dropped: string[]
+}
+
+// Revisión semanal que llega al cliente: datos calculados (no de la IA) + texto de la IA.
+export type WeeklyReview = {
+  weekStart: string
+  facts: ReviewFacts
+  review: Omit<WeeklyReviewAi, 'changes'>
+  changes: PlanChange[]
+  // exercise_id inventados por la IA que se han descartado.
+  dropped: string[]
+}
+
+export type ChangeResponses = Record<string, 'accepted' | 'discarded'>
+
+export type SwapProposal = {
+  exerciseId: string
+  alternatives: { exercise_id: string; reason: string }[]
 }
 
 export type AdjustProposal = {

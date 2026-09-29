@@ -13,13 +13,15 @@ import {
 } from 'lucide-react'
 import { z } from 'zod'
 import { Chip } from '@/components/plan/chip'
+import { PlanAdherenceBar } from '@/components/plan/plan-adherence'
+import { PlannedBlocks } from '@/components/plan/planned-blocks'
 import { Page } from '@/components/page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Sheet } from '@/components/ui/sheet'
-import { notifyError, notifySaved } from '@/lib/notify'
+import { notifyError, notifySaved, notifyWarning } from '@/lib/notify'
 import {
   archivePlan,
   movePlanned,
@@ -27,12 +29,20 @@ import {
   setPlannedDone,
   skipPlanned,
   type ActivePlan,
+  type PlannedSession,
 } from '@/lib/plan/api'
-import { planWeekNumber, weekSummary, weekView, type PlannedView } from '@/lib/plan/calendar'
-import { describeBlock, INTENSITY_LABELS } from '@/lib/plan/describe'
+import {
+  planAdherence,
+  planWeekNumber,
+  weekSummary,
+  weekView,
+  type PlannedView,
+} from '@/lib/plan/calendar'
+import { INTENSITY_LABELS } from '@/lib/plan/describe'
 import { refreshPlan, useActivePlan, useTrainingProfile } from '@/lib/plan/hooks'
-import { WEEKDAY_LONG, WEEKDAY_SHORT } from '@/lib/plan/profile'
-import { plannedToLocalSession } from '@/lib/plan/to-session'
+import { moveWarnings } from '@/lib/plan/move-rules'
+import { WEEKDAY_LONG, WEEKDAY_SHORT, type FixedActivity } from '@/lib/plan/profile'
+import { useStartPlanned } from '@/lib/plan/start'
 import {
   addDays,
   formatDayMonth,
@@ -42,12 +52,10 @@ import {
 } from '@/lib/progress/dates'
 import { sessionLogKey, useSessionLog } from '@/lib/progress/hooks'
 import type { SessionLogEntry } from '@/lib/progress/types'
-import { startPreparedSession } from '@/lib/workout/active-session'
-import { getLastPerformance } from '@/lib/workout/api'
 import { formatTime } from '@/lib/workout/format'
 import { useCatalog } from '@/lib/workout/hooks'
 import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
-import type { LastPerformance } from '@/lib/workout/types'
+import type { Sex } from '@/types/database'
 import { cn } from '@/lib/utils'
 
 export const Route = createFileRoute('/_app/plan/')({
@@ -149,6 +157,7 @@ function PlanPage() {
   )
   const summary = weekSummary(days)
   const planWeek = planWeekNumber(plan.data.startDate, weekStart)
+  const adherence = planAdherence(plan.data.sessions, log.data?.sessions ?? [], today)
   const selected = days.flatMap((d) => d.planned).find((p) => p.id === open) ?? null
   const extraSameDay = selected ? (days.find((d) => d.date === selected.date)?.extra ?? []) : []
 
@@ -164,11 +173,14 @@ function PlanPage() {
               : 'fuera del plan'}
           </CardDescription>
         </CardHeader>
-        <CardContent className="flex flex-wrap gap-2">
-          <Button asChild variant="outline" size="sm">
-            <Link to="/plan/elegir">Cambiar plan</Link>
-          </Button>
-          <ArchiveButton plan={plan.data} userId={auth.userId} />
+        <CardContent className="flex flex-col gap-3">
+          <PlanAdherenceBar adherence={adherence} />
+          <div className="flex flex-wrap gap-2">
+            <Button asChild variant="outline" size="sm">
+              <Link to="/plan/elegir">Cambiar plan</Link>
+            </Button>
+            <ArchiveButton plan={plan.data} userId={auth.userId} />
+          </div>
         </CardContent>
       </Card>
 
@@ -301,6 +313,9 @@ function PlanPage() {
         userId={auth.userId}
         today={today}
         candidates={extraSameDay}
+        allPlanned={plan.data.sessions}
+        fixed={training.data?.fixedActivities ?? []}
+        sex={auth.profile.sex}
         onClose={() => setOpen(null)}
       />
     </Page>
@@ -336,24 +351,31 @@ function PlannedSheet({
   userId,
   today,
   candidates,
+  allPlanned,
+  fixed,
+  sex,
   onClose,
 }: {
   planned: PlannedView | null
   userId: string
   today: string
   candidates: SessionLogEntry[]
+  allPlanned: PlannedSession[]
+  fixed: Pick<FixedActivity, 'type' | 'days'>[]
+  sex: Sex | null
   onClose: () => void
 }) {
-  const navigate = useNavigate()
   const queryClient = useQueryClient()
   const catalog = useCatalog(userId)
-  const [busy, setBusy] = useState(false)
+  const starter = useStartPlanned(userId)
+  const [working, setWorking] = useState(false)
+  const busy = working || starter.busy
   const [moving, setMoving] = useState(false)
   const [linking, setLinking] = useState(false)
   const name = (id: string) => catalog.byId.get(id)?.name ?? id
 
   async function run(action: () => Promise<unknown>, success: string, what: string) {
-    setBusy(true)
+    setWorking(true)
     try {
       await action()
       await refreshPlan(queryClient, userId)
@@ -365,43 +387,12 @@ function PlannedSheet({
     } catch (error) {
       notifyError(error, what)
     } finally {
-      setBusy(false)
+      setWorking(false)
     }
   }
 
-  async function start() {
-    if (!planned) return
-    setBusy(true)
-    try {
-      const ids = [...new Set(planned.blocks.flatMap((b) => b.exercises.map((e) => e.exercise_id)))]
-      let last = new Map<string, LastPerformance>()
-      try {
-        last = await getLastPerformance(userId, ids, null)
-      } catch {
-        // sin conexión ni copia: sin precarga de pesos
-      }
-      const session = plannedToLocalSession(
-        {
-          id: planned.id,
-          session_type: planned.sessionType,
-          title: planned.title,
-          blocks: planned.blocks,
-        },
-        userId,
-        catalog.byId,
-        last,
-        Date.now(),
-      )
-      const { started } = await startPreparedSession(session)
-      if (!started)
-        notifyError('ya tienes una sesión en curso; termínala o descártala antes', 'empezar')
-      await navigate({ to: '/entrenar/sesion' })
-    } catch (error) {
-      notifyError(error, 'empezar la sesión')
-    } finally {
-      setBusy(false)
-    }
-  }
+  const warningsFor = (date: string) =>
+    planned ? moveWarnings(planned, date, allPlanned, fixed) : []
 
   const pending = planned?.effectiveStatus === 'planned' || planned?.effectiveStatus === 'moved'
   const weekStart = planned ? weekStartOf(planned.date) : today
@@ -427,34 +418,12 @@ function PlannedSheet({
             {INTENSITY_LABELS[planned.intensity]} · {STATUS[planned.effectiveStatus].label}
           </p>
 
-          <ul className="flex flex-col gap-2 text-sm">
-            {planned.blocks.map((b, i) => {
-              const d = describeBlock(b, name)
-              return (
-                <li key={i} className="rounded-lg border p-3">
-                  {d.title && <p className="font-semibold">{d.title}</p>}
-                  <ul>
-                    {d.lines.map((line, j) => (
-                      <li key={j}>{line}</li>
-                    ))}
-                  </ul>
-                  {b.note && <p className="text-muted-foreground mt-1 text-xs">{b.note}</p>}
-                  {b.exercises
-                    .filter((e) => e.note)
-                    .map((e, j) => (
-                      <p key={j} className="text-muted-foreground mt-1 text-xs">
-                        {name(e.exercise_id)}: {e.note}
-                      </p>
-                    ))}
-                </li>
-              )
-            })}
-          </ul>
+          <PlannedBlocks blocks={planned.blocks} name={name} sex={sex} />
           {planned.notes && <p className="text-muted-foreground text-sm">{planned.notes}</p>}
 
           {pending && (
             <div className="flex flex-col gap-2">
-              <Button size="lg" disabled={busy} onClick={() => void start()}>
+              <Button size="lg" disabled={busy} onClick={() => void starter.start(planned)}>
                 <Play /> Empezar ahora
               </Button>
               <div className="grid grid-cols-3 gap-2">
@@ -526,13 +495,18 @@ function PlannedSheet({
               current={planned.date}
               weekStart={weekStart}
               busy={busy}
-              onPick={(date) =>
+              warningsFor={warningsFor}
+              onPick={(date) => {
+                const warnings = warningsFor(date)
                 void run(
-                  () => movePlanned(planned, date),
+                  async () => {
+                    await movePlanned(planned, date)
+                    for (const w of warnings) notifyWarning(w)
+                  },
                   `Movida al ${formatDayMonth(date)}`,
                   'mover la sesión',
                 )
-              }
+              }}
             />
           )}
 
@@ -593,31 +567,43 @@ function MovePicker({
   current,
   weekStart,
   busy,
+  warningsFor,
   onPick,
 }: {
   current: string
   weekStart: string
   busy: boolean
+  warningsFor: (date: string) => string[]
   onPick: (date: string) => void
 }) {
   const [custom, setCustom] = useState('')
+  const customWarnings = custom && custom !== current ? warningsFor(custom) : []
   return (
     <div className="flex flex-col gap-2 rounded-xl border p-3">
       <p className="text-sm font-semibold">Mover a…</p>
       <div className="grid grid-cols-7 gap-1.5">
-        {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((date, i) => (
-          <Chip
-            key={date}
-            selected={date === current}
-            className="flex flex-col items-center px-0 leading-tight"
-            label={`${WEEKDAY_LONG[i]} ${formatDayMonth(date)}`}
-            onClick={() => date !== current && !busy && onPick(date)}
-          >
-            <span>{WEEKDAY_SHORT[i]}</span>
-            <span className="text-[10px] font-normal">{Number(date.slice(8))}</span>
-          </Chip>
-        ))}
+        {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((date, i) => {
+          const warned = date !== current && warningsFor(date).length > 0
+          return (
+            <Chip
+              key={date}
+              selected={date === current}
+              className="flex flex-col items-center px-0 leading-tight"
+              label={`${WEEKDAY_LONG[i]} ${formatDayMonth(date)}${warned ? ' (con aviso)' : ''}`}
+              onClick={() => date !== current && !busy && onPick(date)}
+            >
+              <span>{WEEKDAY_SHORT[i]}</span>
+              <span className="text-[10px] font-normal">
+                {Number(date.slice(8))}
+                {warned ? ' ⚠' : ''}
+              </span>
+            </Chip>
+          )
+        })}
       </div>
+      <p className="text-muted-foreground text-xs">
+        ⚠ = pierna pesada antes de frontón o surf, o dos intensas seguidas. Puedes moverla igual.
+      </p>
       <div className="flex items-center gap-2">
         <Input
           type="date"
@@ -633,6 +619,11 @@ function MovePicker({
           Mover
         </Button>
       </div>
+      {customWarnings.map((w) => (
+        <p key={w} className="text-xs text-amber-700 dark:text-amber-400">
+          ⚠ {w}
+        </p>
+      ))}
     </div>
   )
 }

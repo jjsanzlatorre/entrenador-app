@@ -12,6 +12,7 @@ const exerciseSchema = z.object({
   duration_s: z.number().int().positive().optional(),
   calories: z.number().int().positive().optional(),
   note: z.string().optional(),
+  standard: z.object({ men: z.string(), women: z.string() }).optional(),
 })
 
 export const planBlockSchema = z.object({

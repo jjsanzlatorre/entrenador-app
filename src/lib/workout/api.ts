@@ -11,6 +11,7 @@ import type {
   WorkoutSessionRow,
 } from '@/types/database'
 import { fromServerRows } from './payload'
+import { mergeHistory } from './suggestion'
 import type { Exercise, LastPerformance, LocalSession } from './types'
 import type { SessionPayload } from './payload'
 
@@ -224,6 +225,66 @@ export async function getLastPerformance(
   return result
 }
 
+// Últimas sesiones (hasta 2, la más reciente primero) de cada ejercicio, para la sugerencia de
+// peso (§10). Red + copia local (que incluye las sesiones terminadas sin conexión).
+const histKey = (userId: string, exerciseId: string) => `hist:${userId}:${exerciseId}`
+
+export async function getExerciseHistory(
+  userId: string,
+  exerciseIds: string[],
+  excludeSessionId: string | null,
+): Promise<Map<string, LastPerformance[]>> {
+  const result = new Map<string, LastPerformance[]>()
+  if (exerciseIds.length === 0) return result
+
+  if (isOnline()) {
+    try {
+      const { data, error } = await withTimeout(
+        db().rpc('recent_exercise_sets', {
+          p_exercise_ids: exerciseIds,
+          p_sessions: 2,
+          p_exclude_session: excludeSessionId,
+        }),
+        3500,
+      )
+      if (error) throw new Error(error.message)
+      const bySession = new Map<string, LastPerformance>()
+      for (const row of data ?? []) {
+        const key = `${row.exercise_id}|${row.session_id}`
+        const entry = bySession.get(key) ?? {
+          exerciseId: row.exercise_id,
+          endedAt: row.ended_at,
+          sets: [],
+        }
+        entry.sets.push({
+          setIndex: row.set_index,
+          isWarmup: row.is_warmup,
+          weightKg: row.weight_kg === null ? null : Number(row.weight_kg),
+          reps: row.reps,
+          rir: row.rir,
+          durationS: row.duration_s,
+          distanceM: row.distance_m === null ? null : Number(row.distance_m),
+          calories: row.calories,
+        })
+        bySession.set(key, entry)
+      }
+      for (const entry of bySession.values()) {
+        result.set(entry.exerciseId, mergeHistory(result.get(entry.exerciseId), [entry]))
+      }
+      for (const [id, list] of result) await idbPut('kv', histKey(userId, id), list)
+    } catch (error) {
+      console.error('[history] usando la copia local', error)
+    }
+  }
+
+  for (const id of exerciseIds) {
+    const cached = await idbGet<LastPerformance[]>('kv', histKey(userId, id))
+    const merged = mergeHistory(result.get(id), cached)
+    if (merged.length > 0) result.set(id, merged)
+  }
+  return result
+}
+
 // Al terminar una sesión (aunque sea sin conexión), su resultado pasa a ser «la última vez».
 export async function rememberLastPerformance(session: LocalSession) {
   if (!session.endedAt) return
@@ -251,6 +312,11 @@ export async function rememberLastPerformance(session: LocalSession) {
     const key = lastKey(session.userId, entry.exerciseId)
     const cached = await idbGet<LastPerformance>('kv', key)
     if (!cached || cached.endedAt <= entry.endedAt) await idbPut('kv', key, entry)
+    const hKey = histKey(session.userId, entry.exerciseId)
+    const history = (await idbGet<LastPerformance[]>('kv', hKey))?.filter(
+      (p) => p.endedAt !== entry.endedAt,
+    )
+    await idbPut('kv', hKey, mergeHistory([entry], history))
   }
 }
 

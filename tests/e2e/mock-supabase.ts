@@ -140,6 +140,7 @@ type PlannedRow = Record<string, unknown> & {
 }
 let userPlans: PlanRow[] = []
 let plannedSessions: PlannedRow[] = []
+let dailyCheckins: Record<string, unknown>[] = []
 
 function send(res: http.ServerResponse, status: number, body: unknown) {
   res.writeHead(status, {
@@ -196,13 +197,20 @@ export function startMockSupabase(port: number) {
         trainingProfile,
         userPlans,
         plannedSessions,
+        dailyCheckins,
         commitments: progressSeed.commitments,
       })
     }
     if (path === '/__seed') {
       const body = (await readBody(req)) as Partial<Seed> & {
         trainingProfile?: Record<string, unknown> | null
+        userPlans?: PlanRow[]
+        plannedSessions?: PlannedRow[]
       }
+      if (body.userPlans) userPlans = body.userPlans
+      if (body.plannedSessions) plannedSessions = body.plannedSessions
+      delete body.userPlans
+      delete body.plannedSessions
       if (body.trainingProfile !== undefined) {
         trainingProfile = body.trainingProfile && {
           ...baseTrainingProfile,
@@ -223,6 +231,7 @@ export function startMockSupabase(port: number) {
       trainingProfile = { ...baseTrainingProfile }
       userPlans = []
       plannedSessions = []
+      dailyCheckins = []
       return send(res, 200, { ok: true })
     }
     if (path.startsWith('/auth/v1/user')) return send(res, 200, user)
@@ -265,6 +274,46 @@ export function startMockSupabase(port: number) {
         }
       }
       return send(res, 200, out)
+    }
+
+    if (path === '/rest/v1/rpc/recent_exercise_sets') {
+      const body = (await readBody(req)) as {
+        p_exercise_ids: string[]
+        p_sessions?: number
+        p_exclude_session: string | null
+      }
+      const out: unknown[] = []
+      for (const id of body.p_exercise_ids) {
+        const candidates = [...sessions.values()]
+          .filter((p) => p.session.ended_at && p.session.id !== body.p_exclude_session)
+          .filter((p) => p.sets.some((s) => s.exercise_id === id && s.completed))
+          .sort((a, b) => String(b.session.ended_at).localeCompare(String(a.session.ended_at)))
+          .slice(0, body.p_sessions ?? 2)
+        for (const c of candidates) {
+          for (const s of c.sets.filter((x) => x.exercise_id === id && x.completed)) {
+            out.push({
+              ...s,
+              rir: s.rir ?? null,
+              session_id: c.session.id,
+              ended_at: c.session.ended_at,
+            })
+          }
+        }
+      }
+      return send(res, 200, out)
+    }
+    if (path === '/rest/v1/daily_checkins') {
+      if (req.method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown>
+        for (const row of Array.isArray(body) ? body : [body]) {
+          dailyCheckins = dailyCheckins.filter((c) => c.date !== row.date)
+          dailyCheckins.push(row)
+        }
+        return send(res, 201, undefined)
+      }
+      const date = eqParam(url, 'date')
+      const hit = dailyCheckins.filter((c) => !date || c.date === date)
+      return send(res, 200, rows(req, hit))
     }
 
     // Fase 3: sin datos de progreso ni vínculos en el mock.
@@ -358,6 +407,7 @@ export function startMockSupabase(port: number) {
           session_type: s.session_type,
           title: s.title,
           intensity: s.intensity ?? 'moderate',
+          heavy_legs: s.heavy_legs ?? false,
           duration_min: s.duration_min ?? null,
           notes: s.notes ?? null,
           blocks: s.blocks ?? [],
@@ -490,8 +540,10 @@ export function startMockSupabase(port: number) {
         if (id) sessions.delete(id)
         return send(res, 204, undefined)
       }
+      const onlyEnded = url.searchParams.get('ended_at') === 'not.is.null'
       const list = [...sessions.values()]
         .filter((p) => !id || p.session.id === id)
+        .filter((p) => !onlyEnded || p.session.ended_at)
         .sort((a, b) => String(b.session.started_at).localeCompare(String(a.session.started_at)))
         .map((p) => ({ ...sessionRow(p), exercise_sets: p.sets }))
       return send(res, 200, rows(req, list))

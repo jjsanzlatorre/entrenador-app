@@ -14,6 +14,8 @@ import { commitmentsKey, useCommitments } from '@/lib/progress/hooks'
 import type { Commitment } from '@/lib/progress/types'
 import { parseInteger } from '@/lib/workout/format'
 import { notifyError, notifySaved } from '@/lib/notify'
+import { planSessionsPerWeek } from '@/lib/plan/calendar'
+import { useActivePlan } from '@/lib/plan/hooks'
 import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
 import type { SessionType } from '@/types/database'
 
@@ -39,6 +41,10 @@ function CommitmentPage() {
   const commitments = useCommitments(auth.userId)
   const today = localDateKey(new Date())
   const current = commitments.data ? currentCommitment(commitments.data, today) : null
+  const plan = useActivePlan(auth.userId)
+  const fromPlan = plan.data
+    ? { name: plan.data.name, perWeek: planSessionsPerWeek(plan.data.sessions) }
+    : null
 
   return (
     <div className="flex flex-col gap-4 p-4">
@@ -72,6 +78,7 @@ function CommitmentPage() {
             userId={auth.userId}
             current={current}
             weekStart={weekStartOf(today)}
+            fromPlan={fromPlan && fromPlan.perWeek > 0 ? fromPlan : null}
           />
           {current && <EndCommitmentButton userId={auth.userId} today={today} />}
         </>
@@ -87,10 +94,13 @@ function CommitmentForm({
   userId,
   current,
   weekStart,
+  fromPlan,
 }: {
   userId: string
   current: Commitment | null
   weekStart: string
+  // Plan activo: se ofrece usar sus sesiones por semana como compromiso (§10A).
+  fromPlan: { name: string; perWeek: number } | null
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -144,6 +154,19 @@ function CommitmentForm({
         </CardHeader>
         <CardContent>
           <Stepper value={sessions} onChange={setSessions} min={1} max={14} label="sesiones" />
+          {fromPlan && (
+            <Button
+              type="button"
+              variant="outline"
+              className="mt-3 h-auto w-full py-2 whitespace-normal"
+              disabled={sessions === fromPlan.perWeek}
+              onClick={() => setSessions(fromPlan.perWeek)}
+            >
+              {sessions === fromPlan.perWeek
+                ? `Igual que tu plan «${fromPlan.name}»`
+                : `Usar las de mi plan «${fromPlan.name}»: ${fromPlan.perWeek} por semana`}
+            </Button>
+          )}
         </CardContent>
       </Card>
 

@@ -11,7 +11,7 @@ import {
   YAxis,
 } from 'recharts'
 import { BackLink, Stat } from '@/components/progress/common'
-import { acwrMessage, formatRatio, HAS_ACTIVE_PLAN } from '@/components/progress/load'
+import { acwrMessage, formatRatio, useHasActivePlan } from '@/components/progress/load'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import {
   addDays,
@@ -39,6 +39,7 @@ const WEEKS = 12
 function LoadPage() {
   const { auth } = Route.useRouteContext()
   const log = useSessionLog(auth.userId)
+  const hasActivePlan = useHasActivePlan(auth.userId)
   const today = localDateKey(new Date())
   const weekStart = weekStartOf(today)
 
@@ -53,7 +54,7 @@ function LoadPage() {
   }
 
   const sessions = log.data?.sessions ?? []
-  const acwr = acuteChronicRatio(sessions, today, { hasActivePlan: HAS_ACTIVE_PLAN })
+  const acwr = acuteChronicRatio(sessions, today, { hasActivePlan })
   const weeks = weeklyLoads(sessions, weekStart, WEEKS)
   const thisWeek = sessionsInRange(sessions, weekStart, addDays(weekStart, 6)).reverse()
   const first = sessions[0] ? localDateKey(sessions[0].startedAt) : null
@@ -228,8 +229,11 @@ function LoadPage() {
       </Card>
 
       <p className="text-muted-foreground text-xs">
-        Ratio &gt; {formatRatio(1.5)}: riesgo de sobrecarga. Es una guía orientativa, no un
-        diagnóstico: si algo duele, para y consulta a un profesional.
+        Ratio &gt; {formatRatio(1.5)}: riesgo de sobrecarga.{' '}
+        {hasActivePlan
+          ? `Ratio < ${formatRatio(0.8)}: carga baja respecto a tu plan.`
+          : `El aviso de carga baja (< ${formatRatio(0.8)}) solo sale con un plan activo.`}{' '}
+        Es una guía orientativa, no un diagnóstico: si algo duele, para y consulta a un profesional.
       </p>
     </div>
   )

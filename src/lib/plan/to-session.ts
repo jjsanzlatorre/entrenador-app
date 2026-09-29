@@ -1,7 +1,8 @@
 // Convierte una sesión planificada (prescripción §9) en una sesión local lista para registrar,
-// enlazada con la planificada (plannedSessionId). Pesos: los de la última vez (la sugerencia de
-// peso con progresión doble llega en la fase 5B).
+// enlazada con la planificada (plannedSessionId). Pesos: la sugerencia de peso con progresión
+// doble (§10) sobre el rango de reps prescrito; si no hay, los de la última vez.
 import { createSession, type IdFn } from '@/lib/workout/session-ops'
+import { suggestionFor, type WeightSuggestion } from '@/lib/workout/suggestion'
 import { addCircuitBlock, addTimedBlock } from '@/lib/workout/timed-blocks'
 import type { SessionLocation, SessionType } from '@/types/database'
 import type {
@@ -34,22 +35,42 @@ export type PlannedLike = {
   blocks: PlanBlock[]
 }
 
-type Catalog = Map<string, Pick<Exercise, 'id' | 'defaultRestS' | 'trackingType'>>
+type Catalog = Map<
+  string,
+  Pick<Exercise, 'id' | 'defaultRestS' | 'trackingType'> &
+    Partial<Pick<Exercise, 'isCompound' | 'muscles'>>
+>
 
 function lastWorkWeight(last: LastPerformance | undefined) {
   const work = last?.sets.filter((s) => !s.isWarmup && s.weightKg) ?? []
   return work.at(-1)?.weightKg ?? null
 }
 
+function plannedSuggestion(
+  e: PlanExercise,
+  catalog: Catalog,
+  history: LastPerformance[] | undefined,
+): WeightSuggestion | null {
+  const ex = catalog.get(e.exercise_id)
+  if (!ex) return null
+  return suggestionFor(
+    { ...ex, isCompound: ex.isCompound ?? true, muscles: ex.muscles ?? [] },
+    e.exercise_id,
+    history,
+    e.reps,
+  )
+}
+
 function straightSets(
   e: PlanExercise,
   catalog: Catalog,
   last: LastPerformance | undefined,
+  suggestion: WeightSuggestion | null,
   newId: IdFn,
 ): SetEntry[] {
   const count = e.sets ?? 3
   const tracking = catalog.get(e.exercise_id)?.trackingType
-  const weight = tracking === 'weight_reps' ? lastWorkWeight(last) : null
+  const weight = tracking === 'weight_reps' ? (suggestion?.weightKg ?? lastWorkWeight(last)) : null
   return Array.from({ length: count }, (_, i) => ({
     id: newId(),
     exerciseId: e.exercise_id,
@@ -73,6 +94,8 @@ export function plannedToLocalSession(
   lastByExercise: Map<string, LastPerformance>,
   now: number,
   newId: IdFn = () => crypto.randomUUID(),
+  // Últimas sesiones de cada ejercicio (más reciente primero) para la sugerencia de peso.
+  historyByExercise: Map<string, LastPerformance[]> = new Map(),
 ): LocalSession {
   let session: LocalSession = {
     ...createSession(
@@ -93,16 +116,26 @@ export function plannedToLocalSession(
     switch (b.block_type) {
       case 'straight':
       case 'superset': {
+        const suggestions = b.exercises.map((e) =>
+          plannedSuggestion(e, catalog, historyByExercise.get(e.exercise_id)),
+        )
         const block: LocalBlock = {
           id: newId(),
           order: session.blocks.length,
           blockType: b.exercises.length > 1 ? 'superset' : 'straight',
-          exercises: b.exercises.map((e) => ({
+          exercises: b.exercises.map((e, i) => ({
             exerciseId: e.exercise_id,
             restS: e.rest_s ?? ref(e.exercise_id).defaultRestS,
+            ...(suggestions[i] ? { suggestion: suggestions[i] } : {}),
           })),
-          sets: b.exercises.flatMap((e) =>
-            straightSets(e, catalog, lastByExercise.get(e.exercise_id), newId),
+          sets: b.exercises.flatMap((e, i) =>
+            straightSets(
+              e,
+              catalog,
+              lastByExercise.get(e.exercise_id),
+              suggestions[i] ?? null,
+              newId,
+            ),
           ),
         }
         session = { ...session, blocks: [...session.blocks, block] }

@@ -75,3 +75,42 @@ export function planWeekNumber(planStart: DateKey, weekStart: DateKey, weeks = 4
   )
   return diff >= 0 && diff < weeks ? diff + 1 : null
 }
+
+// Adherencia al plan (§10A): planificadas hechas / planificadas que ya tocaban. Cuentan las que
+// eran de antes de hoy y las ya hechas (aunque sean de hoy o se adelantaran); la de hoy sin hacer
+// aún no resta. Es un indicador separado del compromiso.
+export function planAdherence(
+  planned: Pick<PlannedSession, 'id' | 'date' | 'status'>[],
+  log: Pick<SessionLogEntry, 'plannedSessionId'>[],
+  today: DateKey,
+) {
+  const pendingLinks = new Set(log.flatMap((s) => (s.plannedSessionId ? [s.plannedSessionId] : [])))
+  const isDone = (p: Pick<PlannedSession, 'id' | 'status'>) =>
+    p.status === 'done' || pendingLinks.has(p.id)
+  const done = planned.filter(isDone).length
+  const due = planned.filter((p) => p.date < today || isDone(p)).length
+  const skipped = planned.filter((p) => p.status === 'skipped' && !isDone(p)).length
+  return {
+    done,
+    due,
+    skipped,
+    total: planned.length,
+    pct: due > 0 ? Math.round((done / due) * 100) : null,
+  }
+}
+
+// Pendientes de días anteriores de la semana en curso (para ofrecer hacerlas o saltarlas).
+export function overdueThisWeek(days: DayView[], today: DateKey) {
+  return days
+    .filter((d) => d.date < today)
+    .flatMap((d) =>
+      d.planned.filter((p) => p.effectiveStatus === 'planned' || p.effectiveStatus === 'moved'),
+    )
+}
+
+// Sesiones por semana del plan (la semana con más sesiones), para usarlo como compromiso.
+export function planSessionsPerWeek(planned: Pick<PlannedSession, 'week'>[]) {
+  const byWeek = new Map<number, number>()
+  for (const p of planned) byWeek.set(p.week, (byWeek.get(p.week) ?? 0) + 1)
+  return Math.max(0, ...byWeek.values())
+}

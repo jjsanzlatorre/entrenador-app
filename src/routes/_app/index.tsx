@@ -1,11 +1,14 @@
 import { useEffect } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { ChevronRight, Play } from 'lucide-react'
-import { ComingSoon, Page } from '@/components/page'
+import { Page } from '@/components/page'
 import { UsCard, WeekAdherenceCard } from '@/components/progress/adherence'
 import { MonthSummaryPopup } from '@/components/progress/achievements'
 import { AcwrAlert } from '@/components/progress/load'
+import { CheckinCard } from '@/components/today/checkin-card'
+import { TodayPlan } from '@/components/today/today-plan'
 import { StartSessionButtons } from '@/components/workout/start-session'
+import { localDateKey } from '@/lib/progress/dates'
 import { loadActiveSession, useActiveSession } from '@/lib/workout/active-session'
 import { sessionStats } from '@/lib/workout/calc'
 import { useTrainingProfile } from '@/lib/plan/hooks'
@@ -20,6 +23,7 @@ function TodayPage() {
   const name = auth.profile.display_name
   const navigate = useNavigate()
   const training = useTrainingProfile(auth.userId)
+  const today = localDateKey(new Date())
 
   useEffect(() => {
     void loadActiveSession(auth.userId)
@@ -50,11 +54,11 @@ function TodayPage() {
           </div>
           <ChevronRight className="size-6" />
         </Link>
-      ) : (
-        <StartSessionButtons userId={auth.userId} label="Entreno libre" />
-      )}
+      ) : null}
+      <TodayPlan userId={auth.userId} today={today} sex={auth.profile.sex} canStart={!session} />
+      {!session && <StartSessionButtons userId={auth.userId} label="Entreno libre" />}
+      <CheckinCard userId={auth.userId} today={today} />
       <UsCard userId={auth.userId} myName={name ?? 'Yo'} />
-      <ComingSoon phase={5}>La sesión planificada para hoy.</ComingSoon>
       {!session && <MonthSummaryPopup profile={auth.profile} />}
     </Page>
   )

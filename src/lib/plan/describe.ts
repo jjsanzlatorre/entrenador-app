@@ -1,5 +1,6 @@
 // Textos de la prescripción de una sesión planificada.
-import type { SessionIntensity } from '@/types/database'
+import type { Sex, SessionIntensity } from '@/types/database'
+import type { SexStandard } from './competition'
 import type { PlanBlock, PlanExercise } from './types'
 
 const km = (m: number) =>
@@ -60,4 +61,11 @@ export const INTENSITY_LABELS: Record<SessionIntensity, string> = {
   easy: 'Suave',
   moderate: 'Media',
   hard: 'Intensa',
+}
+
+// Estándar de competición según el sexo del perfil; sin sexo definido (u «otro»), los dos.
+export function competitionText(standard: SexStandard, sex: Sex | null | undefined) {
+  if (sex === 'male') return `Competición (hombre): ${standard.men}`
+  if (sex === 'female') return `Competición (mujer): ${standard.women}`
+  return `Competición: hombre ${standard.men} · mujer ${standard.women}`
 }

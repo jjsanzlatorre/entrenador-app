@@ -696,6 +696,8 @@ export type Database = {
           status: PlannedStatus
           workout_session_id: string | null
           created_at: string
+          // 0023_phase5b.sql
+          heavy_legs: boolean
         }
         Insert: {
           id?: string
@@ -713,11 +715,44 @@ export type Database = {
           status?: PlannedStatus
           workout_session_id?: string | null
           created_at?: string
+          heavy_legs?: boolean
         }
         Update: {
           date?: string
           original_date?: string | null
           status?: PlannedStatus
+        }
+        Relationships: []
+      }
+      // 0023_phase5b.sql
+      daily_checkins: {
+        Row: {
+          user_id: string
+          date: string
+          sleep: number | null
+          energy: number | null
+          soreness: number | null
+          stress: number | null
+          notes: string | null
+          updated_at: string
+        }
+        Insert: {
+          user_id?: string
+          date: string
+          sleep?: number | null
+          energy?: number | null
+          soreness?: number | null
+          stress?: number | null
+          notes?: string | null
+          updated_at?: string
+        }
+        Update: {
+          sleep?: number | null
+          energy?: number | null
+          soreness?: number | null
+          stress?: number | null
+          notes?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -805,6 +840,27 @@ export type Database = {
         Args: { p_planned: string; p_done: boolean; p_workout?: string | null }
         Returns: undefined
       }
+      // 0023_phase5b.sql
+      recent_exercise_sets: {
+        Args: {
+          p_exercise_ids: string[]
+          p_sessions?: number
+          p_exclude_session?: string | null
+        }
+        Returns: {
+          exercise_id: string
+          session_id: string
+          ended_at: string
+          set_index: number
+          is_warmup: boolean
+          weight_kg: number | null
+          reps: number | null
+          rir: number | null
+          duration_s: number | null
+          distance_m: number | null
+          calories: number | null
+        }[]
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -837,3 +893,4 @@ export type MilestoneShownRow = Tables<'milestones_shown'>
 export type PlanTemplateRow = Tables<'plan_templates'>
 export type UserPlanRow = Tables<'user_plans'>
 export type PlannedSessionRow = Tables<'planned_sessions'>
+export type DailyCheckinRow = Tables<'daily_checkins'>

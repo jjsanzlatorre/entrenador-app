@@ -171,3 +171,13 @@ describe('frases de logros en tercera persona', () => {
     )
   })
 })
+
+describe('pairTemplateSignature (sincronización automática, 7B)', () => {
+  it('no depende del orden de las claves (jsonb las reordena)', async () => {
+    const { pairTemplateSignature } = await import('./pair')
+    const a = { v: 1, title: 'x', blocks: [{ block_type: 'straight', exercises: [] }] }
+    const b = { blocks: [{ exercises: [], block_type: 'straight' }], title: 'x', v: 1 }
+    expect(pairTemplateSignature(a)).toBe(pairTemplateSignature(b))
+    expect(pairTemplateSignature({ ...a, title: 'y' })).not.toBe(pairTemplateSignature(a))
+  })
+})

@@ -126,7 +126,7 @@ export function ChangeCard({
       )}
       {state === 'accepted' ? (
         <div className="flex items-center gap-2 text-sm">
-          <Check className="size-4 text-emerald-600" />
+          <Check className="text-success size-4" />
           <span className="flex-1 font-medium">Aceptado</span>
           {(change.action === 'modify' || change.action === 'skip') && target?.adjusted && (
             <Button variant="ghost" size="sm" disabled={busy} onClick={() => void undo()}>

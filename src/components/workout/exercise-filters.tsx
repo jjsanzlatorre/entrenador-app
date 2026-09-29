@@ -84,7 +84,7 @@ function Chip({
       onClick={onClick}
       aria-pressed={active}
       className={cn(
-        'h-9 shrink-0 rounded-full border px-3 text-sm whitespace-nowrap',
+        'relative h-9 shrink-0 rounded-full border px-3 text-sm whitespace-nowrap after:absolute after:inset-x-0 after:-inset-y-1 after:content-[""]',
         active ? 'bg-primary text-primary-foreground border-primary' : 'bg-background',
       )}
     >

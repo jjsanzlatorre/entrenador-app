@@ -4,6 +4,7 @@ import { Link } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { MapPin } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { ShareCardButton } from '@/components/share/share-card-button'
 import { accumulate, periodFor } from '@/lib/progress/accumulated'
 import { monthAdherence, monthValue } from '@/lib/progress/adherence'
 import { addMonths, formatMonth, localDateKey, monthStartOf } from '@/lib/progress/dates'
@@ -87,6 +88,20 @@ export function MilestoneCard({
         {value && <p className="text-primary text-3xl font-extrabold tabular-nums">{value}</p>}
         {children}
         <div className="mt-2 flex w-full flex-col gap-2">
+          {value && (
+            <ShareCardButton
+              size="lg"
+              variant="outline"
+              label="Compartir"
+              card={{
+                kind: 'achievement',
+                emoji,
+                eyebrow: title ?? 'Nuevo logro',
+                headline: phrase,
+                value,
+              }}
+            />
+          )}
           <Button asChild size="lg">
             <Link to="/progreso/logros" onClick={onClose}>
               Ver mis logros

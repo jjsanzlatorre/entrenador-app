@@ -18,10 +18,12 @@ const buttonVariants = cva(
         link: 'text-primary underline-offset-4 hover:underline',
       },
       size: {
-        default: 'h-9 px-4 py-2 has-[>svg]:px-3',
-        sm: 'h-8 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5',
+        // Área táctil ≥ 44 px (accesibilidad): los tamaños compactos amplían la zona que se
+        // puede tocar con un pseudo-elemento invisible, sin cambiar lo que se ve.
+        default: 'h-11 px-4 py-2 has-[>svg]:px-3',
+        sm: "relative h-9 rounded-md gap-1.5 px-3 has-[>svg]:px-2.5 after:absolute after:-inset-1 after:content-['']",
         lg: 'h-12 rounded-md px-6 text-base has-[>svg]:px-4',
-        icon: 'size-9',
+        icon: "relative size-10 after:absolute after:-inset-0.5 after:content-['']",
       },
     },
     defaultVariants: {

@@ -1,7 +1,8 @@
 @import 'tailwindcss';
 @import 'tw-animate-css';
 
-@custom-variant dark (&:is(.dark *));
+/* El modo oscuro sigue al sistema (los tokens de abajo usan prefers-color-scheme). */
+@custom-variant dark (@media (prefers-color-scheme: dark));
 
 :root {
   --radius: 0.75rem;
@@ -33,6 +34,10 @@
   --mv-silhouette: oklch(0.95 0 0);
   --mv-stroke: oklch(1 0 0);
   --mv-neglected: oklch(0.45 0.18 260);
+  /* Estados: éxito (series hechas, subidas) y aviso. Contraste ≥ 4,5:1 sobre el fondo. */
+  --success: oklch(0.52 0.13 155);
+  --warning: oklch(0.55 0.14 60);
+  --trophy: oklch(0.62 0.15 75);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -64,6 +69,9 @@
     --mv-silhouette: oklch(0.25 0 0);
     --mv-stroke: oklch(0.205 0 0);
     --mv-neglected: oklch(0.78 0.12 260);
+    --success: oklch(0.78 0.15 155);
+    --warning: oklch(0.8 0.14 75);
+    --trophy: oklch(0.84 0.15 85);
   }
 }
 
@@ -90,6 +98,9 @@
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-trophy: var(--trophy);
 }
 
 @layer base {
@@ -102,5 +113,71 @@
   body {
     @apply bg-background text-foreground antialiased;
     overscroll-behavior-y: none;
+  }
+}
+
+/* Récord conseguido (fase 7B): la tarjeta aparece con un rebote, el trofeo se mueve y salen
+   unos destellos. Una sola vez, breve; sin animación si el sistema pide reducir movimiento. */
+@keyframes pr-pop {
+  0% {
+    transform: scale(0.85);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.03);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+@keyframes pr-trophy {
+  0%,
+  100% {
+    transform: rotate(0) scale(1);
+  }
+  20% {
+    transform: rotate(-15deg) scale(1.35);
+  }
+  40% {
+    transform: rotate(12deg) scale(1.35);
+  }
+  60% {
+    transform: rotate(-8deg) scale(1.15);
+  }
+  80% {
+    transform: rotate(4deg) scale(1.05);
+  }
+}
+@keyframes pr-spark {
+  0% {
+    transform: translate(-50%, -50%) scale(0.4);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1);
+    opacity: 0;
+  }
+}
+.pr-pop {
+  animation: pr-pop 0.5s cubic-bezier(0.2, 0.8, 0.3, 1.2) both;
+}
+.pr-trophy {
+  display: inline-block;
+  animation: pr-trophy 1s ease-in-out 0.3s both;
+}
+.pr-spark {
+  position: absolute;
+  pointer-events: none;
+  opacity: 0;
+  animation: pr-spark 0.9s ease-out 0.35s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .pr-pop,
+  .pr-trophy {
+    animation: none;
+  }
+  .pr-spark {
+    display: none;
   }
 }

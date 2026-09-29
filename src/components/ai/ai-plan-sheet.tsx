@@ -235,7 +235,7 @@ function Proposal({
 
       {proposal.dropped.length > 0 && (
         <p className="flex gap-2 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm dark:bg-amber-950/30">
-          <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" />
+          <AlertTriangle className="text-warning mt-0.5 size-4 shrink-0" />
           Se han quitado ejercicios que no están en tu biblioteca ({proposal.dropped.join(', ')}).
         </p>
       )}
@@ -255,7 +255,7 @@ function Proposal({
         <ul className="flex flex-col gap-1 rounded-lg border border-amber-400 bg-amber-50 p-3 text-sm dark:bg-amber-950/30">
           {warnings.map((w) => (
             <li key={w} className="flex gap-2">
-              <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-600" /> {w}
+              <AlertTriangle className="text-warning mt-0.5 size-4 shrink-0" /> {w}
             </li>
           ))}
         </ul>

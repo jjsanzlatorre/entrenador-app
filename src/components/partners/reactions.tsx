@@ -13,6 +13,7 @@ import {
   type Reaction,
 } from '@/lib/partners/api'
 import { reactionsKey, useReactions } from '@/lib/partners/hooks'
+import { pushReaction } from '@/lib/notifications/push'
 import { usePartnerLinks } from '@/lib/progress/hooks'
 import { formatDayMonth } from '@/lib/progress/dates'
 import { cn } from '@/lib/utils'
@@ -51,7 +52,8 @@ export function ReactionBar({
   async function toggle(emoji: ReactionEmoji) {
     setBusy(emoji)
     try {
-      await toggleReaction(to, kind, targetKey, emoji)
+      const added = await toggleReaction(to, kind, targetKey, emoji)
+      if (added) pushReaction(to, kind, targetKey, emoji)
       await queryClient.invalidateQueries({ queryKey: reactionsKey(userId) })
     } catch (error) {
       notifyError(error, 'reaccionar')

@@ -877,6 +877,72 @@ export type Database = {
         Update: { [_ in never]: never }
         Relationships: []
       }
+      push_subscriptions: {
+        Row: {
+          id: string
+          user_id: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent: string | null
+          created_at: string
+          last_success_at: string | null
+          failure_count: number
+        }
+        Insert: {
+          id?: string
+          user_id?: string
+          endpoint: string
+          p256dh: string
+          auth: string
+          user_agent?: string | null
+          created_at?: string
+          last_success_at?: string | null
+          failure_count?: number
+        }
+        Update: {
+          last_success_at?: string | null
+          failure_count?: number
+        }
+        Relationships: []
+      }
+      notification_settings: {
+        Row: {
+          user_id: string
+          pair_invites: boolean
+          reactions: boolean
+          plan_reminder: boolean
+          reminder_time: string
+          behind_nudge: boolean
+          tz: string
+          updated_at: string
+        }
+        Insert: {
+          user_id?: string
+          pair_invites?: boolean
+          reactions?: boolean
+          plan_reminder?: boolean
+          reminder_time?: string
+          behind_nudge?: boolean
+          tz?: string
+          updated_at?: string
+        }
+        Update: {
+          pair_invites?: boolean
+          reactions?: boolean
+          plan_reminder?: boolean
+          reminder_time?: string
+          behind_nudge?: boolean
+          tz?: string
+        }
+        Relationships: []
+      }
+      push_log: {
+        Row: { user_id: string; key: string; sent_at: string }
+        Insert: { user_id: string; key: string; sent_at?: string }
+        Update: { sent_at?: string }
+        Relationships: []
+      }
     }
     Views: { [_ in never]: never }
     Functions: {
@@ -1058,6 +1124,11 @@ export type Database = {
         Args: { p_interaction: string; p_index: number; p_accept: boolean }
         Returns: string
       }
+      // 0028_push_notifications.sql
+      save_push_subscription: {
+        Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null }
+        Returns: string
+      }
     }
     Enums: { [_ in never]: never }
     CompositeTypes: { [_ in never]: never }
@@ -1095,3 +1166,5 @@ export type AiInteractionRow = Tables<'ai_interactions'>
 export type AiChatMessageRow = Tables<'ai_chat_messages'>
 export type PairInviteRow = Tables<'pair_invites'>
 export type ReactionRow = Tables<'reactions'>
+export type PushSubscriptionRow = Tables<'push_subscriptions'>
+export type NotificationSettingsRow = Tables<'notification_settings'>

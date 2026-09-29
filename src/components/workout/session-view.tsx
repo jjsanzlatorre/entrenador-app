@@ -1,9 +1,11 @@
 // Cuerpo del detalle de una sesión (estadísticas, récords, músculos, ejercicios, notas y datos
 // del reloj). Se usa en el historial propio y, en solo lectura, en la evolución de una persona
 // vinculada que comparte sus entrenos.
-import type { ReactNode } from 'react'
+import type { CSSProperties, ReactNode } from 'react'
 import { TrendingDown, TrendingUp } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { ShareCardButton } from '@/components/share/share-card-button'
+import { recordCard } from '@/lib/share/cards'
 import { BodyMap, BodyMapLegend } from '@/components/progress/body-map'
 import { BLOCK_LABELS, describeTimer, resultSummary } from '@/components/workout/timed-block-card'
 import { formatSets, localSetCounts, muscleVolume } from '@/lib/progress/muscle-volume'
@@ -130,6 +132,7 @@ export function SessionBody({
           records={records.list ? sessionImprovements(records.list) : []}
           names={(id) => byId.get(id)?.name ?? id}
           renderExerciseLink={renderExerciseLink}
+          shareable={previous !== null}
         />
       )}
 
@@ -260,6 +263,7 @@ function SessionRecords({
   records,
   names,
   renderExerciseLink,
+  shareable,
 }: {
   pending: boolean
   loading: boolean
@@ -267,6 +271,7 @@ function SessionRecords({
   records: PersonalRecord[]
   names: (exerciseId: string) => string
   renderExerciseLink: ExerciseLinkRenderer
+  shareable: boolean
 }) {
   if (pending) {
     return (
@@ -277,25 +282,45 @@ function SessionRecords({
   }
   if (loading || unavailable || records.length === 0) return null
   return (
-    <Card className="border-amber-400 bg-amber-50 dark:bg-amber-950/30">
+    <Card className="pr-pop relative overflow-hidden border-amber-400 bg-amber-50 dark:bg-amber-950/30">
       <CardHeader>
-        <CardTitle>
-          🏆 {records.length === 1 ? 'Nuevo récord' : `${records.length} récords nuevos`}
+        <CardTitle role="status">
+          <span className="relative mr-1 inline-block" aria-hidden>
+            <span className="pr-trophy">🏆</span>
+            {SPARKS.map(([dx, dy, e], i) => (
+              <span
+                key={i}
+                className="pr-spark top-1/2 left-1/2 text-base"
+                style={{ '--dx': `${dx}px`, '--dy': `${dy}px` } as CSSProperties}
+              >
+                {e}
+              </span>
+            ))}
+          </span>
+          {records.length === 1 ? 'Nuevo récord' : `${records.length} récords nuevos`}
         </CardTitle>
       </CardHeader>
       <CardContent>
         <ul className="flex flex-col gap-1.5 text-sm">
           {records.map((r) => (
-            <li key={r.id}>
+            <li key={r.id} className="flex items-center gap-2">
               {renderExerciseLink(
                 r.exerciseId,
-                'flex flex-wrap items-baseline gap-x-1.5',
+                'flex min-w-0 flex-1 flex-wrap items-baseline gap-x-1.5',
                 <>
                   <span className="font-semibold">{names(r.exerciseId)}</span>
                   <span className="text-muted-foreground">{PR_LABELS[r.prType]}:</span>
                   <strong className="tabular-nums">{formatRecordValue(r)}</strong>
                   <span className="text-muted-foreground text-xs">({formatPrevious(r)})</span>
                 </>,
+              )}
+              {shareable && (
+                <ShareCardButton
+                  size="icon"
+                  variant="ghost"
+                  label="Compartir récord"
+                  card={recordCard(r, names(r.exerciseId))}
+                />
               )}
             </li>
           ))}
@@ -304,6 +329,16 @@ function SessionRecords({
     </Card>
   )
 }
+
+// Destellos alrededor del trofeo (desplazamiento x, y en px y emoji).
+const SPARKS: [number, number, string][] = [
+  [-34, -30, '✨'],
+  [30, -34, '⭐'],
+  [40, 6, '✨'],
+  [-40, 10, '⭐'],
+  [-10, 36, '✨'],
+  [18, 30, '🎉'],
+]
 
 function Stat({ label, value, hint }: { label: string; value: string; hint?: string }) {
   return (
@@ -389,7 +424,7 @@ function ExerciseSummary({
             <span
               className={cn(
                 'inline-flex items-center gap-1',
-                diff >= 0 ? 'text-emerald-600' : 'text-amber-600',
+                diff >= 0 ? 'text-success' : 'text-warning',
               )}
             >
               {diff >= 0 ? (

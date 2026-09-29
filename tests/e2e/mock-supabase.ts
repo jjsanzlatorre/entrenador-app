@@ -1,9 +1,35 @@
 // Supabase simulado para los tests E2E (auth, PostgREST y las dos RPC que usa el registro).
 // Guarda en memoria lo que llega por save_workout_session y expone /__state para inspeccionarlo.
 // Uso: node tests/e2e/mock-supabase.ts [puerto]
+import { randomUUID } from 'node:crypto'
 import http from 'node:http'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+
+const EMPTY_TABLES = new Set([
+  'notification_settings',
+  'push_subscriptions',
+  'training_profiles',
+  'session_blocks',
+  'exercise_sets',
+  'exercises',
+  'exercise_muscles',
+  'body_metrics',
+  'progress_photos',
+  'personal_records',
+  'daily_checkins',
+  'user_plans',
+  'planned_sessions',
+  'ai_interactions',
+  'ai_chat_messages',
+  'partner_links',
+  'milestones_shown',
+  'reactions',
+  'commitments',
+  'profiles',
+  'workout_sessions',
+  'pair_invites',
+])
 
 export const MOCK_USER_ID = '11111111-1111-4111-8111-111111111111'
 const root = join(import.meta.dirname, '../..')
@@ -639,6 +665,39 @@ export function startMockSupabase(port: number) {
         ),
       )
     }
+    // ── Fase 7B: invitar a entrenar y sincronizar la estructura ──
+    if (path === '/rest/v1/rpc/create_pair_invite') {
+      const b = (await readBody(req)) as {
+        p_partner: string
+        p_pair_group_id: string
+        p_payload: Record<string, unknown>
+      }
+      const id = randomUUID()
+      progressSeed.pairInvites = [
+        ...(progressSeed.pairInvites ?? []),
+        {
+          id,
+          pair_group_id: b.p_pair_group_id,
+          from_user: MOCK_USER_ID,
+          to_user: b.p_partner,
+          payload: b.p_payload,
+          status: 'pending',
+          created_at: new Date().toISOString(),
+          updates: 0,
+        },
+      ]
+      return send(res, 200, id)
+    }
+    if (path === '/rest/v1/rpc/update_pair_invite') {
+      const b = (await readBody(req)) as { p_invite: string; p_payload: Record<string, unknown> }
+      const invite = (progressSeed.pairInvites ?? []).find((x) => x.id === b.p_invite)
+      if (!invite || invite.status !== 'pending') {
+        return send(res, 400, { message: 'La invitación ya no está pendiente' })
+      }
+      invite.payload = b.p_payload
+      invite.updates = Number(invite.updates ?? 0) + 1
+      return send(res, 200, null)
+    }
     if (path === '/rest/v1/rpc/respond_pair_invite') {
       const b = (await readBody(req)) as { p_invite: string; p_accept: boolean }
       for (const i of (progressSeed.pairInvites ?? []).filter((x) => x.id === b.p_invite)) {
@@ -891,6 +950,9 @@ export function startMockSupabase(port: number) {
         : []
       return send(res, 200, list)
     }
+    // Fase 7B: tablas que solo lee la exportación o Notificaciones (vacías en el mock).
+    if (req.method === 'GET' && EMPTY_TABLES.has(path.replace('/rest/v1/', '')))
+      return send(res, 200, [])
     send(res, 404, { message: `mock: ${req.method} ${path} no implementado` })
   })
   server.listen(port)

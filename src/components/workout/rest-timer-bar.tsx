@@ -81,7 +81,7 @@ export function RestTimerBar({
           <p
             className={cn(
               'text-4xl leading-none font-bold tabular-nums',
-              finished && 'text-emerald-600',
+              finished && 'text-success',
               !finished && seconds <= 3 && 'text-destructive',
             )}
           >

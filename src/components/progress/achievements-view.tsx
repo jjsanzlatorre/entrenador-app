@@ -26,6 +26,8 @@ import type { ShownMilestone } from '@/lib/progress/api'
 import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
 import { cn } from '@/lib/utils'
 import type { SessionType } from '@/types/database'
+import { ShareCardButton } from '@/components/share/share-card-button'
+import { achievementCard, leadingEmoji } from '@/lib/share/cards'
 
 const PERIODS: { kind: PeriodKind; label: string }[] = [
   { kind: 'week', label: 'Semana' },
@@ -71,7 +73,7 @@ export function AchievementsView({
             aria-selected={kind === p.kind}
             onClick={() => setKind(p.kind)}
             className={cn(
-              'rounded-lg py-2 text-sm font-medium',
+              'min-h-11 rounded-lg py-2 text-sm font-medium',
               kind === p.kind ? 'bg-background shadow-sm' : 'text-muted-foreground',
             )}
           >
@@ -241,6 +243,19 @@ function MetricCard({
         {eq?.big && <p className="text-muted-foreground text-xs">🎯 {person(eq.big.text)}</p>}
         {hint && <p className="text-muted-foreground text-[11px]">{hint}</p>}
         {children}
+        {self && value > 0 && (
+          <ShareCardButton
+            className="self-start"
+            label="Compartir"
+            card={achievementCard({
+              period: kind,
+              title,
+              emoji: eq?.position.passed?.emoji ?? leadingEmoji(title),
+              value: formatMetricValue(metric, value),
+              phrase: eq?.phrase ? `${withPeriod(kind, eq.phrase)}.` : null,
+            })}
+          />
+        )}
       </CardContent>
     </Card>
   )
@@ -278,7 +293,7 @@ function Destinations({
             .map((s) => (
               <li key={s.id} className="flex items-center justify-between gap-2">
                 <span className="flex items-center gap-2">
-                  <Check className="size-4 text-emerald-600" /> {s.emoji} {stepName(s)}
+                  <Check className="text-success size-4" /> {s.emoji} {stepName(s)}
                 </span>
                 <span className="text-muted-foreground tabular-nums">{formatKm(s.value)}</span>
               </li>

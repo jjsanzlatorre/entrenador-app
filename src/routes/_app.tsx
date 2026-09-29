@@ -3,6 +3,7 @@ import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-
 import { useQueryClient } from '@tanstack/react-query'
 import { BottomNav } from '@/components/bottom-nav'
 import { onSessionsSynced, startSyncEngine } from '@/lib/offline/sync-engine'
+import { refreshPushSubscription } from '@/lib/notifications/push'
 import { warmPageCache } from '@/lib/pwa'
 import { loadActiveSession, pruneLocalSessions } from '@/lib/workout/active-session'
 import { fetchCatalog } from '@/lib/workout/api'
@@ -38,6 +39,7 @@ function AppLayout() {
       networkMode: 'always',
     })
     warmPageCache()
+    void refreshPushSubscription()
     return onSessionsSynced((ids) => {
       void queryClient.invalidateQueries({ queryKey: historyQueryKey(userId) })
       // Récords y cumplimiento dependen de las sesiones del servidor.

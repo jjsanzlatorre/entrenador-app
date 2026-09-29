@@ -261,16 +261,7 @@ export type Reaction = {
   seenAt: string | null
 }
 
-export const REACTION_EMOJI: Record<ReactionEmoji, string> = {
-  clap: '👏',
-  fire: '🔥',
-  muscle: '💪',
-}
-export const REACTION_LABEL: Record<ReactionEmoji, string> = {
-  clap: 'Aplauso',
-  fire: 'Fuego',
-  muscle: 'Fuerza',
-}
+export { REACTION_EMOJI, REACTION_LABEL } from './labels'
 
 // Reacciones que he puesto o recibido (las de los últimos 60 días bastan para la UI).
 export async function fetchReactions(now = Date.now()): Promise<Reaction[]> {

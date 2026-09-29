@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useId, type ReactNode } from 'react'
 import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -19,6 +19,7 @@ export function Sheet({
   footer?: ReactNode
   className?: string
 }) {
+  const titleId = useId()
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => e.key === 'Escape' && onClose()
@@ -34,7 +35,12 @@ export function Sheet({
   if (!open || typeof document === 'undefined') return null
   // Portal al <body>: así una hoja puede abrir otra encima sin quedar atrapada en su transform.
   return createPortal(
-    <div className="fixed inset-0 z-50 flex flex-col justify-end" role="dialog" aria-modal="true">
+    <div
+      className="fixed inset-0 z-50 flex flex-col justify-end"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={titleId}
+    >
       <button
         type="button"
         aria-label="Cerrar"
@@ -49,12 +55,14 @@ export function Sheet({
         style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
-          <h2 className="text-lg font-semibold">{title}</h2>
+          <h2 id={titleId} className="text-lg font-semibold">
+            {title}
+          </h2>
           <button
             type="button"
             onClick={onClose}
             aria-label="Cerrar"
-            className="hover:bg-accent -mr-2 rounded-full p-2"
+            className="hover:bg-accent -mr-2 rounded-full p-2.5"
           >
             <X className="size-6" />
           </button>

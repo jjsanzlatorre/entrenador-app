@@ -1,6 +1,6 @@
 // Entreno en pareja (§7, fase 7A): «Entrenar con…», invitación en «Hoy», aviso en la sesión en
 // curso y comparación lado a lado en el resumen.
-import { useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
@@ -12,15 +12,18 @@ import { notifyError, notifySaved, notifyWarning } from '@/lib/notify'
 import {
   cancelPairInvite,
   createPairInvite,
+  fetchPairInvites,
   fetchPairPartnerSession,
   respondPairInvite,
   updatePairInvite,
   type PairInvite,
 } from '@/lib/partners/api'
 import { pairInvitesKey, usePairInvites, usePendingPairInvites } from '@/lib/partners/hooks'
+import { pushPairInvite } from '@/lib/notifications/push'
 import {
   comparePairSessions,
   pairTemplateFromSession,
+  pairTemplateSignature,
   parsePairTemplate,
   sessionFromPairTemplate,
   templateExerciseCount,
@@ -65,7 +68,8 @@ export function usePairStart(userId: string) {
       const pairGroupId = crypto.randomUUID()
       const session = { ...(await build()), pairGroupId }
       const { template, skipped } = pairTemplateFromSession(session, isShareable)
-      await createPairInvite(partner.partnerId, pairGroupId, template)
+      const inviteId = await createPairInvite(partner.partnerId, pairGroupId, template)
+      pushPairInvite(inviteId)
       await startPreparedSession(session)
       notifySaved(`Invitación enviada a ${partner.displayName}`)
       if (skipped > 0) notifyWarning('Tus ejercicios propios no se comparten: no los tiene.')
@@ -203,16 +207,22 @@ function PairInviteCard({
         notifyError('ya tienes una sesión en curso; termínala o descártala antes', 'unirte')
         return
       }
-      const ids = [
-        ...new Set(template.blocks.flatMap((b) => b.exercises.map((e) => e.exercise_id))),
-      ]
+      // La estructura puede haber cambiado desde la última consulta: se usa la más reciente.
+      let latest = template
+      try {
+        const fresh = (await fetchPairInvites(invite.pairGroupId)).find((i) => i.id === invite.id)
+        latest = (fresh && parsePairTemplate(fresh.payload)) || template
+      } catch {
+        // sin conexión se usará la copia que ya tenemos (y fallará al responder)
+      }
+      const ids = [...new Set(latest.blocks.flatMap((b) => b.exercises.map((e) => e.exercise_id)))]
       let last = new Map()
       try {
         last = await getLastPerformance(userId, ids, null)
       } catch {
         // sin precarga de pesos
       }
-      const session = sessionFromPairTemplate(template, {
+      const session = sessionFromPairTemplate(latest, {
         userId,
         pairGroupId: invite.pairGroupId,
         known: (id) => catalog.byId.size === 0 || catalog.byId.has(id),
@@ -280,22 +290,79 @@ function PairInviteCard({
   )
 }
 
-// Aviso en la sesión en curso: con quién se entrena y, si la otra persona aún no se ha unido,
-// enviarle la estructura actual (p. ej. tras añadir ejercicios a un entreno libre).
+// Aviso en la sesión en curso: con quién se entrena y, mientras la otra persona no se haya unido,
+// la estructura se le reenvía sola al añadir, quitar o reordenar ejercicios (fase 7B). El botón
+// manual solo aparece si la sincronización falla.
+const PAIR_SYNC_DELAY_MS = 1500
+
 export function PairBanner({ session }: { session: LocalSession }) {
   const invites = usePairInvites(session.pairGroupId, session.mode === 'live')
   const partners = useAcceptedPartners(session.userId)
   const queryClient = useQueryClient()
   const [busy, setBusy] = useState(false)
-  if (!session.pairGroupId) return null
+  const [syncState, setSyncState] = useState<'idle' | 'syncing' | 'error'>('idle')
+  const [online, setOnline] = useState(0)
+  const lastSent = useRef<string | null>(null)
   const invite = invites.data?.[0]
+  const sent = invite?.fromUser === session.userId
+  const syncing = Boolean(invite && sent && invite.status === 'pending' && session.mode === 'live')
+  const template = useMemo(
+    () =>
+      pairTemplateFromSession(
+        {
+          sessionType: session.sessionType,
+          title: session.title,
+          location: session.location,
+          blocks: session.blocks,
+        },
+        isShareable,
+      ).template,
+    [session.sessionType, session.title, session.location, session.blocks],
+  )
+  const signature = pairTemplateSignature(template)
+
+  // Lo último que tiene la otra persona es lo que hay en la invitación.
+  useEffect(() => {
+    if (invite && lastSent.current === null)
+      lastSent.current = pairTemplateSignature(invite.payload)
+  }, [invite])
+
+  useEffect(() => {
+    const onOnline = () => setOnline((n) => n + 1)
+    window.addEventListener('online', onOnline)
+    return () => window.removeEventListener('online', onOnline)
+  }, [])
+
+  useEffect(() => {
+    if (!syncing || !invite || lastSent.current === null || lastSent.current === signature) return
+    const timer = setTimeout(() => {
+      setSyncState('syncing')
+      updatePairInvite(invite.id, template)
+        .then(() => {
+          lastSent.current = signature
+          setSyncState('idle')
+        })
+        .catch((error: unknown) => {
+          // Si ya se ha unido (o rechazado), no es un fallo: se actualiza el estado.
+          if (error instanceof Error && /ya no está pendiente/.test(error.message)) {
+            setSyncState('idle')
+            void queryClient.invalidateQueries({ queryKey: ['pair-group', session.pairGroupId] })
+            return
+          }
+          console.warn('[pair] no se pudo sincronizar la estructura', error)
+          setSyncState('error')
+        })
+    }, PAIR_SYNC_DELAY_MS)
+    return () => clearTimeout(timer)
+  }, [syncing, invite, signature, template, online, queryClient, session.pairGroupId])
+
+  if (!session.pairGroupId) return null
   const otherId = invite
     ? invite.fromUser === session.userId
       ? invite.toUser
       : invite.fromUser
     : null
   const name = partners.find((p) => p.partnerId === otherId)?.displayName ?? 'tu compañero'
-  const sent = invite?.fromUser === session.userId
 
   async function run(action: () => Promise<void>, ok: string, label: string) {
     setBusy(true)
@@ -327,37 +394,48 @@ export function PairBanner({ session }: { session: LocalSession }) {
       <p className="flex items-center gap-2 font-medium">
         <Users className="text-primary size-4" /> {text}
       </p>
-      {sent && invite.status === 'pending' && session.mode === 'live' && (
-        <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            disabled={busy}
-            onClick={() =>
-              void run(
-                () =>
-                  updatePairInvite(
-                    invite.id,
-                    pairTemplateFromSession(session, isShareable).template,
-                  ),
-                `Estructura enviada a ${name}`,
-                'enviar la estructura',
-              )
-            }
-          >
-            Enviarle la estructura actual
-          </Button>
-          <Button
-            size="sm"
-            variant="ghost"
-            disabled={busy}
-            onClick={() =>
-              void run(() => cancelPairInvite(invite.id), 'Invitación cancelada', 'cancelar')
-            }
-          >
-            Cancelar invitación
-          </Button>
-        </div>
+      {syncing && invite && (
+        <>
+          <p className="text-muted-foreground text-xs" aria-live="polite">
+            {syncState === 'error'
+              ? 'No se ha podido enviar el último cambio.'
+              : syncState === 'syncing'
+                ? 'Enviando los cambios…'
+                : 'Los cambios en los ejercicios le llegan solos hasta que se una.'}
+          </p>
+          <div className="flex flex-wrap gap-2">
+            {syncState === 'error' && (
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={busy}
+                onClick={() =>
+                  void run(
+                    async () => {
+                      await updatePairInvite(invite.id, template)
+                      lastSent.current = signature
+                      setSyncState('idle')
+                    },
+                    `Estructura enviada a ${name}`,
+                    'enviar la estructura',
+                  )
+                }
+              >
+                Enviarle la estructura actual
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              disabled={busy}
+              onClick={() =>
+                void run(() => cancelPairInvite(invite.id), 'Invitación cancelada', 'cancelar')
+              }
+            >
+              Cancelar invitación
+            </Button>
+          </div>
+        </>
       )}
     </div>
   )

@@ -2,11 +2,12 @@
 // con los vínculos, la RLS también deja leer datos que la pareja comparte.
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { isOnline, OfflineError, withTimeout } from '@/lib/workout/api'
-import type { Json, PhotoPose, SessionType, TablesUpdate } from '@/types/database'
+import type { PhotoPose, SessionType, TablesUpdate } from '@/types/database'
 import type { EquivalenceCatalog, Home } from './equivalences'
 import type { ExerciseSetSample } from './exercise-progress'
 import type { ExerciseSetCount } from './muscle-volume'
 import type { PersonalRecord } from './records'
+import { toCommitment } from './commitment-row'
 import type { ActivityDay, Commitment, SessionLogEntry } from './types'
 
 function db() {
@@ -49,31 +50,6 @@ export async function fetchSessionLog(userId: string): Promise<SessionLogEntry[]
 }
 
 // ── Compromiso ──────────────────────────────────────────────
-
-type CommitmentRowLite = {
-  id: string
-  valid_from: string
-  valid_to: string | null
-  sessions_per_week: number
-  minutes_per_week: number | null
-  by_type: Json | null
-  counts_free_activities: boolean
-}
-
-function toCommitment(r: CommitmentRowLite): Commitment {
-  return {
-    id: r.id,
-    validFrom: r.valid_from,
-    validTo: r.valid_to,
-    sessionsPerWeek: r.sessions_per_week,
-    minutesPerWeek: r.minutes_per_week,
-    byType:
-      r.by_type && typeof r.by_type === 'object' && !Array.isArray(r.by_type)
-        ? (r.by_type as Partial<Record<SessionType, number>>)
-        : null,
-    countsFreeActivities: r.counts_free_activities,
-  }
-}
 
 export async function fetchCommitments(userId: string): Promise<Commitment[]> {
   const rows = check(

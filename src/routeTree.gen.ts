@@ -26,6 +26,8 @@ import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
 import { Route as AppPerfilCiudadRouteImport } from './routes/_app/perfil/ciudad'
 import { Route as AppPerfilCompromisoRouteImport } from './routes/_app/perfil/compromiso'
 import { Route as AppPerfilCreditosRouteImport } from './routes/_app/perfil/creditos'
+import { Route as AppPerfilExportarRouteImport } from './routes/_app/perfil/exportar'
+import { Route as AppPerfilNotificacionesRouteImport } from './routes/_app/perfil/notificaciones'
 import { Route as AppPlanIndexRouteImport } from './routes/_app/plan/index'
 import { Route as AppPlanElegirRouteImport } from './routes/_app/plan/elegir'
 import { Route as AppPlanRevisionRouteImport } from './routes/_app/plan/revision'
@@ -38,6 +40,7 @@ import { Route as AppProgresoMedidasRouteImport } from './routes/_app/progreso/m
 import { Route as AppProgresoMusculosRouteImport } from './routes/_app/progreso/musculos'
 import { Route as AppProgresoRecordsRouteImport } from './routes/_app/progreso/records'
 import { Route as AppProgresoResumenRouteImport } from './routes/_app/progreso/resumen'
+import { Route as ApiPushCronRouteImport } from './routes/api/push/cron'
 import { Route as AppEntrenarHistorialSessionIdRouteImport } from './routes/_app/entrenar/historial.$sessionId'
 import { Route as AppParejaPartnerIdIndexRouteImport } from './routes/_app/pareja/$partnerId/index'
 import { Route as AppPerfilVinculosIndexRouteImport } from './routes/_app/perfil/vinculos.index'
@@ -130,6 +133,16 @@ const AppPerfilCreditosRoute = AppPerfilCreditosRouteImport.update({
   path: '/perfil/creditos',
   getParentRoute: () => AppRoute,
 } as any)
+const AppPerfilExportarRoute = AppPerfilExportarRouteImport.update({
+  id: '/perfil/exportar',
+  path: '/perfil/exportar',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilNotificacionesRoute = AppPerfilNotificacionesRouteImport.update({
+  id: '/perfil/notificaciones',
+  path: '/perfil/notificaciones',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppPlanIndexRoute = AppPlanIndexRouteImport.update({
   id: '/plan/',
   path: '/plan/',
@@ -190,6 +203,11 @@ const AppProgresoResumenRoute = AppProgresoResumenRouteImport.update({
   path: '/progreso/resumen',
   getParentRoute: () => AppRoute,
 } as any)
+const ApiPushCronRoute = ApiPushCronRouteImport.update({
+  id: '/api/push/cron',
+  path: '/api/push/cron',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppEntrenarHistorialSessionIdRoute =
   AppEntrenarHistorialSessionIdRouteImport.update({
     id: '/entrenar/historial/$sessionId',
@@ -246,6 +264,8 @@ export interface FileRoutesByFullPath {
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
+  '/perfil/exportar': typeof AppPerfilExportarRoute
+  '/perfil/notificaciones': typeof AppPerfilNotificacionesRoute
   '/plan/elegir': typeof AppPlanElegirRoute
   '/plan/revision': typeof AppPlanRevisionRoute
   '/progreso/carga': typeof AppProgresoCargaRoute
@@ -256,6 +276,7 @@ export interface FileRoutesByFullPath {
   '/progreso/musculos': typeof AppProgresoMusculosRoute
   '/progreso/records': typeof AppProgresoRecordsRoute
   '/progreso/resumen': typeof AppProgresoResumenRoute
+  '/api/push/cron': typeof ApiPushCronRoute
   '/entrenar/': typeof AppEntrenarIndexRoute
   '/perfil/': typeof AppPerfilIndexRoute
   '/plan/': typeof AppPlanIndexRoute
@@ -283,6 +304,8 @@ export interface FileRoutesByTo {
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
+  '/perfil/exportar': typeof AppPerfilExportarRoute
+  '/perfil/notificaciones': typeof AppPerfilNotificacionesRoute
   '/plan/elegir': typeof AppPlanElegirRoute
   '/plan/revision': typeof AppPlanRevisionRoute
   '/progreso/carga': typeof AppProgresoCargaRoute
@@ -293,6 +316,7 @@ export interface FileRoutesByTo {
   '/progreso/musculos': typeof AppProgresoMusculosRoute
   '/progreso/records': typeof AppProgresoRecordsRoute
   '/progreso/resumen': typeof AppProgresoResumenRoute
+  '/api/push/cron': typeof ApiPushCronRoute
   '/entrenar': typeof AppEntrenarIndexRoute
   '/perfil': typeof AppPerfilIndexRoute
   '/plan': typeof AppPlanIndexRoute
@@ -322,6 +346,8 @@ export interface FileRoutesById {
   '/_app/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/_app/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/_app/perfil/creditos': typeof AppPerfilCreditosRoute
+  '/_app/perfil/exportar': typeof AppPerfilExportarRoute
+  '/_app/perfil/notificaciones': typeof AppPerfilNotificacionesRoute
   '/_app/plan/elegir': typeof AppPlanElegirRoute
   '/_app/plan/revision': typeof AppPlanRevisionRoute
   '/_app/progreso/carga': typeof AppProgresoCargaRoute
@@ -332,6 +358,7 @@ export interface FileRoutesById {
   '/_app/progreso/musculos': typeof AppProgresoMusculosRoute
   '/_app/progreso/records': typeof AppProgresoRecordsRoute
   '/_app/progreso/resumen': typeof AppProgresoResumenRoute
+  '/api/push/cron': typeof ApiPushCronRoute
   '/_app/entrenar/': typeof AppEntrenarIndexRoute
   '/_app/perfil/': typeof AppPerfilIndexRoute
   '/_app/plan/': typeof AppPlanIndexRoute
@@ -361,6 +388,8 @@ export interface FileRouteTypes {
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
+    | '/perfil/exportar'
+    | '/perfil/notificaciones'
     | '/plan/elegir'
     | '/plan/revision'
     | '/progreso/carga'
@@ -371,6 +400,7 @@ export interface FileRouteTypes {
     | '/progreso/musculos'
     | '/progreso/records'
     | '/progreso/resumen'
+    | '/api/push/cron'
     | '/entrenar/'
     | '/perfil/'
     | '/plan/'
@@ -398,6 +428,8 @@ export interface FileRouteTypes {
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
+    | '/perfil/exportar'
+    | '/perfil/notificaciones'
     | '/plan/elegir'
     | '/plan/revision'
     | '/progreso/carga'
@@ -408,6 +440,7 @@ export interface FileRouteTypes {
     | '/progreso/musculos'
     | '/progreso/records'
     | '/progreso/resumen'
+    | '/api/push/cron'
     | '/entrenar'
     | '/perfil'
     | '/plan'
@@ -436,6 +469,8 @@ export interface FileRouteTypes {
     | '/_app/perfil/ciudad'
     | '/_app/perfil/compromiso'
     | '/_app/perfil/creditos'
+    | '/_app/perfil/exportar'
+    | '/_app/perfil/notificaciones'
     | '/_app/plan/elegir'
     | '/_app/plan/revision'
     | '/_app/progreso/carga'
@@ -446,6 +481,7 @@ export interface FileRouteTypes {
     | '/_app/progreso/musculos'
     | '/_app/progreso/records'
     | '/_app/progreso/resumen'
+    | '/api/push/cron'
     | '/_app/entrenar/'
     | '/_app/perfil/'
     | '/_app/plan/'
@@ -465,6 +501,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   ApiHealthRoute: typeof ApiHealthRoute
   AuthCallbackRoute: typeof AuthCallbackRoute
+  ApiPushCronRoute: typeof ApiPushCronRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -588,6 +625,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppPerfilCreditosRouteImport
       parentRoute: typeof AppRoute
     }
+    '/_app/perfil/exportar': {
+      id: '/_app/perfil/exportar'
+      path: '/perfil/exportar'
+      fullPath: '/perfil/exportar'
+      preLoaderRoute: typeof AppPerfilExportarRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/perfil/notificaciones': {
+      id: '/_app/perfil/notificaciones'
+      path: '/perfil/notificaciones'
+      fullPath: '/perfil/notificaciones'
+      preLoaderRoute: typeof AppPerfilNotificacionesRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/plan/': {
       id: '/_app/plan/'
       path: '/plan'
@@ -672,6 +723,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppProgresoResumenRouteImport
       parentRoute: typeof AppRoute
     }
+    '/api/push/cron': {
+      id: '/api/push/cron'
+      path: '/api/push/cron'
+      fullPath: '/api/push/cron'
+      preLoaderRoute: typeof ApiPushCronRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_app/entrenar/historial/$sessionId': {
       id: '/_app/entrenar/historial/$sessionId'
       path: '/entrenar/historial/$sessionId'
@@ -735,6 +793,8 @@ interface AppRouteChildren {
   AppPerfilCiudadRoute: typeof AppPerfilCiudadRoute
   AppPerfilCompromisoRoute: typeof AppPerfilCompromisoRoute
   AppPerfilCreditosRoute: typeof AppPerfilCreditosRoute
+  AppPerfilExportarRoute: typeof AppPerfilExportarRoute
+  AppPerfilNotificacionesRoute: typeof AppPerfilNotificacionesRoute
   AppPlanElegirRoute: typeof AppPlanElegirRoute
   AppPlanRevisionRoute: typeof AppPlanRevisionRoute
   AppProgresoCargaRoute: typeof AppProgresoCargaRoute
@@ -769,6 +829,8 @@ const AppRouteChildren: AppRouteChildren = {
   AppPerfilCiudadRoute: AppPerfilCiudadRoute,
   AppPerfilCompromisoRoute: AppPerfilCompromisoRoute,
   AppPerfilCreditosRoute: AppPerfilCreditosRoute,
+  AppPerfilExportarRoute: AppPerfilExportarRoute,
+  AppPerfilNotificacionesRoute: AppPerfilNotificacionesRoute,
   AppPlanElegirRoute: AppPlanElegirRoute,
   AppPlanRevisionRoute: AppPlanRevisionRoute,
   AppProgresoCargaRoute: AppProgresoCargaRoute,
@@ -802,6 +864,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   ApiHealthRoute: ApiHealthRoute,
   AuthCallbackRoute: AuthCallbackRoute,
+  ApiPushCronRoute: ApiPushCronRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

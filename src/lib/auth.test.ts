@@ -13,6 +13,7 @@ vi.mock('@/server/auth.functions', () => ({
 }))
 vi.mock('@/lib/supabase/client', () => ({ getSupabaseBrowserClient: vi.fn() }))
 vi.mock('@/lib/pwa', () => ({ clearCachedPages: vi.fn() }))
+vi.mock('@/lib/notifications/push', () => ({ disablePush: vi.fn(async () => {}) }))
 
 const { ensureAuthState, resetAuthState } = await import('./auth')
 

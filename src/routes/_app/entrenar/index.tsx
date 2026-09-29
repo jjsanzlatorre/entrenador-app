@@ -100,7 +100,7 @@ function TrainPage() {
                 </div>
                 {item.pendingSync && (
                   <CloudUpload
-                    className="size-5 text-amber-600"
+                    className="text-warning size-5"
                     aria-label="Pendiente de sincronizar"
                   />
                 )}

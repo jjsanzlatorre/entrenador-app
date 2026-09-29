@@ -1,5 +1,6 @@
 // Acceso a datos de Progreso (Supabase + RLS). Todas las consultas filtran por user_id:
 // con los vínculos, la RLS también deja leer datos que la pareja comparte.
+import { normalizeSessionType } from '@/lib/activities/catalog'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { isOnline, OfflineError, withTimeout } from '@/lib/workout/api'
 import type { PhotoPose, SessionType, TablesUpdate } from '@/types/database'
@@ -30,7 +31,7 @@ export async function fetchSessionLog(userId: string): Promise<SessionLogEntry[]
       db()
         .from('workout_sessions')
         .select(
-          'id, session_type, started_at, ended_at, duration_min, rpe, distance_m, planned_session_id',
+          'id, session_type, activity_type_id, started_at, ended_at, duration_min, rpe, distance_m, planned_session_id',
         )
         .eq('user_id', userId)
         .not('ended_at', 'is', null)
@@ -39,7 +40,8 @@ export async function fetchSessionLog(userId: string): Promise<SessionLogEntry[]
   )
   return rows.map((r) => ({
     id: r.id,
-    sessionType: r.session_type,
+    sessionType: normalizeSessionType(r.session_type),
+    activityTypeId: r.activity_type_id ?? null,
     startedAt: r.started_at,
     endedAt: r.ended_at!,
     durationMin: r.duration_min,

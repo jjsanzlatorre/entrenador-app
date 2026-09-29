@@ -64,7 +64,7 @@ export function MilestoneCard({
   if (typeof document === 'undefined') return null
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      className="p-safe-4 fixed inset-0 z-50 flex items-center justify-center"
       role="dialog"
       aria-modal="true"
       aria-label={title ?? 'Nuevo logro'}
@@ -75,7 +75,7 @@ export function MilestoneCard({
         className="animate-in fade-in absolute inset-0 bg-black/50"
         onClick={onClose}
       />
-      <div className="bg-background animate-in zoom-in-90 fade-in relative flex w-full max-w-sm flex-col items-center gap-3 rounded-3xl p-6 text-center shadow-2xl duration-300">
+      <div className="bg-background animate-in zoom-in-90 fade-in relative flex max-h-full w-full max-w-sm flex-col items-center gap-3 overflow-y-auto overscroll-contain rounded-3xl p-6 text-center shadow-2xl duration-300">
         {title && (
           <p className="text-muted-foreground text-xs font-semibold tracking-wide uppercase">
             {title}

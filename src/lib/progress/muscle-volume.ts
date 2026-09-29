@@ -1,8 +1,9 @@
 // Volumen semanal por músculo (CLAUDE.md §5 y §6):
 // - Serie efectiva (completada, sin calentamiento): 1 por músculo principal y 0,5 por secundario.
-// - Cardio y deportes (aproximado): cada 30 min suman 2 series equivalentes a cada músculo de
-//   su lista (yoga: 0,5), en proporción a la duración.
-import type { MuscleRole, SessionType } from '@/types/database'
+// - Cardio, deportes y clases (aproximado): cada 30 min suman 2 series equivalentes a cada
+//   músculo de su lista (yoga: 0,5), en proporción a la duración. Tabla en activity_types.
+import { activityApprox, activityKey } from '@/lib/activities/catalog'
+import type { MuscleRole } from '@/types/database'
 import { sessionMinutes } from './adherence'
 import { addDays, localDateKey, type DateKey } from './dates'
 import type { SessionLogEntry } from './types'
@@ -28,25 +29,11 @@ export const MUSCLE_IDS = [
 
 export type MuscleId = (typeof MUSCLE_IDS)[number]
 
-// Aproximación del cardio y los deportes: músculos y series por cada 30 min (a cada uno).
-export const CARDIO_APPROX: Partial<
-  Record<SessionType, { muscles: MuscleId[]; setsPer30Min: number }>
-> = {
-  running: { muscles: ['quads', 'hamstrings', 'calves', 'glutes'], setsPer30Min: 2 },
-  swimming: {
-    muscles: ['lats', 'delt_front', 'delt_side', 'triceps', 'core'],
-    setsPer30Min: 2,
-  },
-  cycling: { muscles: ['quads', 'glutes', 'calves'], setsPer30Min: 2 },
-  spinning: { muscles: ['quads', 'glutes', 'calves'], setsPer30Min: 2 },
-  surf: { muscles: ['lats', 'delt_front', 'core', 'triceps'], setsPer30Min: 2 },
-  padel_fronton: { muscles: ['delt_front', 'forearms', 'core', 'quads'], setsPer30Min: 2 },
-  yoga: { muscles: ['core', 'glutes', 'hamstrings'], setsPer30Min: 0.5 },
-}
-
-// Series equivalentes que una sesión de cardio o deporte aporta a cada músculo de su lista.
-export function cardioApproxSets(sessionType: SessionType, minutes: number | null) {
-  const approx = CARDIO_APPROX[sessionType]
+// Aproximación del cardio, los deportes y las clases (§6): músculos y series por cada 30 min
+// (a cada uno). Sale de los datos (activity_types / supabase/seed/activity_types.json), no del
+// código; las actividades personalizadas traen la suya.
+export function cardioApproxSets(activity: string, minutes: number | null) {
+  const approx = activityApprox(activity)
   if (!approx || !minutes || minutes <= 0) return []
   const sets = (approx.setsPer30Min * minutes) / 30
   return approx.muscles.map((muscleId) => ({ muscleId, sets }))
@@ -57,7 +44,7 @@ export type ExerciseSetCount = { sessionId: string; exerciseId: string; sets: nu
 
 export type VolumeSession = Pick<
   SessionLogEntry,
-  'id' | 'sessionType' | 'startedAt' | 'endedAt' | 'durationMin'
+  'id' | 'sessionType' | 'activityTypeId' | 'startedAt' | 'endedAt' | 'durationMin'
 >
 
 type MuscleCatalog = Map<string, { muscles: { muscleId: string; role: MuscleRole }[] }>
@@ -65,7 +52,8 @@ type MuscleCatalog = Map<string, { muscles: { muscleId: string; role: MuscleRole
 // De dónde salen las series de un músculo: un ejercicio o un tipo de cardio/deporte.
 export type Contribution =
   | { kind: 'exercise'; exerciseId: string; role: MuscleRole; sets: number; rawSets: number }
-  | { kind: 'cardio'; sessionType: SessionType; sets: number; sessions: number; minutes: number }
+  // activity: clave de actividad (tipo de sesión o id de la actividad personalizada).
+  | { kind: 'cardio'; activity: string; sets: number; sessions: number; minutes: number }
 
 export type MuscleVolume = {
   muscleId: string
@@ -124,13 +112,12 @@ export function muscleVolume(
 
   for (const s of sessions) {
     const minutes = sessionMinutes(s)
-    for (const { muscleId, sets } of cardioApproxSets(s.sessionType, minutes)) {
+    const activity = activityKey(s)
+    for (const { muscleId, sets } of cardioApproxSets(activity, minutes)) {
       const v = entry(map, muscleId)
       v.sets += sets
       v.approxSets += sets
-      const found = v.contributions.find(
-        (x) => x.kind === 'cardio' && x.sessionType === s.sessionType,
-      )
+      const found = v.contributions.find((x) => x.kind === 'cardio' && x.activity === activity)
       if (found && found.kind === 'cardio') {
         found.sets += sets
         found.sessions += 1
@@ -138,7 +125,7 @@ export function muscleVolume(
       } else {
         v.contributions.push({
           kind: 'cardio',
-          sessionType: s.sessionType,
+          activity,
           sets,
           sessions: 1,
           minutes,

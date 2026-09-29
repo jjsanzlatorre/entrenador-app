@@ -1,4 +1,11 @@
 // Tipos de sesión que se pueden empezar y el «Registrar actividad» rápido.
+import {
+  activityEmoji,
+  activityKey,
+  activityLabel,
+  getActivityType,
+  sessionTypeForActivity,
+} from '@/lib/activities/catalog'
 import type { SessionLocation, SessionType } from '@/types/database'
 import { createSession, type IdFn } from './session-ops'
 import { addTimedBlock } from './timed-blocks'
@@ -85,31 +92,13 @@ export function createSessionOfType(
   )
 }
 
-// ── Registrar actividad (yoga, surf, frontón, otros) ─────────
-
-export type QuickActivityType = 'yoga' | 'surf' | 'padel_fronton' | 'other'
-
-export const QUICK_ACTIVITIES: {
-  type: QuickActivityType
-  label: string
-  emoji: string
-  exerciseId: string
-  location: SessionLocation
-}[] = [
-  { type: 'surf', label: 'Surf', emoji: '🏄', exerciseId: 'surf', location: 'outdoor' },
-  {
-    type: 'padel_fronton',
-    label: 'Frontón',
-    emoji: '🎾',
-    exerciseId: 'fronton',
-    location: 'outdoor',
-  },
-  { type: 'yoga', label: 'Yoga', emoji: '🧘', exerciseId: 'yoga', location: 'home' },
-  { type: 'other', label: 'Otro', emoji: '⚡', exerciseId: 'other_activity', location: 'other' },
-]
+// ── Registrar actividad (deportes, clases, yoga, personalizadas…) ─────────
+// Las opciones salen del catálogo de actividades (quickActivityOptions en
+// src/lib/activities/catalog.ts).
 
 export type QuickActivityInput = {
-  type: QuickActivityType
+  // Id de la actividad: tipo de sesión (globales) o 'a_…' (personalizada).
+  activityId: string
   title: string
   startedAt: string
   durationMin: number
@@ -127,7 +116,8 @@ export function createQuickActivity(
   now: number,
   newId: IdFn = () => crypto.randomUUID(),
 ): LocalSession {
-  const activity = QUICK_ACTIVITIES.find((a) => a.type === input.type) ?? QUICK_ACTIVITIES[3]!
+  const activity = getActivityType(input.activityId) ?? getActivityType('other')!
+  const { sessionType, activityTypeId } = sessionTypeForActivity(activity)
   const started = new Date(input.startedAt).getTime()
   const endedAt = new Date(started + input.durationMin * 60_000).toISOString()
   const block: LocalBlock = {
@@ -156,12 +146,13 @@ export function createQuickActivity(
     userId,
     now,
     newId,
-    input.title.trim() || activity.label,
-    input.type,
+    input.title.trim() || activity.name,
+    sessionType,
     activity.location,
   )
   return {
     ...base,
+    activityTypeId,
     startedAt: new Date(started).toISOString(),
     endedAt,
     durationMin: input.durationMin,
@@ -174,36 +165,11 @@ export function createQuickActivity(
   }
 }
 
-const TYPE_LABELS: Record<SessionType, string> = {
-  strength: 'Fuerza',
-  functional: 'Functional',
-  running: 'Carrera',
-  swimming: 'Natación',
-  cycling: 'Bici',
-  spinning: 'Spinning',
-  yoga: 'Yoga',
-  padel_fronton: 'Frontón',
-  surf: 'Surf',
-  other: 'Otra actividad',
+// Nombre y emoji del tipo de sesión (o de la actividad personalizada, si se pasa su id).
+export function sessionTypeLabel(type: SessionType, activityTypeId?: string | null) {
+  return activityLabel(activityKey({ sessionType: type, activityTypeId }))
 }
 
-export function sessionTypeLabel(type: SessionType) {
-  return TYPE_LABELS[type]
-}
-
-const TYPE_EMOJI: Record<SessionType, string> = {
-  strength: '🏋️',
-  functional: '🔥',
-  running: '🏃',
-  swimming: '🏊',
-  cycling: '🚴',
-  spinning: '🚴',
-  yoga: '🧘',
-  padel_fronton: '🎾',
-  surf: '🏄',
-  other: '⚡',
-}
-
-export function sessionTypeEmoji(type: SessionType) {
-  return TYPE_EMOJI[type]
+export function sessionTypeEmoji(type: SessionType, activityTypeId?: string | null) {
+  return activityEmoji(activityKey({ sessionType: type, activityTypeId }))
 }

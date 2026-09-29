@@ -38,15 +38,21 @@ export function migrationFiles() {
     .sort()
 }
 
-export async function createDb({ runs = 1 } = {}) {
+// `only`: aplica solo algunas migraciones (p. ej. las anteriores a una migración de datos).
+export async function createDb({
+  runs = 1,
+  only,
+}: { runs?: number; only?: (file: string) => boolean } = {}) {
   const db = new PGlite()
   await db.exec(SUPABASE_STUB)
-  for (let i = 0; i < runs; i++) {
-    for (const file of migrationFiles()) {
-      await db.exec(readFileSync(join(migrationsDir, file), 'utf8'))
-    }
-  }
+  for (let i = 0; i < runs; i++) await applyMigrations(db, only)
   return db
+}
+
+export async function applyMigrations(db: PGlite, only?: (file: string) => boolean) {
+  for (const file of migrationFiles().filter((f) => !only || only(f))) {
+    await db.exec(readFileSync(join(migrationsDir, file), 'utf8'))
+  }
 }
 
 export async function createUser(db: PGlite, id: string, email: string) {

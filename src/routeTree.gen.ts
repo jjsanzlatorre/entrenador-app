@@ -26,6 +26,7 @@ import { Route as AppEntrenarActividadRouteImport } from './routes/_app/entrenar
 import { Route as AppEntrenarEjerciciosRouteImport } from './routes/_app/entrenar/ejercicios'
 import { Route as AppEntrenarSesionRouteImport } from './routes/_app/entrenar/sesion'
 import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
+import { Route as AppPerfilActividadesRouteImport } from './routes/_app/perfil/actividades'
 import { Route as AppPerfilCiudadRouteImport } from './routes/_app/perfil/ciudad'
 import { Route as AppPerfilCompromisoRouteImport } from './routes/_app/perfil/compromiso'
 import { Route as AppPerfilCreditosRouteImport } from './routes/_app/perfil/creditos'
@@ -134,6 +135,11 @@ const AppEntrenarSesionRoute = AppEntrenarSesionRouteImport.update({
 const AppPerfilIndexRoute = AppPerfilIndexRouteImport.update({
   id: '/perfil/',
   path: '/perfil/',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilActividadesRoute = AppPerfilActividadesRouteImport.update({
+  id: '/perfil/actividades',
+  path: '/perfil/actividades',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPerfilCiudadRoute = AppPerfilCiudadRouteImport.update({
@@ -282,6 +288,7 @@ export interface FileRoutesByFullPath {
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
+  '/perfil/actividades': typeof AppPerfilActividadesRoute
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
@@ -325,6 +332,7 @@ export interface FileRoutesByTo {
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
+  '/perfil/actividades': typeof AppPerfilActividadesRoute
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
@@ -370,6 +378,7 @@ export interface FileRoutesById {
   '/_app/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/_app/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/_app/entrenar/sesion': typeof AppEntrenarSesionRoute
+  '/_app/perfil/actividades': typeof AppPerfilActividadesRoute
   '/_app/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/_app/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/_app/perfil/creditos': typeof AppPerfilCreditosRoute
@@ -415,6 +424,7 @@ export interface FileRouteTypes {
     | '/entrenar/actividad'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
+    | '/perfil/actividades'
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
@@ -458,6 +468,7 @@ export interface FileRouteTypes {
     | '/entrenar/actividad'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
+    | '/perfil/actividades'
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
@@ -502,6 +513,7 @@ export interface FileRouteTypes {
     | '/_app/entrenar/actividad'
     | '/_app/entrenar/ejercicios'
     | '/_app/entrenar/sesion'
+    | '/_app/perfil/actividades'
     | '/_app/perfil/ciudad'
     | '/_app/perfil/compromiso'
     | '/_app/perfil/creditos'
@@ -660,6 +672,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil'
       fullPath: '/perfil/'
       preLoaderRoute: typeof AppPerfilIndexRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/perfil/actividades': {
+      id: '/_app/perfil/actividades'
+      path: '/perfil/actividades'
+      fullPath: '/perfil/actividades'
+      preLoaderRoute: typeof AppPerfilActividadesRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/perfil/ciudad': {
@@ -850,6 +869,7 @@ interface AppRouteChildren {
   AppEntrenarActividadRoute: typeof AppEntrenarActividadRoute
   AppEntrenarEjerciciosRoute: typeof AppEntrenarEjerciciosRoute
   AppEntrenarSesionRoute: typeof AppEntrenarSesionRoute
+  AppPerfilActividadesRoute: typeof AppPerfilActividadesRoute
   AppPerfilCiudadRoute: typeof AppPerfilCiudadRoute
   AppPerfilCompromisoRoute: typeof AppPerfilCompromisoRoute
   AppPerfilCreditosRoute: typeof AppPerfilCreditosRoute
@@ -888,6 +908,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppEntrenarActividadRoute: AppEntrenarActividadRoute,
   AppEntrenarEjerciciosRoute: AppEntrenarEjerciciosRoute,
   AppEntrenarSesionRoute: AppEntrenarSesionRoute,
+  AppPerfilActividadesRoute: AppPerfilActividadesRoute,
   AppPerfilCiudadRoute: AppPerfilCiudadRoute,
   AppPerfilCompromisoRoute: AppPerfilCompromisoRoute,
   AppPerfilCreditosRoute: AppPerfilCreditosRoute,

@@ -95,6 +95,8 @@ export type LocalSession = {
   userId: string
   mode: 'live' | 'edit'
   sessionType: SessionType
+  // Actividad personalizada (sessionType = 'custom'; 0031).
+  activityTypeId?: string | null
   title: string
   startedAt: string
   endedAt: string | null

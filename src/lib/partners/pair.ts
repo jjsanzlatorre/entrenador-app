@@ -5,6 +5,7 @@
 // los ajustes de los temporizadores; nunca pesos ni notas. Cada uno registra sus propios pesos:
 // al unirse, los pesos se precargan con los de SU última vez.
 import { z } from 'zod'
+import { normalizeSessionType } from '@/lib/activities/catalog'
 import type { BlockType, SessionLocation, SessionType } from '@/types/database'
 import { toCamel, toSnake } from '@/lib/workout/payload'
 import { createSession, type IdFn } from '@/lib/workout/session-ops'
@@ -24,7 +25,12 @@ const SESSION_TYPES = [
   'cycling',
   'spinning',
   'yoga',
-  'padel_fronton',
+  'fronton',
+  'padel',
+  'tennis',
+  'functional_class',
+  'gap',
+  'oxfit',
   'surf',
   'other',
 ] as const satisfies readonly SessionType[]
@@ -51,7 +57,8 @@ const optionalNumber = z.number().finite().nonnegative().nullable().optional()
 
 export const pairTemplateSchema = z.object({
   v: z.literal(1),
-  session_type: z.enum(SESSION_TYPES),
+  // Invitaciones anteriores a 0031 pueden traer padel_fronton.
+  session_type: z.preprocess((v) => (v === 'padel_fronton' ? 'fronton' : v), z.enum(SESSION_TYPES)),
   title: z.string().max(120),
   location: z.enum(LOCATIONS).nullable(),
   blocks: z
@@ -125,7 +132,10 @@ export function pairTemplateFromSession(
   return {
     template: {
       v: 1,
-      session_type: session.sessionType,
+      // Las actividades personalizadas no se comparten: a la otra persona le llega «otra».
+      session_type: (session.sessionType === 'custom'
+        ? 'other'
+        : normalizeSessionType(session.sessionType)) as PairTemplate['session_type'],
       title: session.title.slice(0, 120),
       location: session.location,
       blocks,

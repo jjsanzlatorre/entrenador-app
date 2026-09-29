@@ -165,7 +165,7 @@ function CoachChatPage() {
 
       {configured && (
         <form
-          className="bg-background sticky bottom-20 flex flex-col gap-1 border-t pt-3"
+          className="bg-background bottom-above-nav sticky flex flex-col gap-1 border-t py-3"
           onSubmit={(e) => {
             e.preventDefault()
             void send(text)

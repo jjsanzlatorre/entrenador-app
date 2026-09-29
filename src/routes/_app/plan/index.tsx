@@ -59,6 +59,7 @@ import type { SessionLogEntry } from '@/lib/progress/types'
 import { formatTime } from '@/lib/workout/format'
 import { useCatalog } from '@/lib/workout/hooks'
 import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
+import { activityEmoji, activityLabel } from '@/lib/activities/catalog'
 import type { Sex } from '@/types/database'
 import { cn } from '@/lib/utils'
 
@@ -73,12 +74,7 @@ export const Route = createFileRoute('/_app/plan/')({
   component: PlanPage,
 })
 
-const FIXED_EMOJI: Record<string, string> = {
-  padel_fronton: '🎾 Frontón',
-  surf: '🏄 Surf',
-  yoga: '🧘 Yoga',
-  other: '⚡ Actividad',
-}
+const fixedLabel = (type: string) => `${activityEmoji(type)} ${activityLabel(type)}`
 
 const STATUS: Record<PlannedView['effectiveStatus'], { label: string; className: string }> = {
   planned: { label: 'Pendiente', className: 'bg-muted text-foreground' },
@@ -253,7 +249,7 @@ function PlanPage() {
               <span className="flex flex-wrap justify-end gap-1">
                 {day.fixed.map((f) => (
                   <span key={f.type} className="bg-muted rounded-full px-2 py-0.5 text-xs">
-                    {FIXED_EMOJI[f.type]}
+                    {fixedLabel(f.type)}
                   </span>
                 ))}
               </span>

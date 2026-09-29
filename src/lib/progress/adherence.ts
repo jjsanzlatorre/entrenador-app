@@ -1,10 +1,11 @@
 // Cumplimiento: lo prometido frente a lo hecho (CLAUDE.md §10A). Lógica pura, con tests.
+import { isFreeActivity } from '@/lib/activities/catalog'
 import type { SessionType } from '@/types/database'
 import { addDays, addMonths, daysBetween, localDateKey, weekStartOf, type DateKey } from './dates'
 import type { ActivityDay, Commitment, SessionLogEntry } from './types'
 
-// Actividades libres: cuentan para el objetivo solo si counts_free_activities.
-export const FREE_ACTIVITY_TYPES = new Set<SessionType>(['yoga', 'surf', 'padel_fronton', 'other'])
+// Actividades libres (deportes, yoga, «otra» y las personalizadas; las clases de gimnasio no):
+// cuentan para el objetivo solo si counts_free_activities. Marcadas en los datos (activity_types).
 // Duración mínima para que una sesión cuente.
 export const MIN_SESSION_MINUTES = 15
 
@@ -43,7 +44,7 @@ export function currentCommitment(commitments: Commitment[], today: DateKey) {
 }
 
 function counts(c: Commitment, type: SessionType) {
-  return c.countsFreeActivities || !FREE_ACTIVITY_TYPES.has(type)
+  return c.countsFreeActivities || !isFreeActivity(type)
 }
 
 // Una sesión por día y tipo como máximo, de al menos 15 min.

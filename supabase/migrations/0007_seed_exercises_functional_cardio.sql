@@ -32,7 +32,7 @@ insert into public.exercises (
   ('bike', 'Bici', array['ciclismo', 'bicicleta', 'cycling']::text[], 'cardio', 'distance_time', array['bike']::text[], false, true, 90, null),
   ('spinning', 'Spinning', array['bici estática', 'indoor cycling', 'ciclo indoor']::text[], 'cardio', 'distance_time', array['bike']::text[], false, true, 60, null),
   ('yoga', 'Yoga', '{}'::text[], 'mobility', 'duration_only', array['mat']::text[], false, false, 0, null),
-  ('fronton', 'Frontón', array['pelota', 'pala', 'frontenis', 'pádel']::text[], 'sport', 'duration_only', '{}'::text[], false, false, 0, null),
+  ('fronton', 'Frontón', array['pelota', 'pala', 'frontenis']::text[], 'sport', 'duration_only', '{}'::text[], false, false, 0, null),
   ('surf', 'Surf', '{}'::text[], 'sport', 'duration_only', array['board']::text[], false, false, 0, null),
   ('other_activity', 'Otra actividad', array['otro', 'deporte']::text[], 'sport', 'duration_only', '{}'::text[], false, false, 0, null)
 on conflict (id) do update set

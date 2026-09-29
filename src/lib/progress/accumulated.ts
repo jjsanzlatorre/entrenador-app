@@ -1,4 +1,5 @@
 // Acumulados por semana, mes, año y total (CLAUDE.md §10B). Lógica pura, con tests.
+import { activityKey } from '@/lib/activities/catalog'
 import type { SessionType } from '@/types/database'
 import { sessionMinutes } from './adherence'
 import { addDays, localDateKey, monthEndOf, monthStartOf, weekStartOf, type DateKey } from './dates'
@@ -44,7 +45,8 @@ export const PERIOD_PREFIX: Record<PeriodKind, string> = {
 export type Accumulated = {
   sessions: number
   minutes: number
-  minutesBySport: Partial<Record<SessionType, number>>
+  // Por clave de actividad (tipo de sesión o id de la actividad personalizada).
+  minutesBySport: Record<string, number>
   // Metros por deporte. Bici = bici + spinning.
   swimM: number
   runM: number
@@ -86,7 +88,9 @@ export function accumulate(sessions: SessionLogEntry[], period?: Period): Accumu
     const distance = s.distanceM ?? 0
     acc.sessions++
     acc.minutes += minutes
-    acc.minutesBySport[s.sessionType] = (acc.minutesBySport[s.sessionType] ?? 0) + minutes
+    // Horas por deporte: cada actividad (también las clases y las personalizadas) por separado.
+    const activity = activityKey(s)
+    acc.minutesBySport[activity] = (acc.minutesBySport[activity] ?? 0) + minutes
     if (s.sessionType === 'swimming') acc.swimM += distance
     if (s.sessionType === 'running') acc.runM += distance
     if (BIKE_TYPES.has(s.sessionType)) {

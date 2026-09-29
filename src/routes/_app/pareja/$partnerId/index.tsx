@@ -198,7 +198,7 @@ function SessionsSection({ owner }: { owner: DataOwner }) {
               >
                 <div className="bg-muted flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-xs font-medium">
                   <span aria-hidden className="text-base">
-                    {sessionTypeEmoji(item.sessionType)}
+                    {sessionTypeEmoji(item.sessionType, item.activityTypeId)}
                   </span>
                   {formatDateShort(item.startedAt)}
                 </div>

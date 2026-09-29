@@ -1,7 +1,7 @@
 import { Sheet } from '@/components/ui/sheet'
 import { formatSets, type MuscleVolume } from '@/lib/progress/muscle-volume'
 import { muscleName } from '@/lib/workout/labels'
-import { sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
+import { activityEmoji, activityLabel } from '@/lib/activities/catalog'
 
 export function formatDiff(diff: number) {
   if (Math.abs(diff) < 0.05) return '='
@@ -72,11 +72,11 @@ export function MuscleDetailSheet({
                     <span className="font-semibold tabular-nums">{formatSets(c.sets)}</span>
                   </li>
                 ) : (
-                  <li key={`c-${c.sessionType}`} className="flex items-center gap-3 p-3 text-sm">
+                  <li key={`c-${c.activity}`} className="flex items-center gap-3 p-3 text-sm">
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-medium">
-                        <span aria-hidden>{sessionTypeEmoji(c.sessionType)} </span>
-                        {sessionTypeLabel(c.sessionType)}{' '}
+                        <span aria-hidden>{activityEmoji(c.activity)} </span>
+                        {activityLabel(c.activity)}{' '}
                         <span className="text-muted-foreground text-xs font-normal">
                           (aproximado)
                         </span>
@@ -97,7 +97,8 @@ export function MuscleDetailSheet({
 
         <p className="text-muted-foreground text-xs">
           Serie efectiva: completada y sin calentamiento; cuenta 1 si el músculo es principal y 0,5
-          si es secundario. Cardio y deportes: ≈2 series por cada 30 min en sus músculos (yoga 0,5).
+          si es secundario. Cardio, deportes y clases: ≈2 series por cada 30 min en sus músculos
+          (yoga 0,5).
         </p>
       </div>
     </Sheet>

@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { DEFAULT_ACTIVITY_TYPES, addActivityTypes } from '@/lib/activities/catalog'
+import { toPayload } from './payload'
 import { finishSession, toggleSetComplete } from './session-ops'
 import { createQuickActivity, createSessionOfType } from './session-kinds'
 import {
@@ -221,7 +223,7 @@ describe('tipos de sesión', () => {
     const session = createQuickActivity(
       'u1',
       {
-        type: 'surf',
+        activityId: 'surf',
         title: '',
         startedAt: '2026-09-28T08:00:00Z',
         durationMin: 90,
@@ -248,6 +250,52 @@ describe('tipos de sesión', () => {
       exerciseId: 'surf',
       durationS: 5400,
       completed: true,
+    })
+  })
+
+  it('las actividades nuevas y las personalizadas se registran con su tipo', () => {
+    const input = {
+      title: '',
+      startedAt: '2026-09-28T08:00:00Z',
+      durationMin: 60,
+      rpe: 7,
+      notes: null,
+      avgHr: null,
+      maxHr: null,
+      calories: null,
+    }
+    const gap = createQuickActivity('u1', { ...input, activityId: 'gap' }, T0, sequentialIds())
+    expect(gap).toMatchObject({ sessionType: 'gap', activityTypeId: null, title: 'GAP' })
+    expect(gap.blocks[0]?.sets[0]?.exerciseId).toBe('gap_class')
+    const padel = createQuickActivity('u1', { ...input, activityId: 'padel' }, T0, sequentialIds())
+    expect(padel).toMatchObject({ sessionType: 'padel', title: 'Pádel' })
+
+    addActivityTypes([
+      {
+        ...DEFAULT_ACTIVITY_TYPES.find((a) => a.id === 'other')!,
+        id: 'a_pump',
+        ownerId: 'u1',
+        name: 'Body pump',
+        emoji: '🏋️',
+        muscles: ['quads', 'chest'],
+        setsPer30Min: 2,
+      },
+    ])
+    const custom = createQuickActivity(
+      'u1',
+      { ...input, activityId: 'a_pump' },
+      T0,
+      sequentialIds(),
+    )
+    expect(custom).toMatchObject({
+      sessionType: 'custom',
+      activityTypeId: 'a_pump',
+      title: 'Body pump',
+    })
+    expect(custom.blocks[0]?.sets[0]?.exerciseId).toBe('other_activity')
+    expect(toPayload(custom).session).toMatchObject({
+      session_type: 'custom',
+      activity_type_id: 'a_pump',
     })
   })
 })

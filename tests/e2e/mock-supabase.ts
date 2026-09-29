@@ -284,9 +284,19 @@ function eqParam(url: URL, column: string) {
   return v?.startsWith('eq.') ? v.slice(3) : null
 }
 
+// Tipos de actividad (0031/0032): globales de la semilla + las personalizadas creadas en el test.
+type ActivityRow = Record<string, unknown> & { id: string; owner_id: string | null }
+const globalActivities: ActivityRow[] = (
+  JSON.parse(readFileSync(join(root, 'supabase/seed/activity_types.json'), 'utf8')) as {
+    activity_types: Record<string, unknown>[]
+  }
+).activity_types.map((a) => ({ ...a, id: String(a.id), owner_id: null, archived: false }))
+let customActivities: ActivityRow[] = []
+
 function sessionRow(p: Payload) {
   return {
     ...p.session,
+    activity_type_id: p.session.activity_type_id ?? null,
     user_id: MOCK_USER_ID,
     planned_session_id: p.session.planned_session_id ?? null,
     distance_m: p.session.distance_m ?? null,
@@ -322,6 +332,7 @@ export function startMockSupabase(port: number) {
         geminiRequests,
         partnerPatches,
         pairInvites: progressSeed.pairInvites ?? [],
+        customActivities,
         inviteCodes,
         inviteSettings,
         inviteAttempts,
@@ -384,6 +395,7 @@ export function startMockSupabase(port: number) {
     }
     if (path === '/__reset') {
       sessions.clear()
+      customActivities = []
       saveCalls = 0
       progressSeed = { commitments: [], partnerLinks: [], partnerDays: {} }
       profile = { ...baseProfile }
@@ -911,7 +923,7 @@ export function startMockSupabase(port: number) {
       return send(res, 200, [{ user_id: MOCK_USER_ID }])
     }
     if (
-      ['partner_session_log', 'partner_exercise_sets', 'partner_home'].some(
+      ['partner_session_log', 'partner_sessions', 'partner_exercise_sets', 'partner_home'].some(
         (fn) => path === `/rest/v1/rpc/${fn}`,
       )
     ) {
@@ -1197,6 +1209,42 @@ export function startMockSupabase(port: number) {
       return send(res, 200, rows(req, [profile]))
     }
     if (table === 'exercises') return send(res, 200, rows(req, exercises))
+    if (table === 'activity_types') {
+      if (req.method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown>
+        const row: ActivityRow = {
+          id: `a_${randomUUID().replace(/-/g, '')}`,
+          exercise_id: 'other_activity',
+          location: 'other',
+          sets_per_30min: 2,
+          quick: true,
+          fixed: true,
+          free_activity: true,
+          leg_loading: false,
+          hard_legs: false,
+          sort_order: 1000,
+          archived: false,
+          created_at: new Date().toISOString(),
+          ...body,
+          owner_id: MOCK_USER_ID,
+        }
+        customActivities.push(row)
+        return send(res, 201, rows(req, [row]))
+      }
+      if (req.method === 'PATCH') {
+        const id = eqParam(url, 'id')
+        const patch = (await readBody(req)) as Record<string, unknown>
+        const row = customActivities.find((a) => a.id === id)
+        if (!row) return send(res, 200, [])
+        Object.assign(row, patch)
+        return send(res, 200, [row])
+      }
+      const owner = eqParam(url, 'owner_id')
+      const list = [...globalActivities, ...customActivities].filter(
+        (a) => !owner || a.owner_id === owner,
+      )
+      return send(res, 200, rows(req, list))
+    }
     if (table === 'training_profiles') {
       if (req.method === 'POST') {
         const body = (await readBody(req)) as Record<string, unknown>

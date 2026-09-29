@@ -1,3 +1,4 @@
+import { normalizeSessionType } from '@/lib/activities/catalog'
 import type { ExerciseSetRow, Json, SessionBlockRow, WorkoutSessionRow } from '@/types/database'
 import type {
   BlockExercise,
@@ -38,7 +39,9 @@ export function toPayload(session: LocalSession) {
     session: {
       id: session.id,
       planned_session_id: session.plannedSessionId ?? null,
-      session_type: session.sessionType,
+      // Copias locales anteriores a 0031 pueden traer padel_fronton.
+      session_type: normalizeSessionType(session.sessionType),
+      activity_type_id: session.sessionType === 'custom' ? (session.activityTypeId ?? null) : null,
       title: session.title.trim() || null,
       started_at: session.startedAt,
       ended_at: session.endedAt,
@@ -186,7 +189,8 @@ export function fromServerRows(
     id: session.id,
     userId: session.user_id,
     mode,
-    sessionType: session.session_type,
+    sessionType: normalizeSessionType(session.session_type),
+    activityTypeId: session.activity_type_id ?? null,
     title: session.title ?? '',
     startedAt: session.started_at,
     endedAt: session.ended_at,

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronLeft, Watch } from 'lucide-react'
+import { ChevronDown, ChevronLeft, Plus, Watch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,15 +9,15 @@ import { Textarea } from '@/components/ui/textarea'
 import { saveFinishedSession } from '@/lib/workout/active-session'
 import { parseInteger } from '@/lib/workout/format'
 import { historyQueryKey } from '@/lib/workout/hooks'
-import {
-  QUICK_ACTIVITIES,
-  createQuickActivity,
-  type QuickActivityType,
-} from '@/lib/workout/session-kinds'
+import { createQuickActivity } from '@/lib/workout/session-kinds'
+import { quickActivityOptions } from '@/lib/activities/catalog'
+import { useActivityTypes } from '@/lib/activities/hooks'
+import { ActivityEditorSheet } from '@/components/activities/activity-editor'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/notify'
 
-// «Registrar actividad»: yoga, surf, frontón u otra, en una sola pantalla.
+// «Registrar actividad»: deportes, clases de gimnasio, yoga, surf, personalizadas u otra, en una
+// sola pantalla.
 export const Route = createFileRoute('/_app/entrenar/actividad')({
   ssr: false,
   component: QuickActivityPage,
@@ -39,7 +39,11 @@ function QuickActivityPage() {
   const { auth } = Route.useRouteContext()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
-  const [type, setType] = useState<QuickActivityType>('surf')
+  // Se vuelve a pintar cuando llegan las actividades (y las personalizadas) del servidor.
+  useActivityTypes(auth.userId)
+  const options = quickActivityOptions(auth.userId)
+  const [type, setType] = useState('surf')
+  const [creating, setCreating] = useState(false)
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState('60')
   // Por defecto: terminó ahora y empezó hace «duración» minutos.
@@ -67,7 +71,7 @@ function QuickActivityPage() {
       const session = createQuickActivity(
         auth.userId,
         {
-          type,
+          activityId: type,
           title,
           startedAt: new Date(start).toISOString(),
           durationMin,
@@ -104,25 +108,40 @@ function QuickActivityPage() {
       </Link>
       <h1 className="text-2xl font-bold">Registrar actividad</h1>
 
-      <div className="grid grid-cols-4 gap-2" role="group" aria-label="Tipo de actividad">
-        {QUICK_ACTIVITIES.map((a) => (
+      <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tipo de actividad">
+        {options.map((a) => (
           <button
-            key={a.type}
+            key={a.id}
             type="button"
-            aria-pressed={type === a.type}
-            onClick={() => setType(a.type)}
+            aria-pressed={type === a.id}
+            onClick={() => setType(a.id)}
             className={cn(
-              'flex h-20 flex-col items-center justify-center rounded-2xl text-sm font-bold active:scale-95',
-              type === a.type ? 'bg-primary text-primary-foreground' : 'bg-secondary',
+              'flex h-20 flex-col items-center justify-center rounded-2xl px-1 text-center text-sm leading-tight font-bold active:scale-95',
+              type === a.id ? 'bg-primary text-primary-foreground' : 'bg-secondary',
             )}
           >
             <span className="text-2xl" aria-hidden>
               {a.emoji}
             </span>
-            {a.label}
+            <span className="line-clamp-2">{a.name}</span>
           </button>
         ))}
+        <button
+          type="button"
+          onClick={() => setCreating(true)}
+          className="text-muted-foreground flex h-20 flex-col items-center justify-center rounded-2xl border border-dashed text-sm font-medium active:scale-95"
+        >
+          <Plus className="size-6" aria-hidden />
+          Nueva
+        </button>
       </div>
+      <ActivityEditorSheet
+        open={creating}
+        onClose={() => setCreating(false)}
+        userId={auth.userId}
+        activity={null}
+        onSaved={(a) => setType(a.id)}
+      />
 
       <div className="flex flex-col gap-2">
         <Label htmlFor="act-duration">Duración (min)</Label>

@@ -9,6 +9,9 @@ export function Toaster(props: ToasterProps) {
       position="top-center"
       richColors
       closeButton
+      // Bajo la barra de estado / Dynamic Island y lejos del notch en horizontal.
+      offset={TOAST_OFFSET}
+      mobileOffset={TOAST_OFFSET}
       style={
         {
           '--normal-bg': 'var(--popover)',
@@ -19,4 +22,11 @@ export function Toaster(props: ToasterProps) {
       {...props}
     />
   )
+}
+
+const TOAST_OFFSET = {
+  top: 'calc(var(--safe-top) + 16px)',
+  bottom: 'calc(var(--safe-bottom) + 16px)',
+  left: 'calc(var(--safe-left) + 16px)',
+  right: 'calc(var(--safe-right) + 16px)',
 }

@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { BookOpen, ChevronRight, CloudUpload, Play } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -10,6 +10,8 @@ import { sessionStats } from '@/lib/workout/calc'
 import { formatDateShort, formatTime } from '@/lib/workout/format'
 import { useCatalog, useHistory } from '@/lib/workout/hooks'
 import { sessionTypeEmoji } from '@/lib/workout/session-kinds'
+import { activityEmoji, activityKey, activityLabel } from '@/lib/activities/catalog'
+import { cn } from '@/lib/utils'
 import { historySummary } from '@/lib/workout/summary'
 
 export const Route = createFileRoute('/_app/entrenar/')({
@@ -29,6 +31,11 @@ function TrainPage() {
   }, [userId])
 
   const stats = session ? sessionStats(session) : null
+  // Filtro por tipo (deporte, clase o actividad personalizada) con los que hay en el historial.
+  const [filter, setFilter] = useState<string | null>(null)
+  const items = history.data?.items ?? []
+  const kinds = [...new Set(items.map(activityKey))]
+  const shown = filter ? items.filter((i) => activityKey(i) === filter) : items
 
   return (
     <Page title="Entrenar">
@@ -78,8 +85,30 @@ function TrainPage() {
             Aún no has registrado ninguna sesión.
           </p>
         )}
+        {kinds.length > 1 && (
+          <div
+            className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1"
+            role="group"
+            aria-label="Filtrar por tipo"
+          >
+            {[null, ...kinds].map((k) => (
+              <button
+                key={k ?? 'all'}
+                type="button"
+                aria-pressed={filter === k}
+                onClick={() => setFilter(k)}
+                className={cn(
+                  'h-9 shrink-0 rounded-full border px-3 text-sm font-medium whitespace-nowrap',
+                  filter === k ? 'bg-primary text-primary-foreground border-primary' : 'bg-card',
+                )}
+              >
+                {k ? `${activityEmoji(k)} ${activityLabel(k)}` : 'Todas'}
+              </button>
+            ))}
+          </div>
+        )}
         <ul className="flex flex-col gap-2">
-          {history.data?.items.map((item) => (
+          {shown.map((item) => (
             <li key={item.id}>
               <Link
                 to="/entrenar/historial/$sessionId"
@@ -88,7 +117,7 @@ function TrainPage() {
               >
                 <div className="bg-muted flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-xs font-medium">
                   <span aria-hidden className="text-base">
-                    {sessionTypeEmoji(item.sessionType)}
+                    {sessionTypeEmoji(item.sessionType, item.activityTypeId)}
                   </span>
                   {formatDateShort(item.startedAt)}
                 </div>

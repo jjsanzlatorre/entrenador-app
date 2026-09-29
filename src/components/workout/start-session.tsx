@@ -98,7 +98,7 @@ export function StartSessionButtons({
           </p>
         ) : null}
         <p className="text-muted-foreground pb-2 text-center text-sm">
-          ¿Surf, frontón o yoga?{' '}
+          ¿Deporte, clase o yoga?{' '}
           <Link to="/entrenar/actividad" className="text-primary underline">
             Registrar actividad
           </Link>

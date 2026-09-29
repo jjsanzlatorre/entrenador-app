@@ -2,10 +2,13 @@
 //
 // Para cada semana se prueban todas las combinaciones de días y se elige la de menor coste:
 // - días que no son los preferidos y días con actividad fija: penalización;
-// - pierna pesada el día antes de frontón o surf (o ese mismo día): penalización alta;
-// - dos sesiones intensas en días seguidos (también de domingo a lunes): penalización alta;
+// - pierna pesada el día antes de frontón, pádel, tenis o surf (o ese mismo día): penalización
+//   alta (actividades con leg_loading en activity_types);
+// - dos sesiones intensas en días seguidos (también de domingo a lunes): penalización alta. Una
+//   actividad fija de pierna y core (GAP: hard_legs) cuenta como sesión intensa;
 // - sesiones en días seguidos y cambios del orden de la plantilla: penalización pequeña.
 // Con el mismo coste gana la primera combinación (orden fijo): el resultado es determinista.
+import { isHardLegsActivity, isLegLoadingActivity } from '@/lib/activities/catalog'
 import { addDays, type DateKey } from '@/lib/progress/dates'
 import type { FixedActivity } from './profile'
 import { WEEKDAY_LONG } from './profile'
@@ -32,8 +35,10 @@ export type ScheduleInput = {
   fixedActivities: Pick<FixedActivity, 'type' | 'days'>[]
 }
 
-// Actividades fijas que cargan las piernas: no poner pierna pesada el día antes.
-export const LEG_LOADING = new Set<FixedActivity['type']>(['padel_fronton', 'surf'])
+// Actividades fijas que cargan las piernas (no poner pierna pesada el día antes) y las que
+// cuentan como sesión intensa de pierna y core. Salen de los datos (activity_types).
+export const isLegLoading = (type: FixedActivity['type']) => isLegLoadingActivity(type)
+export const isHardFixed = (type: FixedActivity['type']) => isHardLegsActivity(type)
 
 const COST = {
   notPreferred: 3,
@@ -46,6 +51,7 @@ const COST = {
 }
 
 const next = (day: number) => (day % 7) + 1
+const prev = (day: number) => ((day + 5) % 7) + 1
 
 function* combinations(
   items: number[],
@@ -75,18 +81,38 @@ function* permutations(items: number[]): Generator<number[]> {
   }
 }
 
-type Context = { preferred: Set<number>; fixed: Set<number>; legFixed: Set<number> }
+type Context = {
+  preferred: Set<number>
+  fixed: Set<number>
+  legFixed: Set<number>
+  // Días con una actividad fija intensa de pierna y core (GAP).
+  hardFixed: Set<number>
+}
 
 function context(input: Pick<ScheduleInput, 'preferredDays' | 'fixedActivities'>): Context {
   const fixed = new Set<number>()
   const legFixed = new Set<number>()
+  const hardFixed = new Set<number>()
   for (const f of input.fixedActivities) {
     for (const d of f.days) {
       fixed.add(d)
-      if (LEG_LOADING.has(f.type)) legFixed.add(d)
+      if (isLegLoading(f.type)) legFixed.add(d)
+      if (isHardFixed(f.type)) hardFixed.add(d)
     }
   }
-  return { preferred: new Set(input.preferredDays), fixed, legFixed }
+  return { preferred: new Set(input.preferredDays), fixed, legFixed, hardFixed }
+}
+
+// Sesión intensa o de pierna pesada al lado (día antes o después) de una actividad fija intensa.
+function nextToHardFixed(
+  s: Pick<PlanSession, 'intensity' | 'heavy_legs'>,
+  day: number,
+  ctx: Context,
+) {
+  return (
+    (s.intensity === 'hard' || s.heavy_legs) &&
+    (ctx.hardFixed.has(next(day)) || ctx.hardFixed.has(prev(day)))
+  )
 }
 
 // Coste de poner cada sesión i en days[i].
@@ -104,6 +130,8 @@ export function assignmentCost(
     if (ctx.fixed.has(d)) cost += COST.fixedDay
     if (s.heavy_legs && ctx.legFixed.has(next(d))) cost += COST.heavyBeforeLegActivity
     if (s.heavy_legs && ctx.legFixed.has(d)) cost += COST.heavySameDayLegActivity
+    if (nextToHardFixed(s, d, ctx)) cost += COST.hardBackToBack
+    if (s.heavy_legs && ctx.hardFixed.has(d)) cost += COST.heavySameDayLegActivity
     const j = byDay.get(next(d))
     if (j !== undefined) {
       cost += COST.backToBack
@@ -137,6 +165,7 @@ export type ScheduleWarning =
   | { kind: 'more_sessions_than_days'; sessions: number; days: number }
   | { kind: 'heavy_before_activity'; week: number; day: number }
   | { kind: 'hard_back_to_back'; week: number; day: number }
+  | { kind: 'next_to_hard_activity'; week: number; day: number }
   | { kind: 'on_fixed_day'; week: number; day: number }
 
 export function schedulePlan(input: ScheduleInput) {
@@ -159,6 +188,9 @@ export function schedulePlan(input: ScheduleInput) {
       const after = byDay.get(next(day))
       if (s.intensity === 'hard' && after?.intensity === 'hard') {
         warnings.push({ kind: 'hard_back_to_back', week: week.week, day })
+      }
+      if (nextToHardFixed(s, day, ctx)) {
+        warnings.push({ kind: 'next_to_hard_activity', week: week.week, day })
       }
       if (ctx.fixed.has(day)) warnings.push({ kind: 'on_fixed_day', week: week.week, day })
       sessions.push({
@@ -186,6 +218,8 @@ export function warningText(w: ScheduleWarning) {
       return `Semana ${w.week}: pierna pesada el ${WEEKDAY_LONG[w.day - 1]}, el día antes de una actividad fija. Muévela si puedes.`
     case 'hard_back_to_back':
       return `Semana ${w.week}: dos sesiones intensas seguidas desde el ${WEEKDAY_LONG[w.day - 1]}.`
+    case 'next_to_hard_activity':
+      return `Semana ${w.week}: sesión intensa el ${WEEKDAY_LONG[w.day - 1]}, junto a una clase intensa de pierna y core (GAP).`
     case 'on_fixed_day':
       return `Semana ${w.week}: una sesión cae el ${WEEKDAY_LONG[w.day - 1]}, día de actividad fija.`
   }

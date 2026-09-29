@@ -52,10 +52,7 @@ function ChangePasswordPage() {
   }
 
   return (
-    <div
-      className="flex min-h-dvh flex-col justify-center gap-4 p-6"
-      style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}
-    >
+    <div className="min-h-screen-safe pb-safe-6 flex flex-col justify-center gap-4 p-6">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">

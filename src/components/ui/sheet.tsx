@@ -36,7 +36,7 @@ export function Sheet({
   // Portal al <body>: así una hoja puede abrir otra encima sin quedar atrapada en su transform.
   return createPortal(
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-end"
+      className="pt-safe px-safe fixed inset-0 z-50 flex flex-col justify-end"
       role="dialog"
       aria-modal="true"
       aria-labelledby={titleId}
@@ -49,10 +49,9 @@ export function Sheet({
       />
       <div
         className={cn(
-          'bg-background animate-in slide-in-from-bottom relative mx-auto flex max-h-[92dvh] w-full max-w-lg flex-col rounded-t-2xl shadow-xl duration-200',
+          'bg-background animate-in slide-in-from-bottom max-h-sheet pb-safe relative mx-auto flex w-full max-w-lg flex-col rounded-t-2xl shadow-xl duration-200',
           className,
         )}
-        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
       >
         <div className="flex items-center justify-between gap-2 border-b px-4 py-3">
           <h2 id={titleId} className="text-lg font-semibold">

@@ -140,6 +140,7 @@ export function useHistory(userId: string) {
           id: s.id,
           title: s.title || 'Entreno',
           sessionType: s.sessionType,
+          activityTypeId: s.activityTypeId ?? null,
           startedAt: s.startedAt,
           endedAt: s.endedAt,
           durationMin: s.durationMin,

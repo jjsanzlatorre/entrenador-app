@@ -31,8 +31,13 @@ const TYPES: SessionType[] = [
   'swimming',
   'cycling',
   'spinning',
+  'functional_class',
+  'gap',
+  'oxfit',
   'yoga',
-  'padel_fronton',
+  'fronton',
+  'padel',
+  'tennis',
   'surf',
 ]
 

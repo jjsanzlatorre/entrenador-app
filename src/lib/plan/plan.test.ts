@@ -51,7 +51,7 @@ describe('programador', () => {
       structure: byId('strength_intermediate').structure,
       startDate: START,
       preferredDays: [1, 3, 5, 6],
-      fixedActivities: [{ type: 'padel_fronton', days: [4] }],
+      fixedActivities: [{ type: 'fronton', days: [4] }],
     })
     const heavy = byId('strength_intermediate').structure.weeks[0]!.sessions.filter(
       (s) => s.heavy_legs,
@@ -64,6 +64,52 @@ describe('programador', () => {
     }
     // Y no ocupa el día del frontón.
     expect(sessions.some((s) => weekday(s.date) === 4)).toBe(false)
+  })
+
+  it('pádel y tenis cuentan como frontón: nada de pierna pesada el día antes', () => {
+    for (const type of ['padel', 'tennis']) {
+      const { sessions } = schedulePlan({
+        structure: byId('strength_intermediate').structure,
+        startDate: START,
+        preferredDays: [1, 3, 5, 6],
+        fixedActivities: [{ type, days: [4] }],
+      })
+      const heavy = byId('strength_intermediate').structure.weeks[0]!.sessions.filter(
+        (s) => s.heavy_legs,
+      )
+      const heavyDays = sessions.filter((x) => x.week < 4 && heavy.some((h) => h.title === x.title))
+      for (const s of heavyDays) expect(weekday(s.date), `${type} ${s.title}`).not.toBe(3)
+    }
+  })
+
+  it('GAP cuenta como sesión intensa de pierna y core: nada intenso el día antes ni después', () => {
+    const ctx = {
+      preferred: new Set<number>(),
+      fixed: new Set([3]),
+      legFixed: new Set<number>(),
+      hardFixed: new Set([3]),
+    }
+    const hard = { intensity: 'hard' as const, heavy_legs: false }
+    const easy = { intensity: 'easy' as const, heavy_legs: false }
+    // Martes o jueves (junto al GAP del miércoles) cuesta más que el lunes.
+    expect(assignmentCost([hard], [2], ctx)).toBeGreaterThan(assignmentCost([hard], [1], ctx))
+    expect(assignmentCost([hard], [4], ctx)).toBeGreaterThan(assignmentCost([hard], [5], ctx))
+    expect(assignmentCost([easy], [2], ctx)).toBe(assignmentCost([easy], [1], ctx))
+
+    const { sessions, warnings } = schedulePlan({
+      structure: byId('hybrid_intermediate').structure,
+      startDate: START,
+      preferredDays: [],
+      fixedActivities: [{ type: 'gap', days: [3] }],
+    })
+    const hardTitles = new Set(
+      byId('hybrid_intermediate')
+        .structure.weeks[0]!.sessions.filter((s) => s.intensity === 'hard' || s.heavy_legs)
+        .map((s) => s.title),
+    )
+    const week1 = sessions.filter((s) => s.week === 1 && hardTitles.has(s.title))
+    for (const s of week1) expect([2, 4], s.title).not.toContain(weekday(s.date))
+    expect(warnings.filter((w) => w.kind === 'next_to_hard_activity')).toEqual([])
   })
 
   it('surf el sábado: la pierna pesada no va el viernes', () => {
@@ -105,7 +151,12 @@ describe('programador', () => {
   })
 
   it('coste: intensas seguidas y pierna antes de frontón penalizan', () => {
-    const ctx = { preferred: new Set<number>(), fixed: new Set([4]), legFixed: new Set([4]) }
+    const ctx = {
+      preferred: new Set<number>(),
+      fixed: new Set([4]),
+      legFixed: new Set([4]),
+      hardFixed: new Set<number>(),
+    }
     const hard = { intensity: 'hard' as const, heavy_legs: false }
     const legs = { intensity: 'moderate' as const, heavy_legs: true }
     expect(assignmentCost([hard, hard], [1, 2], ctx)).toBeGreaterThan(
@@ -342,14 +393,14 @@ describe('calendario', () => {
         logEntry('w3', '2026-10-10T10:00:00'),
       ],
       '2026-10-05',
-      [{ type: 'padel_fronton', days: [4], minutes: 90 }],
+      [{ type: 'fronton', days: [4], minutes: 90 }],
     )
     expect(days).toHaveLength(7)
     expect(days[0]!.planned[0]!.effectiveStatus).toBe('done')
     expect(days[0]!.extra).toEqual([])
     expect(days[2]!.planned[0]).toMatchObject({ effectiveStatus: 'done', linkedSessionId: 'w2' })
     expect(days[2]!.extra).toEqual([])
-    expect(days[3]!.fixed).toEqual([{ type: 'padel_fronton', minutes: 90 }])
+    expect(days[3]!.fixed).toEqual([{ type: 'fronton', minutes: 90 }])
     expect(days[5]!.extra.map((s) => s.id)).toEqual(['w3'])
     expect(weekSummary(days)).toEqual({ planned: 3, done: 2, skipped: 1, extra: 1 })
   })
@@ -386,6 +437,24 @@ describe('perfil de entrenamiento', () => {
     })
     expect(p.fixedActivities).toEqual([{ type: 'surf', days: [6], minutes: null, label: null }])
     expect(p.benchmarks.squat_1rm_kg).toBeNull()
+  })
+
+  it('actividades fijas: padel_fronton antiguo pasa a frontón; nuevas y personalizadas valen', () => {
+    const p = fromRow({
+      goals: {},
+      level: null,
+      availability: {},
+      equipment: [],
+      limitations: null,
+      fixed_activities: [
+        { type: 'padel_fronton', days: [4] },
+        { type: 'gap', days: [2], minutes: 45 },
+        { type: 'a_0123abcd', days: [5] },
+        { type: 'Nope!', days: [1] },
+      ],
+      benchmarks: {},
+    })
+    expect(p.fixedActivities.map((f) => f.type)).toEqual(['fronton', 'gap', 'a_0123abcd'])
   })
 
   it('tiempos de marcas en minutos', () => {

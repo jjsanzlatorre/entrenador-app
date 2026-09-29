@@ -26,10 +26,7 @@ function InstallPage() {
   const android = /android/i.test(navigator.userAgent)
 
   return (
-    <div
-      className="flex min-h-dvh flex-col gap-4 p-6"
-      style={{ paddingTop: 'max(1.5rem, env(safe-area-inset-top))' }}
-    >
+    <div className="min-h-screen-safe pb-safe-6 flex flex-col gap-4 p-6">
       <h1 className="text-2xl font-bold">Instala la app</h1>
       <p className="text-muted-foreground">
         Con la app en la pantalla de inicio se abre a pantalla completa, más rápido y funciona sin

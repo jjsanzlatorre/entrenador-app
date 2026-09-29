@@ -59,6 +59,22 @@ describe('weekAdherence', () => {
     expect(weekAdherence([{ ...base, countsFreeActivities: false }], days, W).counted).toBe(1)
   })
 
+  it('las clases de gimnasio cuentan siempre; pádel, tenis, frontón y personalizadas son libres', () => {
+    const days = [
+      day('2026-09-07', 'gap'),
+      day('2026-09-08', 'oxfit'),
+      day('2026-09-09', 'functional_class'),
+      day('2026-09-10', 'padel'),
+      day('2026-09-11', 'tennis'),
+      day('2026-09-12', 'fronton'),
+      day('2026-09-13', 'custom'),
+    ]
+    const strict = weekAdherence([{ ...base, countsFreeActivities: false }], days, W)
+    expect(strict.counted + strict.extra).toBe(3)
+    const all = weekAdherence([base], days, W)
+    expect(all.counted + all.extra).toBe(7)
+  })
+
   it('se puede superar el 100 %: la barra se llena y el resto es extra', () => {
     const days = ['07', '08', '09', '10'].map((d) => day(`2026-09-${d}`))
     const a = weekAdherence([base], days, W)

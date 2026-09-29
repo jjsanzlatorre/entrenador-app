@@ -58,6 +58,7 @@ describe('periodSummary', () => {
     expect(sum.load).toBe(480 + 180)
     expect(sum.distanceM).toBe(13000)
     expect(sum.bySport[0]).toEqual({
+      activity: 'running',
       sessionType: 'running',
       sessions: 2,
       minutes: 75,

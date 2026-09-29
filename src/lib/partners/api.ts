@@ -45,10 +45,11 @@ const num = (v: number | string | null) => (v === null ? null : Number(v))
 // Sesiones para el mapa/carga (RPE) y los logros (distancia, tonelaje, reps); cada columna
 // llega vacía si ese permiso no está activado.
 export async function fetchPartnerSessionLog(partnerId: string): Promise<SessionLogEntry[]> {
-  const rows = check(await withTimeout(db().rpc('partner_session_log', { p_partner: partnerId })))
+  const rows = check(await withTimeout(db().rpc('partner_sessions', { p_partner: partnerId })))
   return (rows ?? []).map((r) => ({
     id: r.id,
     sessionType: r.session_type,
+    activityTypeId: r.activity_type_id ?? null,
     startedAt: r.started_at,
     endedAt: r.ended_at,
     durationMin: r.duration_min,

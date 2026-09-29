@@ -754,6 +754,71 @@
         "Manos mal colocadas y el RAM que rueda.",
         "Subir el RAM arqueando la zona lumbar."
       ]
+    },
+    "padel": {
+      "steps": [
+        "Calienta 5–10 min: movilidad de hombro, muñeca y tobillos, y peloteo suave en la red.",
+        "Posición de espera con las rodillas flexionadas y la pala delante del pecho.",
+        "Golpea girando hombros y cadera, con la muñeca firme.",
+        "Muévete en pareja: subid y bajad juntos de la red."
+      ],
+      "mistakes": [
+        "Jugar con las piernas rectas y llegar tarde a la bola.",
+        "Golpear solo con el brazo y cargar el codo.",
+        "Empezar a rematar fuerte sin calentar el hombro."
+      ]
+    },
+    "tennis": {
+      "steps": [
+        "Calienta 5–10 min: movilidad de hombro, muñeca y cadera, y peloteo suave desde el fondo.",
+        "Paso de ajuste (split step) cada vez que el rival golpea.",
+        "Prepara la raqueta pronto y golpea girando tronco y cadera.",
+        "Vuelve al centro de la pista después de cada golpe."
+      ],
+      "mistakes": [
+        "Golpear solo con el brazo (codo de tenista).",
+        "Quedarse parado sobre los talones.",
+        "Sacar fuerte sin calentar el hombro."
+      ]
+    },
+    "functional_class": {
+      "steps": [
+        "Llega con tiempo para el calentamiento de la clase y avisa al monitor de cualquier molestia.",
+        "Elige un peso con el que mantengas la técnica en todas las repeticiones.",
+        "Prioriza la técnica sobre la velocidad en saltos, cargas y movimientos olímpicos.",
+        "Regula el ritmo: mejor terminar la clase entera que parar a la mitad."
+      ],
+      "mistakes": [
+        "Coger demasiado peso por seguir el ritmo de otros.",
+        "Perder la postura de la espalda cuando llega el cansancio.",
+        "Saltarse el calentamiento o la vuelta a la calma."
+      ]
+    },
+    "gap_class": {
+      "steps": [
+        "Calienta cadera, rodillas y tobillos con el calentamiento de la clase.",
+        "En sentadillas y zancadas, rodilla alineada con la punta del pie.",
+        "En los abdominales, zona lumbar controlada y respiración continua.",
+        "Controla la bajada de cada repetición en lugar de rebotar."
+      ],
+      "mistakes": [
+        "Hundir las rodillas hacia dentro en sentadillas y zancadas.",
+        "Tirar del cuello en los abdominales.",
+        "Añadir peso antes de dominar el movimiento."
+      ]
+    },
+    "oxfit_class": {
+      "steps": [
+        "Haz el calentamiento completo de la clase: la intensidad sube rápido.",
+        "Escala peso y repeticiones a tu nivel; pide la variante al monitor.",
+        "Mantén la técnica en los intervalos de trabajo aunque baje la velocidad.",
+        "Usa los descansos para respirar y recuperar, no para cambiar de ejercicio."
+      ],
+      "mistakes": [
+        "Ir a máxima intensidad desde el primer bloque.",
+        "Sacrificar la técnica por hacer más repeticiones.",
+        "Hacer la clase con dolor o molestias sin avisar."
+      ]
     }
   }
 }

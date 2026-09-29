@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { BottomNav } from '@/components/bottom-nav'
+import { useActivityTypes } from '@/lib/activities/hooks'
 import { onSessionsSynced, startSyncEngine } from '@/lib/offline/sync-engine'
 import { refreshPushSubscription } from '@/lib/notifications/push'
 import { warmPageCache } from '@/lib/pwa'
@@ -33,6 +34,8 @@ function AppLayout() {
   const queryClient = useQueryClient()
   const pathname = useLocation({ select: (l) => l.pathname })
   const inSession = FULL_SCREEN.some((p) => pathname.startsWith(p))
+  // Tipos de actividad (y las personalizadas) para nombres, emojis y aproximación muscular.
+  useActivityTypes(auth.userId)
 
   // Arranque en el navegador: sincronización, sesión en curso, catálogo y páginas offline.
   useEffect(() => {
@@ -64,15 +67,17 @@ function AppLayout() {
     })
   }, [auth.userId, queryClient])
 
+  // Márgenes de seguridad para TODAS las pantallas (también las de pantalla completa): arriba
+  // (barra de estado / Dynamic Island) y a los lados (notch en horizontal) en el contenedor a
+  // todo el ancho; abajo, la navegación inferior o la propia pantalla (CLAUDE.md §2).
   return (
-    <div
-      className={inSession ? 'mx-auto min-h-dvh max-w-lg' : 'mx-auto min-h-dvh max-w-lg pb-24'}
-      style={inSession ? undefined : { paddingTop: 'env(safe-area-inset-top)' }}
-    >
-      <main>
-        <Outlet />
-      </main>
-      {!inSession && <BottomNav />}
+    <div className="pt-safe px-safe min-h-dvh">
+      <div className={inSession ? 'mx-auto max-w-lg' : 'pb-nav mx-auto max-w-lg'}>
+        <main>
+          <Outlet />
+        </main>
+        {!inSession && <BottomNav />}
+      </div>
     </div>
   )
 }

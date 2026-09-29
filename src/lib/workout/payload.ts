@@ -37,6 +37,7 @@ export function toPayload(session: LocalSession) {
   return {
     session: {
       id: session.id,
+      planned_session_id: session.plannedSessionId ?? null,
       session_type: session.sessionType,
       title: session.title.trim() || null,
       started_at: session.startedAt,
@@ -196,6 +197,7 @@ export function fromServerRows(
     location: session.location,
     notes: session.notes,
     distanceM: num(session.distance_m),
+    plannedSessionId: session.planned_session_id,
     blocks: localBlocks,
     rest: null,
     rev: session.client_rev,

@@ -3,6 +3,8 @@
 import { readFileSync, writeFileSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import type { PlanTemplate } from '../src/lib/plan/types.ts'
+import { buildPlanTemplates } from './plan-templates.ts'
 
 type Muscle = { id: string; name: string; view: string; group: string }
 type SeedExercise = {
@@ -18,6 +20,8 @@ type SeedExercise = {
   technique_notes: string | null
   primary: string[]
   secondary: string[]
+  // Migración propia para ejercicios añadidos después de 0006/0007.
+  migration?: string
 }
 
 type SeedObject = {
@@ -143,6 +147,43 @@ function equivalencesSql(objects: SeedObject[], destinations: SeedDestination[],
   }
 }
 
+function planTemplatesSql(file: string, description: string, templates: PlanTemplate[]) {
+  const rows = templates
+    .map(
+      (t) =>
+        `  (${lit(t.id)}, ${lit(t.family)}, ${lit(t.name)}, ${lit(t.level)}, ${t.weeks}, ` +
+        `${t.days_per_week}, ${lit(t.description)},\n   ${lit(JSON.stringify(t.structure))}::jsonb)`,
+    )
+    .join(',\n')
+  return {
+    file,
+    sql:
+      header(file, description) +
+      `insert into public.plan_templates (\n  id, family, name, level, weeks, days_per_week, description, structure\n) values\n${rows}\n` +
+      `on conflict (id) do update set\n` +
+      `  family = excluded.family,\n  name = excluded.name,\n  level = excluded.level,\n` +
+      `  weeks = excluded.weeks,\n  days_per_week = excluded.days_per_week,\n` +
+      `  description = excluded.description,\n  structure = excluded.structure;\n`,
+  }
+}
+
+export const PLAN_TEMPLATES_JSON = 'supabase/seed/plan_templates.json'
+
+// JSON de plantillas (generado desde scripts/plan-templates.ts; lo leen los tests y el mock E2E).
+export function planTemplatesJson() {
+  return (
+    JSON.stringify(
+      {
+        _comment:
+          'GENERADO por scripts/plan-templates.ts (npm run seed:sql). No editar a mano. Datos de HYROX y DEKA: src/lib/plan/competition.ts (pendientes de verificar).',
+        templates: buildPlanTemplates(),
+      },
+      null,
+      2,
+    ) + '\n'
+  )
+}
+
 export function buildSeedFiles() {
   const muscles = JSON.parse(
     readFileSync(join(root, 'supabase/seed/muscles.json'), 'utf8'),
@@ -157,20 +198,41 @@ export function buildSeedFiles() {
   const places = JSON.parse(
     readFileSync(join(root, 'supabase/seed/destinations.json'), 'utf8'),
   ) as { source: string; destinations: SeedDestination[] }
+  const templates = buildPlanTemplates()
 
   return [
     musclesSql(muscles),
     exercisesSql(
       '0006_seed_exercises_strength.sql',
       'Semilla: ejercicios de fuerza (CLAUDE.md §6). Requiere 0005.',
-      exercises.filter((e) => e.category === 'strength'),
+      exercises.filter((e) => e.category === 'strength' && !e.migration),
     ),
     exercisesSql(
       '0007_seed_exercises_functional_cardio.sql',
       'Semilla: ejercicios functional/Hyrox/Deka, cardio y deportes (CLAUDE.md §6). Requiere 0005.',
-      exercises.filter((e) => e.category !== 'strength'),
+      exercises.filter((e) => e.category !== 'strength' && !e.migration),
     ),
     equivalencesSql(objects, places.destinations, places.source),
+    exercisesSql(
+      '0018_seed_exercises_phase5.sql',
+      'Semilla: ejercicios añadidos en la fase 5 (zonas de DEKA). Requiere 0005.',
+      exercises.filter((e) => e.migration === '0018'),
+    ),
+    planTemplatesSql(
+      '0019_seed_plan_templates_endurance.sql',
+      'Semilla: plantillas de carrera y natación (CLAUDE.md §9). Requiere 0017.',
+      templates.filter((t) => t.family === 'running' || t.family === 'swimming'),
+    ),
+    planTemplatesSql(
+      '0020_seed_plan_templates_strength_hybrid.sql',
+      'Semilla: plantillas de fuerza e híbrido (CLAUDE.md §9). Requiere 0017.',
+      templates.filter((t) => t.family === 'strength' || t.family === 'hybrid'),
+    ),
+    planTemplatesSql(
+      '0021_seed_plan_templates_hyrox_deka.sql',
+      'Semilla: plantillas de HYROX y DEKA (CLAUDE.md §9). Datos de competición pendientes de verificar (src/lib/plan/competition.ts). Requiere 0017 y 0018.',
+      templates.filter((t) => t.family === 'hyrox' || t.family === 'deka'),
+    ),
   ]
 }
 
@@ -179,4 +241,6 @@ if (process.argv[1] === fileURLToPath(import.meta.url)) {
     writeFileSync(join(root, 'supabase/migrations', file), sql)
     console.log(`escrito supabase/migrations/${file} (${sql.length} bytes)`)
   }
+  writeFileSync(join(root, PLAN_TEMPLATES_JSON), planTemplatesJson())
+  console.log(`escrito ${PLAN_TEMPLATES_JSON}`)
 }

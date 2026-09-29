@@ -10,6 +10,8 @@ export type SessionLogEntry = {
   durationMin: number | null
   rpe: number | null
   distanceM: number | null
+  // Sesión planificada de la que sale (si se empezó desde el plan).
+  plannedSessionId?: string | null
   // Fuerza (session_totals en el servidor; calculado en el cliente si está pendiente de subir).
   tonnageKg?: number
   totalReps?: number

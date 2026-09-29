@@ -1,11 +1,12 @@
 import { useState, type FormEvent } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Minus, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Stepper } from '@/components/ui/stepper'
 import { committedSessions, currentCommitment } from '@/lib/progress/adherence'
 import { deleteCommitment, endCommitment, saveCommitment } from '@/lib/progress/api'
 import { formatDayMonth, localDateKey, weekStartOf } from '@/lib/progress/dates'
@@ -78,48 +79,6 @@ function CommitmentPage() {
       {commitments.data && commitments.data.length > 0 && (
         <CommitmentHistory userId={auth.userId} commitments={commitments.data} today={today} />
       )}
-    </div>
-  )
-}
-
-function Stepper({
-  value,
-  onChange,
-  min,
-  max,
-  label,
-}: {
-  value: number
-  onChange: (v: number) => void
-  min: number
-  max: number
-  label: string
-}) {
-  return (
-    <div className="flex items-center gap-2">
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        className="size-11"
-        aria-label={`Menos ${label}`}
-        disabled={value <= min}
-        onClick={() => onChange(value - 1)}
-      >
-        <Minus />
-      </Button>
-      <span className="w-8 text-center text-2xl font-bold tabular-nums">{value}</span>
-      <Button
-        type="button"
-        size="icon"
-        variant="outline"
-        className="size-11"
-        aria-label={`Más ${label}`}
-        disabled={value >= max}
-        onClick={() => onChange(value + 1)}
-      >
-        <Plus />
-      </Button>
     </div>
   )
 }

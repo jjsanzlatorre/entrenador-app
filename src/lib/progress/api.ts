@@ -28,7 +28,9 @@ export async function fetchSessionLog(userId: string): Promise<SessionLogEntry[]
     await withTimeout(
       db()
         .from('workout_sessions')
-        .select('id, session_type, started_at, ended_at, duration_min, rpe, distance_m')
+        .select(
+          'id, session_type, started_at, ended_at, duration_min, rpe, distance_m, planned_session_id',
+        )
         .eq('user_id', userId)
         .not('ended_at', 'is', null)
         .order('started_at'),
@@ -42,6 +44,7 @@ export async function fetchSessionLog(userId: string): Promise<SessionLogEntry[]
     durationMin: r.duration_min,
     rpe: r.rpe,
     distanceM: num(r.distance_m),
+    plannedSessionId: r.planned_session_id,
   }))
 }
 

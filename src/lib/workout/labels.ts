@@ -34,6 +34,8 @@ export const EQUIPMENT_LABELS: Record<string, string> = {
   pool: 'Piscina',
   mat: 'Esterilla',
   board: 'Tabla',
+  ram: 'RAM',
+  tank: 'Tank (trineo)',
 }
 
 export function equipmentLabel(id: string) {

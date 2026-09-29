@@ -68,6 +68,19 @@ export async function startNewSession(userId: string, sessionType: SessionType =
   return session
 }
 
+// Empieza una sesión ya preparada (p. ej. desde el plan). Si ya hay una en curso, la devuelve
+// sin tocarla (quien llama decide qué hacer).
+export async function startPreparedSession(session: LocalSession) {
+  await loadActiveSession(session.userId)
+  if (state.session) return { session: state.session, started: false }
+  setState({ loadedFor: session.userId, session })
+  await persist(async () => {
+    await idbPut('kv', activeKey(session.userId), session.id)
+    await saveLocal(session, true)
+  })
+  return { session, started: true }
+}
+
 // Guarda una sesión ya terminada (p. ej. «Registrar actividad») sin pasar por la sesión en curso.
 export async function saveFinishedSession(session: LocalSession) {
   await persist(() => saveLocal(session, true))

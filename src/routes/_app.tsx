@@ -23,7 +23,8 @@ function AppLayout() {
   const { auth } = Route.useRouteContext()
   const queryClient = useQueryClient()
   const pathname = useLocation({ select: (l) => l.pathname })
-  const inSession = pathname.startsWith('/entrenar/sesion')
+  // Pantallas a pantalla completa, sin navegación inferior.
+  const inSession = pathname.startsWith('/entrenar/sesion') || pathname.startsWith('/onboarding')
 
   // Arranque en el navegador: sincronización, sesión en curso, catálogo y páginas offline.
   useEffect(() => {
@@ -40,7 +41,13 @@ function AppLayout() {
     return onSessionsSynced((ids) => {
       void queryClient.invalidateQueries({ queryKey: historyQueryKey(userId) })
       // Récords y cumplimiento dependen de las sesiones del servidor.
-      for (const key of ['session-log', 'records', 'exercise-samples', 'session-prs']) {
+      for (const key of [
+        'session-log',
+        'records',
+        'exercise-samples',
+        'session-prs',
+        'active-plan',
+      ]) {
         void queryClient.invalidateQueries({ queryKey: [key] })
       }
       for (const id of ids) void queryClient.invalidateQueries({ queryKey: ['session', id] })

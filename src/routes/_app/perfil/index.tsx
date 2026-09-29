@@ -3,6 +3,7 @@ import { createFileRoute, Link, useRouter } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
   ChevronRight,
+  ClipboardList,
   KeyRound,
   LogOut,
   Mail,
@@ -68,11 +69,20 @@ function ProfilePage() {
             <dt>Año de nacimiento</dt>
             <dd>{profile.birth_year ?? '—'}</dd>
           </dl>
-          <p className="mt-3 text-xs">Se completarán en el onboarding (fase 5).</p>
+          <p className="mt-3 text-xs">Se editan en el perfil de entrenamiento.</p>
         </CardContent>
       </Card>
 
       <div className="flex flex-col gap-2">
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/onboarding">
+            <span className="flex items-center gap-2">
+              <ClipboardList /> Perfil de entrenamiento
+              <span className="text-muted-foreground font-normal">objetivos, días…</span>
+            </span>
+            <ChevronRight />
+          </Link>
+        </Button>
         <Button asChild variant="outline" size="lg" className="justify-between">
           <Link to="/perfil/compromiso">
             <span className="flex items-center gap-2">

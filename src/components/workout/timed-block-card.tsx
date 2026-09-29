@@ -29,6 +29,7 @@ import {
 } from '@/lib/workout/timer'
 import type { Exercise, LocalBlock } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
+import { ExerciseTechniqueSheet } from './exercise-technique'
 import { SetRow } from './set-row'
 import { BigButton, useCountdownAlerts, usePhaseChangeAlert } from './timer-controls'
 
@@ -102,6 +103,7 @@ export function TimedBlockCard({
   const schedule = config ? buildSchedule(config) : []
   const view = timerView(schedule, timer, now)
   const [selectedSet, setSelectedSet] = useState<string | null>(null)
+  const [techniqueFor, setTechniqueFor] = useState<string | null>(null)
 
   const secondsLeft = view.status === 'running' ? secondsLeftInPhase(view) : null
   const phaseKey = `${block.id}:${view.phaseIndex}`
@@ -137,11 +139,20 @@ export function TimedBlockCard({
           <p className="text-muted-foreground text-sm">{describeTimer(config)}</p>
           {block.exercises.length > 0 && (
             <p className="text-muted-foreground text-sm">
-              {block.exercises
-                .map(
-                  (e) => `${e.targetReps ? `${e.targetReps} ` : ''}${exerciseName(e.exerciseId)}`,
-                )
-                .join(' · ')}
+              {block.exercises.map((e, i) => (
+                <span key={e.exerciseId}>
+                  {i > 0 && ' · '}
+                  {e.targetReps ? `${e.targetReps} ` : ''}
+                  <button
+                    type="button"
+                    onClick={() => setTechniqueFor(e.exerciseId)}
+                    title="Ver técnica"
+                    className="decoration-muted-foreground/50 underline underline-offset-2"
+                  >
+                    {exerciseName(e.exerciseId)}
+                  </button>
+                </span>
+              ))}
             </p>
           )}
         </div>
@@ -242,6 +253,10 @@ export function TimedBlockCard({
           })}
         </div>
       )}
+      <ExerciseTechniqueSheet
+        exercise={techniqueFor ? exercisesById.get(techniqueFor) : null}
+        onClose={() => setTechniqueFor(null)}
+      />
     </section>
   )
 }

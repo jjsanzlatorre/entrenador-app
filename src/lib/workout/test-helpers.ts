@@ -11,6 +11,8 @@ export function makeExercise(partial: Partial<Exercise> & Pick<Exercise, 'id'>):
     isCompound: true,
     defaultRestS: 120,
     techniqueNotes: null,
+    techniqueSteps: [],
+    techniqueMistakes: [],
     ownerId: null,
     muscles: [],
     ...partial,

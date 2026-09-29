@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   ChevronRight,
   ClipboardList,
+  Info,
   KeyRound,
   LogOut,
   Mail,
@@ -135,6 +136,15 @@ function ProfilePage() {
           </Link>
         </Button>
       )}
+
+      <Button asChild variant="ghost" size="lg" className="justify-between">
+        <Link to="/perfil/creditos">
+          <span className="flex items-center gap-2">
+            <Info /> Créditos
+          </span>
+          <ChevronRight />
+        </Link>
+      </Button>
 
       <Button variant="ghost" size="lg" onClick={handleSignOut}>
         <LogOut /> Cerrar sesión

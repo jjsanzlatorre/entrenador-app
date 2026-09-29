@@ -66,6 +66,8 @@ export function toExercise(row: ExerciseWithMuscles): Exercise {
     isCompound: row.is_compound,
     defaultRestS: row.default_rest_s,
     techniqueNotes: row.technique_notes,
+    techniqueSteps: row.technique_steps ?? [],
+    techniqueMistakes: row.technique_mistakes ?? [],
     ownerId: row.owner_id,
     muscles: (row.exercise_muscles ?? []).map((m) => ({ muscleId: m.muscle_id, role: m.role })),
   }
@@ -88,7 +90,13 @@ export async function fetchCatalog(userId: string): Promise<Exercise[]> {
     }
   }
   const cached = await idbGet<Exercise[]>('kv', catalogKey(userId))
-  if (cached) return cached
+  // Copias guardadas antes de la fase 6C no traen la técnica estructurada.
+  if (cached)
+    return cached.map((e) => ({
+      ...e,
+      techniqueSteps: e.techniqueSteps ?? [],
+      techniqueMistakes: e.techniqueMistakes ?? [],
+    }))
   throw new OfflineError('No hay conexión y aún no se ha descargado la biblioteca de ejercicios')
 }
 

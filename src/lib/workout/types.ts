@@ -21,6 +21,9 @@ export type Exercise = {
   isCompound: boolean
   defaultRestS: number
   techniqueNotes: string | null
+  // Fase 6C: pasos clave y errores típicos (vacíos en ejercicios propios).
+  techniqueSteps: string[]
+  techniqueMistakes: string[]
   ownerId: string | null
   muscles: { muscleId: string; role: MuscleRole }[]
 }

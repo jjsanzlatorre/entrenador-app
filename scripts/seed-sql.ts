@@ -45,6 +45,8 @@ type SeedDestination = {
   water_route: boolean
 }
 
+type SeedTechnique = { steps: string[]; mistakes: string[] }
+
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
 function lit(value: string | null) {
@@ -167,6 +169,33 @@ function planTemplatesSql(file: string, description: string, templates: PlanTemp
   }
 }
 
+// Técnica (fase 6C): columnas estructuradas + pasos y errores de cada ejercicio global.
+function techniqueSql(technique: Record<string, SeedTechnique>) {
+  const file = '0026_exercise_technique.sql'
+  const rows = Object.entries(technique)
+    .map(([id, t]) => `  (${lit(id)}, ${arr(t.steps)}, ${arr(t.mistakes)})`)
+    .join(',\n')
+  return {
+    file,
+    sql:
+      header(
+        file,
+        'Técnica de ejercicios (fase 6C): pasos clave y errores típicos de los ejercicios globales. Requiere 0003, 0006, 0007 y 0018.',
+      ) +
+      `alter table public.exercises\n` +
+      `  add column if not exists technique_steps text[] not null default '{}',\n` +
+      `  add column if not exists technique_mistakes text[] not null default '{}';\n\n` +
+      `alter table public.exercises drop constraint if exists exercises_technique_len;\n` +
+      `alter table public.exercises add constraint exercises_technique_len check (\n` +
+      `  cardinality(technique_steps) <= 8 and cardinality(technique_mistakes) <= 8\n);\n\n` +
+      `-- Solo ejercicios globales; los propios del usuario no se tocan.\n` +
+      `update public.exercises e set\n` +
+      `  technique_steps = v.steps,\n  technique_mistakes = v.mistakes\n` +
+      `from (values\n${rows}\n) as v (id, steps, mistakes)\n` +
+      `where e.id = v.id and e.owner_id is null;\n`,
+  }
+}
+
 export const PLAN_TEMPLATES_JSON = 'supabase/seed/plan_templates.json'
 
 // JSON de plantillas (generado desde scripts/plan-templates.ts; lo leen los tests y el mock E2E).
@@ -198,6 +227,9 @@ export function buildSeedFiles() {
   const places = JSON.parse(
     readFileSync(join(root, 'supabase/seed/destinations.json'), 'utf8'),
   ) as { source: string; destinations: SeedDestination[] }
+  const { technique } = JSON.parse(
+    readFileSync(join(root, 'supabase/seed/exercise_technique.json'), 'utf8'),
+  ) as { technique: Record<string, SeedTechnique> }
   const templates = buildPlanTemplates()
 
   return [
@@ -234,6 +266,7 @@ export function buildSeedFiles() {
       'Semilla: plantillas de HYROX y DEKA con los datos de competición verificados y pesos por sexo (src/lib/plan/competition.ts). Sustituye a 0021 (on conflict do update). Requiere 0017 y 0018.',
       templates.filter((t) => t.family === 'hyrox' || t.family === 'deka'),
     ),
+    techniqueSql(technique),
   ]
 }
 

@@ -94,7 +94,7 @@ Todas las tablas de usuario llevan `user_id uuid references auth.users` y una po
 
 ### Catálogo
 - **muscles**: `id` text pk, `name`, `view` (`front|back|both`), `group` (`upper|core|lower`)
-- **exercises**: `id`, `name`, `aliases` text[], `category` (`strength|functional|cardio|mobility|sport`), `tracking_type` (`weight_reps|reps|time|distance_time|calories|duration_only`), `equipment` text[], `is_unilateral` bool, `is_compound` bool, `default_rest_s`, `technique_notes`, `owner_id` (null = global; si no, ejercicio propio del usuario)
+- **exercises**: `id`, `name`, `aliases` text[], `category` (`strength|functional|cardio|mobility|sport`), `tracking_type` (`weight_reps|reps|time|distance_time|calories|duration_only`), `equipment` text[], `is_unilateral` bool, `is_compound` bool, `default_rest_s`, `technique_notes` (resumen libre), `technique_steps` text[] y `technique_mistakes` text[] (fase 6C: pasos clave y errores típicos), `owner_id` (null = global; si no, ejercicio propio del usuario)
 - **exercise_muscles**: `exercise_id`, `muscle_id`, `role` (`primary|secondary`)
 
 ### Planes
@@ -474,6 +474,15 @@ Las frases se generan con plantillas deterministas; el **dato y la equivalencia 
 
 **Aceptación**: con un check-in de energía 1 y agujetas 5, la IA propone reducir la sesión, y el cambio solo se aplica tras aceptarlo.
 
+### Fase 6C — Técnica de ejercicios
+- Pasos de técnica en texto para **todos** los ejercicios globales: 3–4 pasos clave y 2–3 errores típicos, en español, en la base de datos (migración idempotente).
+- Imágenes de posición inicial y final desde bases de datos abiertas (free-exercise-db, wger), solo con licencia compatible y cumpliendo la atribución (pantalla «Créditos» en Perfil y fuente en el detalle). Mapeo revisable en un JSON del repo; mejor sin imagen que una dudosa. Imágenes dentro del proyecto (`public/exercises/`), WebP ≤ 50 KB, nunca enlazadas a webs externas.
+- Botón «Ver técnica en vídeo» en todos los ejercicios (también los propios): búsqueda de YouTube «técnica {nombre}» en una pestaña nueva.
+- Dónde: detalle del ejercicio en la biblioteca y, durante la sesión, hoja inferior al tocar el nombre (o ⓘ) sin salir ni perder el temporizador.
+- Rendimiento: imágenes solo al abrir el detalle (no en listas), fuera de la precarga del service worker y en caché tras verlas una vez.
+
+**Aceptación**: el detalle de Press banca muestra dos imágenes, pasos, errores, vídeo y fuente; en una sesión, abrir la técnica durante el descanso no lo para.
+
 ### Fase 7 — Pareja y extras
 - Vista de las sesiones de la pareja en solo lectura (si `can_view_sessions`) y reacciones a su semana.
 - Entreno en pareja con `pair_group_id`.
@@ -489,7 +498,7 @@ Las frases se generan con plantillas deterministas; el **dato y la equivalencia 
 
 _(Claude Code: actualizar al cerrar cada fase.)_
 
-- Fase actual: **6 hecha** (6A + 6B: revisión semanal, chat con el entrenador y sustitución con IA; typecheck, lint, Vitest, build y 10 pasadas seguidas de la E2E completa en verde; pantallas revisadas a 375 px). Falta validar en móvil real con una clave de Gemini. Siguiente: **Fase 7**.
+- Fase actual: **6C hecha** (técnica de ejercicios; typecheck, lint, Vitest, build y E2E completa en verde; hojas revisadas a 375 px). Fase 6 (6A + 6B) hecha; falta validar en móvil real con una clave de Gemini. Siguiente: **Fase 7**.
 - Hecho (Fase 0):
   - TanStack Start (React 19 + TS strict) + Vite 8 + Nitro (salida Vercel), Tailwind v4, componentes shadcn (button, input, label, card, badge, sheet, textarea), ESLint 10 + Prettier, Vitest.
   - Migraciones `0001_profiles.sql` y `0002_training_profiles.sql` con RLS.
@@ -593,6 +602,21 @@ _(Claude Code: actualizar al cerrar cada fase.)_
   - Sustituir con IA (§11.6): botón «Pedir una alternativa a la IA» en «Sustituir» solo cuando las reglas no encuentran alternativa; el servidor vuelve a comprobar las reglas (si hay alternativa, no llama a la IA: `rules_available`). Devuelve 1–3 `exercise_id` existentes y distintos del original (reintento y descarte); elegir una la marca como aceptada.
   - Frases de equivalencias: siguen siendo plantillas deterministas; se quita la reescritura con IA de §10B (ahorra cuota; la IA no aporta datos).
   - Tests: Vitest con proveedor simulado (`src/server/ai/coach-6b.test.ts`: caché de la revisión, regenerar, sin datos, en curso, datos deterministas, modelo de reserva y config, validación de cambios del chat, reparación tras 429 en el reintento, ids de la sustitución y reglas primero); PGlite `tests/db/ai-6b.test.ts` (periodo, modelo, en curso, `save_chat_turn`, RLS del chat, `respond_ai_change` en sus 4 acciones, doble respuesta, propuestas y sesiones ajenas, fechas al pasado); E2E `tests/e2e/ai-coach-6b.spec.ts` (revisión generada una vez, aceptar/descartar, reabrir sin gastar, regenerar; chat con 429 → reserva, tarjeta aceptada, historial tras recargar, cuota agotada). El simulador de Gemini acepta `{ __status: 429 }` en la cola.
+- Hecho (Fase 6C):
+  - Migración `0026_exercise_technique.sql` (generada con `npm run seed:sql` desde `supabase/seed/exercise_technique.json`): columnas `exercises.technique_steps` y `technique_mistakes` (text[], por defecto vacías, máx. 8 elementos) y relleno de los 58 ejercicios globales (3–4 pasos y 2–3 errores cada uno). Solo actualiza filas con `owner_id is null`; los propios no se tocan. `technique_notes` se conserva como resumen (se muestra en los propios o si no hay pasos).
+  - Imágenes: solo **free-exercise-db** (github.com/yuhonas/free-exercise-db, **Unlicense / dominio público**; no exige atribución, se da igualmente). **wger no se usó**: `wger.de` está bloqueado por la red del entorno (además sus imágenes son CC BY-SA, con atribución por imagen). Mapeo revisable en `src/data/exercise-images.json` (ejercicio → id de la fuente, índice de imagen → posición inicial/final, nota si la imagen es una variante; `unmatched` con el motivo de cada ejercicio sin imagen). Cada par se revisó mirando las imágenes; se descartaron los dudosos (p. ej. el «Air_Bike» de la fuente es un abdominal).
+  - **30 ejercicios con imagen, 28 sin imagen** (HYROX/DEKA mayoritariamente, cardio, natación, deportes, gemelos, swing, thruster, box jump…). 59 WebP en `public/exercises/{id}-{start|end|hold}.webp` (máx. 480 px, ≤ 34 KB; 936 KB en total) generados con `scripts/exercise-images.ts` (`npm i --no-save sharp && node scripts/exercise-images.ts`; sharp no es dependencia).
+  - Componente `src/components/workout/exercise-technique.tsx`: imágenes (`loading="lazy"`, aviso si no cargan sin conexión), pasos, errores, notas, «Ver técnica en vídeo» (`techniqueVideoUrl`: `youtube.com/results?search_query=técnica {nombre}`, pestaña nueva, también en ejercicios propios) y fuente con enlace al ejercicio original.
+  - Biblioteca: detalle con la técnica. Sesión: el nombre del ejercicio (con ⓘ) abre la hoja de técnica; también «Ver técnica» en el menú ⋮ y en los nombres de los bloques con temporizador (EMOM, AMRAP…). La hoja es un portal: la sesión y el temporizador siguen montados.
+  - Service worker: `/exercises/` fuera de la precarga (`isLazyPublicFile`); caché primero en `exercise-images-v1`, que sobrevive a los deploys. Se guardan al verlas una vez.
+  - Perfil → «Créditos» (`/perfil/creditos`): fuente, autoría y licencia de las imágenes; nota sobre los vídeos de YouTube.
+  - Copias del catálogo en IndexedDB anteriores a 6C se normalizan (pasos y errores vacíos hasta refrescar con conexión).
+  - Tests: Vitest (`src/lib/workout/exercise-images.test.ts`: cobertura de técnica 3–4/2–3, todos los ejercicios mapeados o en `unmatched`, archivos WebP ≤ 50 KB sin sobrantes, rutas, URL de vídeo, exclusión de la precarga); PGlite `tests/db/technique.test.ts` (dos pasadas, lectura autenticada, propios intactos al reaplicar, límite de elementos); E2E `tests/e2e/technique.spec.ts` (biblioteca sin peticiones de imágenes en la lista, detalle con imágenes/pasos/vídeo/fuente, caché tras verlas, ejercicio sin imagen; en sesión, la hoja se abre con el descanso en marcha y este sigue corriendo al cerrar). `E2E_SCREENSHOTS=<dir>` guarda capturas a 375 px.
+- Pendiente / deuda técnica (Fase 6C):
+  - Imágenes de wger: si se quieren, permitir `wger.de` en la red del entorno y respetar CC BY-SA (atribución por imagen). Con free-exercise-db no hay más candidatos fiables para HYROX/DEKA.
+  - Las imágenes solo se ven sin conexión si se han abierto antes con conexión.
+  - Los ejercicios propios no tienen imágenes ni pasos estructurados (solo notas y vídeo); crear/editar pasos propios no está en la UI.
+  - Los textos de técnica son generales: no sustituyen a un profesional.
 - Pendiente / deuda técnica (Fase 6B):
   - La revisión se genera al abrir la app, no el lunes a una hora fija (sin cron en el plan gratuito). La generación automática se intenta una vez por dispositivo y semana; si falla, se reintenta a mano desde la pantalla.
   - Regenerar crea respuestas nuevas: lo aceptado en la revisión anterior sigue aplicado, pero sus tarjetas ya no se ven.

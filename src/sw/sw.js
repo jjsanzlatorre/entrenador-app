@@ -6,10 +6,13 @@
 // - Páginas: red primero (con límite de tiempo); si no hay red, la última copia guardada
 //   de esa página. Así la app abre y la sesión en curso se puede seguir registrando offline.
 // - Funciones de servidor y Supabase: siempre red (los datos offline van por IndexedDB).
+// - Imágenes de técnica (/exercises/): no se precargan; caché primero y se guardan al verlas
+//   una vez, en una caché propia que sobrevive a los deploys.
 const VERSION = '__VERSION__'
 const PRECACHE = __PRECACHE__
 const STATIC_CACHE = `static-${VERSION}`
 const PAGES_CACHE = `pages-${VERSION}`
+const IMAGES_CACHE = 'exercise-images-v1'
 const NAVIGATION_TIMEOUT_MS = 4000
 const NO_CACHE_PATHS = ['/login', '/auth/', '/api/', '/bloqueado', '/_serverFn']
 
@@ -35,7 +38,9 @@ self.addEventListener('activate', (event) => {
       .keys()
       .then((keys) =>
         Promise.all(
-          keys.filter((k) => k !== STATIC_CACHE && k !== PAGES_CACHE).map((k) => caches.delete(k)),
+          keys
+            .filter((k) => k !== STATIC_CACHE && k !== PAGES_CACHE && k !== IMAGES_CACHE)
+            .map((k) => caches.delete(k)),
         ),
       )
       .then(() => self.clients.claim()),
@@ -96,6 +101,15 @@ async function handleAsset(request) {
   return response
 }
 
+async function handleExerciseImage(request) {
+  const cache = await caches.open(IMAGES_CACHE)
+  const cached = await cache.match(request)
+  if (cached) return cached
+  const response = await fetch(request)
+  if (response.ok) cache.put(request, response.clone()).catch(() => {})
+  return response
+}
+
 self.addEventListener('fetch', (event) => {
   const { request } = event
   if (request.method !== 'GET') return
@@ -104,6 +118,10 @@ self.addEventListener('fetch', (event) => {
 
   if (request.mode === 'navigate') {
     event.respondWith(handleNavigation(request))
+    return
+  }
+  if (url.pathname.startsWith('/exercises/')) {
+    event.respondWith(handleExerciseImage(request))
     return
   }
   if (

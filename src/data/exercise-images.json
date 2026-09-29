@@ -1,0 +1,286 @@
+{
+  "_comment": "Mapeo revisable de ejercicios de la biblioteca con imágenes de bases de datos abiertas. Cada par se revisó a mano mirando las dos imágenes. Las imágenes se generan con scripts/exercise-images.ts (WebP ≤ 50 KB en public/exercises/). 'from' es el índice de la imagen original (0.jpg / 1.jpg); 'role' start = posición inicial, end = posición final. 'unmatched' lista los ejercicios sin imagen y por qué.",
+  "sources": {
+    "free-exercise-db": {
+      "name": "Free Exercise DB",
+      "author": "yuhonas y colaboradores",
+      "url": "https://github.com/yuhonas/free-exercise-db",
+      "license": "Unlicense (dominio público)",
+      "licenseUrl": "https://unlicense.org",
+      "imageBaseUrl": "https://raw.githubusercontent.com/yuhonas/free-exercise-db/main/exercises/"
+    }
+  },
+  "exercises": {
+    "back_squat": {
+      "source": "free-exercise-db",
+      "sourceId": "Barbell_Squat",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "goblet_squat": {
+      "source": "free-exercise-db",
+      "sourceId": "Goblet_Squat",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "leg_press": {
+      "source": "free-exercise-db",
+      "sourceId": "Leg_Press",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "deadlift": {
+      "source": "free-exercise-db",
+      "sourceId": "Barbell_Deadlift",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "romanian_deadlift": {
+      "source": "free-exercise-db",
+      "sourceId": "Romanian_Deadlift",
+      "images": [
+        { "from": 1, "role": "start" },
+        { "from": 0, "role": "end" }
+      ]
+    },
+    "hip_thrust": {
+      "source": "free-exercise-db",
+      "sourceId": "Barbell_Hip_Thrust",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "lunge": {
+      "source": "free-exercise-db",
+      "sourceId": "Dumbbell_Lunges",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "bulgarian_split_squat": {
+      "source": "free-exercise-db",
+      "sourceId": "Split_Squat_with_Dumbbells",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "leg_curl": {
+      "source": "free-exercise-db",
+      "sourceId": "Lying_Leg_Curls",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "leg_extension": {
+      "source": "free-exercise-db",
+      "sourceId": "Leg_Extensions",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "bench_press": {
+      "source": "free-exercise-db",
+      "sourceId": "Barbell_Bench_Press_-_Medium_Grip",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "incline_db_press": {
+      "source": "free-exercise-db",
+      "sourceId": "Incline_Dumbbell_Press",
+      "images": [
+        { "from": 1, "role": "start" },
+        { "from": 0, "role": "end" }
+      ]
+    },
+    "dips": {
+      "source": "free-exercise-db",
+      "sourceId": "Dips_-_Chest_Version",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "push_up": {
+      "source": "free-exercise-db",
+      "sourceId": "Pushups",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "overhead_press": {
+      "source": "free-exercise-db",
+      "sourceId": "Standing_Military_Press",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "lateral_raise": {
+      "source": "free-exercise-db",
+      "sourceId": "Side_Lateral_Raise",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "face_pull": {
+      "source": "free-exercise-db",
+      "sourceId": "Face_Pull",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "pull_up": {
+      "source": "free-exercise-db",
+      "sourceId": "Pullups",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "lat_pulldown": {
+      "source": "free-exercise-db",
+      "sourceId": "Wide-Grip_Lat_Pulldown",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "barbell_row": {
+      "source": "free-exercise-db",
+      "sourceId": "Bent_Over_Barbell_Row",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "db_row": {
+      "source": "free-exercise-db",
+      "sourceId": "One-Arm_Dumbbell_Row",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "biceps_curl": {
+      "source": "free-exercise-db",
+      "sourceId": "Dumbbell_Bicep_Curl",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "triceps_pushdown": {
+      "source": "free-exercise-db",
+      "sourceId": "Triceps_Pushdown",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "plank": {
+      "source": "free-exercise-db",
+      "sourceId": "Plank",
+      "note": "La primera imagen de la fuente es la preparación de rodillas; solo se usa la de la plancha.",
+      "images": [{ "from": 1, "role": "hold" }]
+    },
+    "ab_wheel": {
+      "source": "free-exercise-db",
+      "sourceId": "Ab_Roller",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "pallof_press": {
+      "source": "free-exercise-db",
+      "sourceId": "Pallof_Press",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "sled_push": {
+      "source": "free-exercise-db",
+      "sourceId": "Sled_Push",
+      "note": "Imagen con agarre bajo; en HYROX se empuja de los postes altos.",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "farmers_carry": {
+      "source": "free-exercise-db",
+      "sourceId": "Farmers_Walk",
+      "note": "Imagen con barras de granjero; la técnica es la misma con kettlebells o mancuernas.",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "row_erg": {
+      "source": "free-exercise-db",
+      "sourceId": "Rowing_Stationary",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    },
+    "double_unders": {
+      "source": "free-exercise-db",
+      "sourceId": "Rope_Jumping",
+      "note": "Imagen de comba simple; el double under es la misma postura con dos giros por salto.",
+      "images": [
+        { "from": 0, "role": "start" },
+        { "from": 1, "role": "end" }
+      ]
+    }
+  },
+  "unmatched": {
+    "calf_raise": "Standing_Calf_Raises existe, pero las imágenes son de espaldas y demasiado pequeñas para distinguir la posición.",
+    "kettlebell_swing": "Solo hay One-Arm_Kettlebell_Swings y no muestra la posición alta.",
+    "thruster": "Kettlebell_Thruster no muestra el final del movimiento (brazos arriba).",
+    "wall_ball": "Sin equivalente (los lanzamientos de balón medicinal de la fuente son otros ejercicios).",
+    "burpee": "Sin equivalente en la fuente.",
+    "burpee_broad_jump": "Sin equivalente en la fuente.",
+    "box_jump": "Front_Box_Jump no muestra el aterrizaje sobre el cajón.",
+    "box_jump_over": "Sin equivalente en la fuente.",
+    "sled_pull": "Sled_Row es un remo sentado/agachado, no el arrastre mano a mano de HYROX.",
+    "sandbag_lunge": "Sin equivalente (Sandbag_Load es cargar el saco, no zancadas).",
+    "med_ball_situp_throw": "Sit-Up de la fuente es sin balón ni lanzamiento.",
+    "dead_ball_over": "Sin equivalente en la fuente.",
+    "skierg": "Sin equivalente en la fuente.",
+    "air_bike": "El «Air_Bike» de la fuente es un abdominal (bicicleta en el suelo), no la bici de aire.",
+    "run": "Cardio: las imágenes de la fuente (cinta) no son posiciones inicial y final.",
+    "swim_freestyle": "Sin equivalente en la fuente.",
+    "swim_backstroke": "Sin equivalente en la fuente.",
+    "swim_breaststroke": "Sin equivalente en la fuente.",
+    "swim_drills": "Sin equivalente en la fuente.",
+    "bike": "Las imágenes de «Bicycling» son ponerse el casco y ajustar el sillín.",
+    "spinning": "Cardio: Bicycling_Stationary no aporta posiciones inicial y final.",
+    "yoga": "Actividad genérica; no hay una imagen representativa.",
+    "fronton": "Deporte; sin equivalente en la fuente.",
+    "surf": "Deporte; sin equivalente en la fuente.",
+    "other_activity": "Actividad genérica.",
+    "ram_reverse_lunge": "Material de DEKA (RAM); sin equivalente en la fuente.",
+    "tank_push_pull": "Material de DEKA (tank); sin equivalente en la fuente.",
+    "ram_burpee": "Material de DEKA (RAM); sin equivalente en la fuente."
+  }
+}

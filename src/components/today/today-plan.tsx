@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { CalendarDays, Check, Play, SkipForward } from 'lucide-react'
+import { AdjustedNotice, AiAdjust } from '@/components/ai/ai-adjust'
 import { PlannedBlocks } from '@/components/plan/planned-blocks'
 import { Button } from '@/components/ui/button'
 import { notifyError, notifySaved } from '@/lib/notify'
@@ -111,6 +112,12 @@ export function TodayPlan({
                 </span>
               )}
             </div>
+            {p.adjusted && p.effectiveStatus !== 'done' && (
+              <>
+                {p.notes && <p className="text-muted-foreground text-sm">{p.notes}</p>}
+                <AdjustedNotice userId={userId} plannedId={p.id} />
+              </>
+            )}
             {open === p.id && <PlannedBlocks blocks={p.blocks} name={name} sex={sex} />}
             {pending && (
               <div className="flex flex-col gap-2">
@@ -131,6 +138,9 @@ export function TodayPlan({
                 >
                   {open === p.id ? 'Ocultar detalle' : 'Ver qué toca'}
                 </Button>
+                {!p.adjusted && (
+                  <AiAdjust userId={userId} today={today} plannedId={p.id} sex={sex} name={name} />
+                )}
               </div>
             )}
           </div>

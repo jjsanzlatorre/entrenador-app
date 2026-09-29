@@ -26,6 +26,7 @@ function planned(id: string, date: string, patch: Partial<PlannedSession> = {}):
     blocks: [],
     status: 'planned',
     workoutSessionId: null,
+    adjusted: false,
     ...patch,
   }
 }

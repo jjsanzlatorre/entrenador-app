@@ -14,7 +14,8 @@ export default defineConfig({
     // tanstackStart must come before the React plugin.
     tanstackStart(),
     // Nitro auto-detects Vercel at build time (VERCEL env var) and emits .vercel/output.
-    nitro(),
+    // maxDuration: generating an AI plan can take ~1 min (within Vercel Hobby limits).
+    nitro({ vercel: { functions: { maxDuration: 60 } } }),
     viteReact(),
     serviceWorkerPlugin({ template: 'src/sw/sw.js', publicDir: 'public' }),
   ],

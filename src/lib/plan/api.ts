@@ -107,6 +107,8 @@ export type PlannedSession = {
   blocks: PlanBlock[]
   status: PlannedStatus
   workoutSessionId: string | null
+  // Ajustada por la IA (ajuste del día): se puede deshacer.
+  adjusted: boolean
 }
 
 export type ActivePlan = {
@@ -133,6 +135,7 @@ type PlannedRow = {
   blocks: Json
   status: PlannedStatus
   workout_session_id: string | null
+  adjusted_from?: Json | null
 }
 
 function toPlanned(r: PlannedRow): PlannedSession {
@@ -151,6 +154,7 @@ function toPlanned(r: PlannedRow): PlannedSession {
     blocks: parseBlocks(r.blocks),
     status: r.status,
     workoutSessionId: r.workout_session_id,
+    adjusted: r.adjusted_from !== null && r.adjusted_from !== undefined,
   }
 }
 

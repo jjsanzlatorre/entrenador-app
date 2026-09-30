@@ -114,22 +114,23 @@ en orden. `supabase/snippets/` contiene SQL de un solo uso (no son migraciones).
 
 ### Variables de entorno
 
-| Variable                    | Obligatoria | Dónde se obtiene                                              |
-| --------------------------- | ----------- | ------------------------------------------------------------- |
-| `VITE_SUPABASE_URL`         | sí          | Supabase → Project Settings → API → Project URL               |
-| `VITE_SUPABASE_ANON_KEY`    | sí          | clave `anon` / publishable                                    |
-| `SUPABASE_SERVICE_ROLE_KEY` | sí          | clave `service_role` / secret (**nunca** con prefijo `VITE_`) |
-| `AI_PROVIDER`               | no          | `gemini` (por defecto) o `anthropic`                          |
-| `GEMINI_API_KEY`            | no          | Google AI Studio → Get API key                                |
-| `GEMINI_MODEL`              | no          | por defecto `gemini-2.5-flash`                                |
-| `GEMINI_FALLBACK_MODEL`     | no          | modelo de reserva si el principal devuelve 429                |
-| `ANTHROPIC_API_KEY`         | no          | console.anthropic.com (solo con `AI_PROVIDER=anthropic`)      |
-| `AI_MODEL`                  | no          | por defecto `claude-sonnet-5`                                 |
-| `AI_DAILY_LIMIT`            | no          | consultas por usuario y día (20)                              |
-| `VAPID_PUBLIC_KEY`          | no          | Perfil → Notificaciones → «Generar claves nuevas» (admin)     |
-| `VAPID_PRIVATE_KEY`         | no          | ídem (secreta)                                                |
-| `VAPID_SUBJECT`             | no          | `mailto:tu@email`                                             |
-| `CRON_SECRET`               | no          | ídem; el mismo valor va en `supabase/snippets/push_cron.sql`  |
+| Variable                    | Obligatoria | Dónde se obtiene                                               |
+| --------------------------- | ----------- | -------------------------------------------------------------- |
+| `VITE_SUPABASE_URL`         | sí          | Supabase → Project Settings → API → Project URL                |
+| `VITE_SUPABASE_ANON_KEY`    | sí          | clave `anon` / publishable                                     |
+| `SUPABASE_SERVICE_ROLE_KEY` | sí          | clave `service_role` / secret (**nunca** con prefijo `VITE_`)  |
+| `AI_PROVIDER`               | no          | `gemini` (por defecto) o `anthropic`                           |
+| `GEMINI_API_KEY`            | no          | Google AI Studio → Get API key                                 |
+| `GEMINI_MODEL`              | no          | por defecto `gemini-2.5-flash`                                 |
+| `GEMINI_MODEL_HEAVY`        | no          | modelo para planes y revisión semanal (vacío = `GEMINI_MODEL`) |
+| `GEMINI_FALLBACK_MODEL`     | no          | modelo de reserva si el principal devuelve 429                 |
+| `ANTHROPIC_API_KEY`         | no          | console.anthropic.com (solo con `AI_PROVIDER=anthropic`)       |
+| `AI_MODEL`                  | no          | por defecto `claude-sonnet-5`                                  |
+| `AI_DAILY_LIMIT`            | no          | consultas por usuario y día (20)                               |
+| `VAPID_PUBLIC_KEY`          | no          | Perfil → Notificaciones → «Generar claves nuevas» (admin)      |
+| `VAPID_PRIVATE_KEY`         | no          | ídem (secreta)                                                 |
+| `VAPID_SUBJECT`             | no          | `mailto:tu@email`                                              |
+| `CRON_SECRET`               | no          | ídem; el mismo valor va en `supabase/snippets/push_cron.sql`   |
 
 Solo las `VITE_*` llegan al navegador. El resto solo existen en el servidor.
 
@@ -169,7 +170,10 @@ normalmente no ocurre, pero si pasa:
 ### Cambiar el proveedor de IA
 
 - Gemini (gratis): `AI_PROVIDER=gemini`, `GEMINI_API_KEY` y, opcional, `GEMINI_MODEL` /
-  `GEMINI_FALLBACK_MODEL`.
+  `GEMINI_MODEL_HEAVY` / `GEMINI_FALLBACK_MODEL`. Con `GEMINI_MODEL_HEAVY`, generar o
+  personalizar un plan (también «Crear plan» desde el chat) y la revisión semanal usan ese
+  modelo; el chat, el ajuste del día y la sustitución usan `GEMINI_MODEL`. La reserva vale para
+  los dos. `/api/health` muestra `heavyModel`.
 - Anthropic: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` y, opcional, `AI_MODEL`.
 - Cambia las variables en Vercel y haz **Redeploy**. Sin clave, la app funciona sin IA y lo dice.
 - `AI_DAILY_LIMIT` limita las consultas por persona y día.

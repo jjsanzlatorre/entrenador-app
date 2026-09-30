@@ -170,7 +170,9 @@ describe('context builder', () => {
     const ctx = buildAiContext(input) as Record<string, any> // eslint-disable-line @typescript-eslint/no-explicit-any
     expect(ctx.weekday).toBe('martes')
     expect(ctx.athlete.preferred_days).toBe('LXV')
-    expect(ctx.athlete.fixed_activities).toEqual([{ type: 'fronton', days: 'S', minutes: 60 }])
+    expect(ctx.athlete.fixed_activities).toEqual([
+      { type: 'fronton', name: 'Frontón', days: 'S', minutes: 60 },
+    ])
     expect(ctx.athlete.benchmarks).toEqual({ squat_1rm_kg: 80 })
     expect(ctx.commitment).toEqual({ sessions_per_week: 3 })
     // Carga aguda: 60×8 + 30×5 = 630; crónica (28 días) = 630 / 4.

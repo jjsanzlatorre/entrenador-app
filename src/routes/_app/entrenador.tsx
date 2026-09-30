@@ -3,6 +3,7 @@ import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Send, Sparkles, Trash2 } from 'lucide-react'
 import { ChangeCard } from '@/components/ai/change-card'
+import { ChatAdjustCard, ChatPlanCard, DiscardedActions } from '@/components/ai/chat-actions'
 import { Page } from '@/components/page'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -17,6 +18,8 @@ import {
 } from '@/lib/ai/client'
 import { CHAT_MAX_MESSAGE } from '@/lib/ai/schemas'
 import { notifyError } from '@/lib/notify'
+import { useTrainingProfile } from '@/lib/plan/hooks'
+import { emptyTrainingProfile, type TrainingProfileData } from '@/lib/plan/profile'
 import { useCatalog } from '@/lib/workout/hooks'
 import { cn } from '@/lib/utils'
 
@@ -27,12 +30,14 @@ export const Route = createFileRoute('/_app/entrenador')({
 
 const SUGGESTIONS = [
   '¿Qué tal voy esta semana?',
+  'Créame un plan de 3 días de fuerza',
   'Tengo molestias en el hombro, ¿cambio algo?',
   'Esta semana solo puedo entrenar 2 días',
 ]
 
-// Chat con el entrenador (§11.5): usa los datos del usuario y conserva la conversación. Si la
-// IA propone cambios en el plan, llegan como tarjetas para aceptar o descartar.
+// Chat con el entrenador (§11.5): usa los datos del usuario y conserva la conversación. Lo que
+// la IA propone (crear un plan, cambiar sesiones, ajustar hoy) llega como tarjetas: solo se
+// aplica al pulsar su botón, y la confirmación sale de la base de datos.
 function CoachChatPage() {
   const { auth } = Route.useRouteContext()
   const userId = auth.userId
@@ -40,12 +45,16 @@ function CoachChatPage() {
   const chat = useChat(userId)
   const ai = useAiRequests()
   const catalog = useCatalog(userId)
+  const training = useTrainingProfile(userId)
+  const profile = training.data ?? emptyTrainingProfile()
   const queryClient = useQueryClient()
   const name = (id: string) => catalog.byId.get(id)?.name ?? id
   const [text, setText] = useState('')
   const [sending, setSending] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
+  // Respuesta recién recibida: su create_plan se prepara solo.
+  const [fresh, setFresh] = useState<string | null>(null)
   const bottom = useRef<HTMLDivElement>(null)
 
   const messages = chat.data ?? []
@@ -65,6 +74,7 @@ function CoachChatPage() {
     const res = await ai.sendChat(message)
     void queryClient.invalidateQueries({ queryKey: aiStatusKey })
     if (res.ok) {
+      setFresh(res.interactionId)
       await queryClient.invalidateQueries({ queryKey: chatKey(userId) })
     } else {
       // No se ha guardado nada: el texto vuelve a la caja para reintentar.
@@ -131,8 +141,9 @@ function CoachChatPage() {
         {messages.length === 0 && !sending && chat.isSuccess && (
           <li className="text-muted-foreground flex flex-col gap-2 text-sm">
             <p>
-              Pregúntame por tu entrenamiento: uso tu plan, tus sesiones y tu check-in. Si te
-              propongo cambiar el plan, verás una tarjeta y tú decides.
+              Pregúntame por tu entrenamiento: uso tu plan, tus sesiones y tu check-in. Puedo
+              proponerte crear un plan, cambiar, mover o saltar sesiones y ajustar el entreno de
+              hoy: verás una tarjeta y nada cambia hasta que pulses su botón.
             </p>
             {configured && (
               <div className="flex flex-wrap gap-2">
@@ -146,7 +157,15 @@ function CoachChatPage() {
           </li>
         )}
         {messages.map((m) => (
-          <MessageItem key={m.id} message={m} userId={userId} sex={auth.profile.sex} name={name} />
+          <MessageItem
+            key={m.id}
+            message={m}
+            userId={userId}
+            sex={auth.profile.sex}
+            name={name}
+            profile={profile}
+            fresh={m.interactionId !== null && m.interactionId === fresh}
+          />
         ))}
         {sending && (
           <>
@@ -211,13 +230,18 @@ function MessageItem({
   userId,
   sex,
   name,
+  profile,
+  fresh,
 }: {
   message: ChatMessage
   userId: string
   sex: Parameters<typeof ChangeCard>[0]['sex']
   name: (id: string) => string
+  profile: TrainingProfileData
+  fresh: boolean
 }) {
   const mine = message.role === 'user'
+  const interactionId = !mine ? message.interactionId : null
   return (
     <li className={cn('flex flex-col gap-2', mine ? 'ml-10 items-end' : 'mr-4')}>
       <p
@@ -228,13 +252,33 @@ function MessageItem({
       >
         {message.content}
       </p>
-      {!mine &&
-        message.interactionId &&
+      {interactionId && message.planRequest && (
+        <ChatPlanCard
+          userId={userId}
+          sex={sex}
+          profile={profile}
+          chatInteractionId={interactionId}
+          request={message.planRequest}
+          result={message.results.plan}
+          autoPrepare={fresh}
+        />
+      )}
+      {interactionId && message.adjustToday && (
+        <ChatAdjustCard
+          userId={userId}
+          sex={sex}
+          name={name}
+          chatInteractionId={interactionId}
+          request={message.adjustToday}
+          result={message.results.adjust}
+        />
+      )}
+      {interactionId &&
         message.changes.map((c, i) => (
           <ChangeCard
             key={i}
             userId={userId}
-            interactionId={message.interactionId!}
+            interactionId={interactionId}
             index={i}
             change={c}
             response={message.responses[String(i)]}
@@ -242,6 +286,7 @@ function MessageItem({
             name={name}
           />
         ))}
+      {interactionId && <DiscardedActions items={message.discarded} />}
     </li>
   )
 }

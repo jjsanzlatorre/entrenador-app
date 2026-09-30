@@ -4,6 +4,8 @@ import { Dumbbell, Users, Zap } from 'lucide-react'
 import { PartnerPickerSheet, useAcceptedPartners, usePairStart } from '@/components/partners/pair'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
+import { quickActivityOptions } from '@/lib/activities/catalog'
+import { useActivityTypes } from '@/lib/activities/hooks'
 import type { PartnerLink } from '@/lib/progress/api'
 import { startNewSession } from '@/lib/workout/active-session'
 import { START_OPTIONS, sessionTypeEmoji } from '@/lib/workout/session-kinds'
@@ -24,6 +26,7 @@ export function StartSessionButtons({
   const pair = usePairStart(userId)
   const [picking, setPicking] = useState(false)
   const [partner, setPartner] = useState<PartnerLink | null>(null)
+  useActivityTypes(userId)
 
   async function start(type: SessionType) {
     setChoosing(false)
@@ -93,9 +96,30 @@ export function StartSessionButtons({
           ))}
         </div>
         {partner ? (
-          <p className="text-muted-foreground pb-2 text-center text-sm">
-            Añade los ejercicios en la sesión y envíale la estructura desde allí.
-          </p>
+          <>
+            <p className="text-muted-foreground pb-2 text-center text-sm">
+              Añade los ejercicios en la sesión y envíale la estructura desde allí.
+            </p>
+            <h3 className="pb-2 text-sm font-semibold">Deporte, clase o actividad</h3>
+            <div className="grid grid-cols-3 gap-2 pb-3">
+              {quickActivityOptions(userId).map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  onClick={() => {
+                    setChoosing(false)
+                    void pair.startActivity(a.id, partner).then(() => setPartner(null))
+                  }}
+                  className="bg-secondary flex h-20 flex-col items-center justify-center gap-1 rounded-2xl px-1 text-sm font-semibold active:scale-95"
+                >
+                  <span className="text-2xl" aria-hidden>
+                    {a.emoji}
+                  </span>
+                  <span className="line-clamp-1">{a.name}</span>
+                </button>
+              ))}
+            </div>
+          </>
         ) : null}
         <p className="text-muted-foreground pb-2 text-center text-sm">
           ¿Deporte, clase o yoga?{' '}

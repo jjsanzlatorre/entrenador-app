@@ -5,6 +5,9 @@ import { useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Users } from 'lucide-react'
 import { ReactionBar } from '@/components/partners/reactions'
+import { createCustomActivity, fetchActivityTypes } from '@/lib/activities/api'
+import { addActivityTypes, customActivities } from '@/lib/activities/catalog'
+import { activityTypesQueryKey } from '@/lib/activities/hooks'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Sheet } from '@/components/ui/sheet'
@@ -22,11 +25,13 @@ import { pairInvitesKey, usePairInvites, usePendingPairInvites } from '@/lib/par
 import { pushPairInvite } from '@/lib/notifications/push'
 import {
   comparePairSessions,
+  matchPairActivity,
   pairTemplateFromSession,
   pairTemplateSignature,
   parsePairTemplate,
   sessionFromPairTemplate,
   templateExerciseCount,
+  type PairTemplate,
 } from '@/lib/partners/pair'
 import type { PartnerLink } from '@/lib/progress/api'
 import { usePartnerLinks } from '@/lib/progress/hooks'
@@ -37,7 +42,11 @@ import { getLastPerformance } from '@/lib/workout/api'
 import { sessionStats } from '@/lib/workout/calc'
 import { formatInt, formatKg } from '@/lib/workout/format'
 import { useCatalog } from '@/lib/workout/hooks'
-import { createSessionOfType, sessionTypeEmoji } from '@/lib/workout/session-kinds'
+import {
+  createActivitySession,
+  createSessionOfType,
+  sessionTypeEmoji,
+} from '@/lib/workout/session-kinds'
 import type { Exercise, LocalSession } from '@/lib/workout/types'
 import type { SessionType } from '@/types/database'
 
@@ -87,6 +96,32 @@ export function usePairStart(userId: string) {
       start(async () => createSessionOfType(userId, type, Date.now()), partner),
     startPlanned: (planned: Startable, partner: Partner) =>
       start(() => preparePlannedSession(planned, userId, catalog.byId), partner),
+    // Deportes, clases y actividades personalizadas (cronómetro continuo).
+    startActivity: (activityId: string, partner: Partner) =>
+      start(async () => createActivitySession(userId, activityId, Date.now()), partner),
+  }
+}
+
+// Actividad personalizada de la invitación: la mía con el mismo nombre o, si no tengo, una nueva
+// con su nombre, emoji y músculos. null si no se puede (se entrena como «otra»).
+async function resolvePairActivity(
+  userId: string,
+  activity: NonNullable<PairTemplate['activity']>,
+): Promise<{ id: string; created: boolean } | null> {
+  try {
+    await fetchActivityTypes(userId)
+    const mine = matchPairActivity(activity, customActivities(userId))
+    if (mine) return { id: mine.id, created: false }
+    const created = await createCustomActivity(userId, {
+      name: activity.name,
+      emoji: activity.emoji,
+      muscles: activity.muscles,
+    })
+    addActivityTypes([created])
+    return { id: created.id, created: true }
+  } catch (error) {
+    console.error('[pair] actividad personalizada', error)
+    return null
   }
 }
 
@@ -222,11 +257,20 @@ function PairInviteCard({
       } catch {
         // sin precarga de pesos
       }
+      const activity = latest.activity ? await resolvePairActivity(userId, latest.activity) : null
+      if (latest.activity && !activity) {
+        notifyWarning(`No se ha podido crear «${latest.activity.name}»: se guardará como «Otra».`)
+      }
+      if (activity?.created) {
+        notifySaved(`«${latest.activity!.name}» añadida a tus actividades`)
+        void queryClient.invalidateQueries({ queryKey: activityTypesQueryKey(userId) })
+      }
       const session = sessionFromPairTemplate(latest, {
         userId,
         pairGroupId: invite.pairGroupId,
         known: (id) => catalog.byId.size === 0 || catalog.byId.has(id),
         last,
+        activityTypeId: activity?.id ?? null,
       })
       await respondPairInvite(invite.id, true)
       await startPreparedSession(session)
@@ -256,12 +300,15 @@ function PairInviteCard({
     <div className="border-primary bg-primary/5 flex flex-col gap-3 rounded-2xl border-2 p-4">
       <div className="flex items-start gap-3">
         <span aria-hidden className="text-3xl">
-          {template ? sessionTypeEmoji(template.session_type) : '🤝'}
+          {template ? (template.activity?.emoji ?? sessionTypeEmoji(template.session_type)) : '🤝'}
         </span>
         <div className="min-w-0 flex-1">
           <p className="text-lg leading-tight font-bold">{name} te invita a entrenar juntos</p>
           {template ? (
             <p className="text-muted-foreground text-sm">
+              {template.activity && template.activity.name !== template.title
+                ? `${template.activity.name} · `
+                : ''}
               {template.title}
               {count > 0 ? ` · ${count} ${count === 1 ? 'ejercicio' : 'ejercicios'}` : ''}. Cada uno
               apunta sus pesos en su móvil.
@@ -311,13 +358,14 @@ export function PairBanner({ session }: { session: LocalSession }) {
       pairTemplateFromSession(
         {
           sessionType: session.sessionType,
+          activityTypeId: session.activityTypeId,
           title: session.title,
           location: session.location,
           blocks: session.blocks,
         },
         isShareable,
       ).template,
-    [session.sessionType, session.title, session.location, session.blocks],
+    [session.sessionType, session.activityTypeId, session.title, session.location, session.blocks],
   )
   const signature = pairTemplateSignature(template)
 

@@ -156,7 +156,36 @@ export function AiAdjust({
     )
   }
 
-  const { adjust } = state.proposal
+  return (
+    <AdjustProposalView
+      adjust={state.proposal.adjust}
+      busy={busy}
+      sex={sex}
+      name={name}
+      onAccept={() => void accept(state.interactionId, state.proposal)}
+      onDiscard={() => void discard(state.interactionId)}
+    />
+  )
+}
+
+export const ADJUST_DONE_TEXT = DONE_TEXT
+
+// Propuesta de ajuste del día (también la del chat): decisión, motivo y sesión propuesta.
+export function AdjustProposalView({
+  adjust,
+  busy,
+  sex,
+  name,
+  onAccept,
+  onDiscard,
+}: {
+  adjust: AdjustProposal['adjust']
+  busy: boolean
+  sex: Sex | null
+  name: (id: string) => string
+  onAccept: () => void
+  onDiscard: () => void
+}) {
   const label = ADJUST_LABELS[adjust.decision]
   return (
     <section
@@ -183,10 +212,10 @@ export function AiAdjust({
         </div>
       )}
       <div className="grid grid-cols-2 gap-2">
-        <Button disabled={busy} onClick={() => void accept(state.interactionId, state.proposal)}>
+        <Button disabled={busy} onClick={onAccept}>
           <Check /> Aceptar
         </Button>
-        <Button variant="outline" disabled={busy} onClick={() => void discard(state.interactionId)}>
+        <Button variant="outline" disabled={busy} onClick={onDiscard}>
           <X /> Descartar
         </Button>
       </div>

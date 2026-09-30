@@ -22,7 +22,7 @@ import { notifyError, notifySaved } from '@/lib/notify'
 import { INTENSITY_LABELS } from '@/lib/plan/describe'
 import { activePlanKey, useActivePlan } from '@/lib/plan/hooks'
 import { WEEKDAY_LONG, type TrainingProfileData } from '@/lib/plan/profile'
-import { schedulePlan, startOptions, warningText } from '@/lib/plan/schedule'
+import { schedulePlan, startOptions, warningText, type ScheduledSession } from '@/lib/plan/schedule'
 import type { PlanStructure } from '@/lib/plan/types'
 import { formatDayMonth, localDateKey } from '@/lib/progress/dates'
 import { useCatalog } from '@/lib/workout/hooks'
@@ -111,7 +111,7 @@ export function AiPlanSheet({
         </div>
       )}
       {state.phase === 'ready' && (
-        <Proposal
+        <PlanProposalView
           key={state.interactionId}
           interactionId={state.interactionId}
           proposal={state.proposal}
@@ -126,7 +126,11 @@ export function AiPlanSheet({
   )
 }
 
-function Proposal({
+export type PlanAcceptInput = { name: string; startDate: string; sessions: ScheduledSession[] }
+
+// Vista previa de un plan de la IA (semanas, días, Editar, Aceptar, Descartar). La usan
+// «Personalizar con IA» y el create_plan del chat (con su propio `onAccept` / `onDiscard`).
+export function PlanProposalView({
   interactionId,
   proposal,
   remaining,
@@ -134,14 +138,19 @@ function Proposal({
   userId,
   sex,
   onDone,
+  onAccept,
+  onDiscard,
 }: {
   interactionId: string
   proposal: PlanProposal
-  remaining: number
+  remaining: number | null
   profile: TrainingProfileData
   userId: string
   sex: Sex | null
   onDone: () => void
+  // Sustituye a crear el plan y abrir Plan (chat: accept_chat_plan y confirmación en el chat).
+  onAccept?: (input: PlanAcceptInput) => Promise<void>
+  onDiscard?: () => Promise<void>
 }) {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
@@ -179,6 +188,22 @@ function Proposal({
       return
     }
     setBusy(true)
+    const plan = {
+      name: name.trim() || proposal.name,
+      startDate: start,
+      sessions: schedule.sessions,
+    }
+    if (onAccept) {
+      try {
+        await onAccept(plan)
+        onDone()
+      } catch (error) {
+        notifyError(error, 'crear el plan')
+      } finally {
+        setBusy(false)
+      }
+      return
+    }
     try {
       await acceptAiPlan({
         interactionId,
@@ -202,7 +227,7 @@ function Proposal({
   async function discard() {
     setBusy(true)
     try {
-      await discardProposal(interactionId)
+      await (onDiscard ? onDiscard() : discardProposal(interactionId))
     } catch (error) {
       console.error('[ai] descartar', error)
     } finally {
@@ -229,7 +254,7 @@ function Proposal({
         <p className="text-sm">{proposal.summary}</p>
         <p className="text-muted-foreground text-xs">{structure.progression_rules}</p>
         <p className="text-muted-foreground text-xs">
-          Propuesta de la IA · te quedan {remaining} consultas hoy
+          Propuesta de la IA{remaining !== null ? ` · te quedan ${remaining} consultas hoy` : ''}
         </p>
       </div>
 

@@ -181,7 +181,7 @@ test('revisión semanal: se genera una vez, se guarda y los cambios solo al acep
   const skip = page.getByRole('region', { name: 'Cambio propuesto: Descansa el jueves' })
   await expect(skip.getByText('Pierna pesada')).toBeVisible()
   await skip.getByRole('button', { name: 'Aceptar' }).click()
-  await expect(skip.getByText('Aceptado')).toBeVisible()
+  await expect(skip.getByText(/Sesión cambiada por descanso · jueves 8 oct/)).toBeVisible()
   await expect
     .poll(async () => (await state(request)).plannedSessions.find((p) => p.id === 'p-thu')?.status)
     .toBe('skipped')
@@ -199,7 +199,7 @@ test('revisión semanal: se genera una vez, se guarda y los cambios solo al acep
   await expect(
     page.getByText(/Revisión guardada: volver a abrirla no gasta consultas/),
   ).toBeVisible()
-  await expect(skip.getByText('Aceptado')).toBeVisible()
+  await expect(skip.getByText(/Sesión cambiada por descanso/)).toBeVisible()
   await expect(modify.getByText('Descartado')).toBeVisible()
   expect((await state(request)).geminiRequests).toHaveLength(1)
 
@@ -221,10 +221,10 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
   request,
 }) => {
   const reply = {
-    reply: 'Entendido: el sábado hacemos una pierna ligera para que llegues fresco al frontón.',
-    changes: [
+    reply: 'Entendido: te propongo una pierna ligera el sábado para que llegues fresco al frontón.',
+    actions: [
       {
-        action: 'modify',
+        type: 'modify_session',
         planned_session_id: 'p-sat',
         title: 'Sábado más ligero',
         reason: 'Tienes frontón el domingo.',
@@ -264,7 +264,8 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
 
   const change = page.getByRole('region', { name: 'Cambio propuesto: Sábado más ligero' })
   await change.getByRole('button', { name: 'Aceptar' }).click()
-  await expect(change.getByText('Aceptado')).toBeVisible()
+  await expect(change.getByText(/Sesión cambiada · sábado 10 oct/)).toBeVisible()
+  await expect(change.getByRole('link', { name: 'Ver en Plan' })).toBeVisible()
   await expect
     .poll(async () => (await state(request)).plannedSessions.find((p) => p.id === 'p-sat')?.title)
     .toBe('Pierna ligera')
@@ -275,7 +276,7 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
     conversation.getByText('El domingo tengo frontón, ¿cambio algo del sábado?'),
   ).toBeVisible()
   await expect(conversation.getByText(reply.reply)).toBeVisible()
-  await expect(change.getByText('Aceptado')).toBeVisible()
+  await expect(change.getByText(/Sesión cambiada · sábado 10 oct/)).toBeVisible()
 
   // Sin más respuestas (cuota agotada también en la reserva): aviso y el texto no se pierde.
   await box.fill('¿Y el jueves?')

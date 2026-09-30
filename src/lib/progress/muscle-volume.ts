@@ -32,8 +32,16 @@ export type MuscleId = (typeof MUSCLE_IDS)[number]
 // Aproximación del cardio, los deportes y las clases (§6): músculos y series por cada 30 min
 // (a cada uno). Sale de los datos (activity_types / supabase/seed/activity_types.json), no del
 // código; las actividades personalizadas traen la suya.
-export function cardioApproxSets(activity: string, minutes: number | null) {
-  const approx = activityApprox(activity)
+// `lookup`: de dónde salen los tipos de actividad (por defecto, el registro de la app; el
+// servidor pasa los del usuario para no compartir estado entre peticiones).
+export type ApproxLookup = (key: string) => { muscles: string[]; setsPer30Min: number } | undefined
+
+export function cardioApproxSets(
+  activity: string,
+  minutes: number | null,
+  lookup: ApproxLookup = activityApprox,
+) {
+  const approx = lookup(activity)
   if (!approx || !minutes || minutes <= 0) return []
   const sets = (approx.setsPer30Min * minutes) / 30
   return approx.muscles.map((muscleId) => ({ muscleId, sets }))
@@ -80,6 +88,7 @@ export function muscleVolume(
   sessions: VolumeSession[],
   setCounts: ExerciseSetCount[],
   catalog: MuscleCatalog,
+  lookup: ApproxLookup = activityApprox,
 ): VolumeMap {
   const ids = new Set(sessions.map((s) => s.id))
   const map: VolumeMap = new Map()
@@ -113,7 +122,7 @@ export function muscleVolume(
   for (const s of sessions) {
     const minutes = sessionMinutes(s)
     const activity = activityKey(s)
-    for (const { muscleId, sets } of cardioApproxSets(activity, minutes)) {
+    for (const { muscleId, sets } of cardioApproxSets(activity, minutes, lookup)) {
       const v = entry(map, muscleId)
       v.sets += sets
       v.approxSets += sets

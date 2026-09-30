@@ -3,7 +3,15 @@
 // pasar, se descarta ese ejercicio (y el bloque o la sesión que se queden vacíos).
 import type { PlanStructure } from '@/lib/plan/types'
 import type { DateKey } from '@/lib/progress/dates'
-import type { AiPlan, DailyAdjust, PlanChange, SwapAi } from './schemas'
+import {
+  CHAT_SESSION_ACTIONS,
+  type AiPlan,
+  type ChatAction,
+  type ChatResult,
+  type DailyAdjust,
+  type PlanChange,
+  type SwapAi,
+} from './schemas'
 
 type WithBlocks = { blocks: { exercises: { exercise_id: string }[] }[] }
 
@@ -178,6 +186,197 @@ export function dropInvalidChanges(changes: PlanChange[], rules: ChangeRules) {
     return [{ ...c, session }]
   })
   return { changes: kept, dropped, removed }
+}
+
+// ── Acciones del chat ───────────────────────────────────────
+
+export type ChatActionRules = ChangeRules & {
+  // ids de plan_templates (create_plan.template_id).
+  templates: Set<string>
+  // Sesión planificada pendiente de hoy (adjust_today), si la hay.
+  todayPending: string | null
+}
+
+// Problema de una acción: `model` va al reintento; `user` se enseña si se descarta.
+type ActionProblem = { model: string; user: string }
+
+// Acción de sesiones del chat → cambio del plan (formato de respond_ai_change).
+export function chatActionToChange(a: ChatAction): PlanChange | null {
+  const action = CHAT_SESSION_ACTIONS[a.type]
+  if (!action) return null
+  return {
+    action,
+    title: a.title,
+    reason: a.reason,
+    ...(a.planned_session_id !== undefined ? { planned_session_id: a.planned_session_id } : {}),
+    ...(a.date !== undefined ? { date: a.date } : {}),
+    ...(a.session !== undefined && (action === 'add' || action === 'modify')
+      ? { session: a.session }
+      : {}),
+  }
+}
+
+function missingFields(a: ChatAction): string | null {
+  switch (a.type) {
+    case 'create_plan':
+      return a.plan ? null : 'plan'
+    case 'adjust_today':
+      return null
+    case 'add_session':
+      if (!a.date) return 'date'
+      if (!a.session) return 'session'
+      return a.session.session_type ? null : 'session.session_type'
+    case 'move_session':
+      if (!a.planned_session_id) return 'planned_session_id'
+      return a.date ? null : 'date'
+    case 'skip_session':
+      return a.planned_session_id ? null : 'planned_session_id'
+    case 'modify_session':
+      if (!a.planned_session_id) return 'planned_session_id'
+      return a.session ? null : 'session'
+  }
+}
+
+function chatActionProblem(
+  a: ChatAction,
+  rules: ChatActionRules,
+  state: { seen: Set<string>; plan: boolean; adjust: boolean; withPlan: boolean },
+): ActionProblem | null {
+  const missing = missingFields(a)
+  if (missing) {
+    return {
+      model: `con ${a.type} hay que indicar ${missing}.`,
+      user: 'le faltaban datos',
+    }
+  }
+  if (a.type === 'create_plan') {
+    if (state.plan) {
+      return { model: 'Propón como mucho un create_plan.', user: 'ya había otro plan propuesto' }
+    }
+    state.plan = true
+    return null
+  }
+  if (state.withPlan) {
+    return {
+      model:
+        'Con create_plan no propongas otras acciones: el plan nuevo sustituye al actual (deja solo create_plan).',
+      user: 'no tiene sentido junto a un plan nuevo',
+    }
+  }
+  if (a.type === 'adjust_today') {
+    if (!rules.todayPending) {
+      return {
+        model: 'Hoy no hay ninguna sesión planificada pendiente: no propongas adjust_today.',
+        user: 'hoy no tienes ninguna sesión pendiente en el plan',
+      }
+    }
+    if (state.adjust) {
+      return { model: 'Propón como mucho un adjust_today.', user: 'estaba repetida' }
+    }
+    if (state.seen.has(rules.todayPending)) {
+      return {
+        model: `Hay dos acciones para la sesión de hoy (${rules.todayPending}): deja una.`,
+        user: 'había otra propuesta para la sesión de hoy',
+      }
+    }
+    state.adjust = true
+    state.seen.add(rules.todayPending)
+    return null
+  }
+  const change = chatActionToChange(a)!
+  const problem = changeProblem(change, rules, state.seen)
+  if (!problem) return null
+  return {
+    model: problem,
+    user: !rules.hasPlan
+      ? 'no tienes un plan activo'
+      : change.action !== 'add' && !rules.pending.has(change.planned_session_id ?? '')
+        ? 'esa sesión no está pendiente en tu plan'
+        : 'la fecha no es válida',
+  }
+}
+
+function newState(actions: ChatAction[]) {
+  return {
+    seen: new Set<string>(),
+    plan: false,
+    adjust: false,
+    withPlan: actions.some((a) => a.type === 'create_plan' && a.plan),
+  }
+}
+
+function templateIssue(a: ChatAction, rules: ChatActionRules) {
+  const id = a.type === 'create_plan' ? a.plan?.template_id : undefined
+  return id !== undefined && !rules.templates.has(id) ? id : null
+}
+
+// Problemas de las acciones (para el reintento), incluidos los ejercicios inventados.
+export function chatActionIssues(actions: ChatAction[], rules: ChatActionRules) {
+  const state = newState(actions)
+  const issues = actions.flatMap((a, i) => {
+    const p = chatActionProblem(a, rules, state)
+    const out = p ? [`actions.${i}: ${p.model}`] : []
+    const template = templateIssue(a, rules)
+    if (template) {
+      out.push(`actions.${i}: plan.template_id «${template}» no existe en plan_templates.`)
+    }
+    return out
+  })
+  const sessions = actions.flatMap((a) => (a.session ? [a.session] : []))
+  return [...issues, ...unknownExerciseIssues(unknownIn(sessions, rules.known))]
+}
+
+// Convierte las acciones en lo que se guarda (ChatResult sin `reply`): quita las que no se pueden
+// aplicar (con un aviso para el usuario) y los ejercicios inventados. Nunca falla.
+export function resolveChatActions(
+  actions: ChatAction[],
+  rules: ChatActionRules,
+): Omit<ChatResult, 'reply'> {
+  const state = newState(actions)
+  const dropped = unknownIn(
+    actions.flatMap((a) => (a.session ? [a.session] : [])),
+    rules.known,
+  )
+  const discarded: string[] = []
+  const result: Omit<ChatResult, 'reply'> = { changes: [], dropped }
+  for (const a of actions) {
+    const problem = chatActionProblem(a, rules, state)
+    if (problem) {
+      discarded.push(`«${a.title}»: ${problem.user}.`)
+      continue
+    }
+    if (a.type === 'create_plan' && a.plan) {
+      const { template_id, ...plan } = a.plan
+      result.plan_request = {
+        ...plan,
+        ...(template_id !== undefined && rules.templates.has(template_id) ? { template_id } : {}),
+        title: a.title,
+        reason: a.reason,
+      }
+      continue
+    }
+    if (a.type === 'adjust_today' && rules.todayPending) {
+      result.adjust_today = {
+        title: a.title,
+        reason: a.reason,
+        planned_session_id: rules.todayPending,
+      }
+      continue
+    }
+    const change = chatActionToChange(a)!
+    if (!change.session) {
+      result.changes.push(change)
+      continue
+    }
+    const session = dropFrom(change.session, rules.known)
+    if (!session) {
+      discarded.push(`«${a.title}»: usaba ejercicios que no están en tu biblioteca.`)
+      continue
+    }
+    result.changes.push({ ...change, session })
+  }
+  if (discarded.length > 0) result.discarded = discarded
+  return result
 }
 
 // ── Sustituir ejercicio ─────────────────────────────────────

@@ -2,13 +2,23 @@
 // aquí. Aceptar o descartar una propuesta no necesita la IA: lo hace el cliente con RPC (0024).
 import { createServerFn } from '@tanstack/react-start'
 import { z } from 'zod'
-import { aiFailure, CHAT_HISTORY_MESSAGES, CHAT_MAX_MESSAGE, type AiStatus } from '@/lib/ai/schemas'
+import {
+  aiFailure,
+  CHAT_HISTORY_MESSAGES,
+  CHAT_MAX_MESSAGE,
+  chatPlanRequestSchema,
+  type AiResult,
+  type AiStatus,
+  type ChatActionResults,
+  type PlanProposal,
+} from '@/lib/ai/schemas'
 import { recommendTemplate } from '@/lib/plan/recommend'
 import { parseStructure } from '@/lib/plan/schema'
 import { authMiddleware } from './middleware'
 import { getSupabaseServerClient } from './supabase.server'
 import {
   chatReply,
+  proposeChatPlan,
   proposeDailyAdjust,
   proposePlan,
   proposeSwap,
@@ -16,7 +26,7 @@ import {
   weeklyReview,
   type CoachDeps,
 } from './ai/coach'
-import { getAiConfig } from './ai/config'
+import { getAiConfig, modelFor, type AiTier } from './ai/config'
 import { loadAiContextInput } from './ai/load-context'
 import { createProvider } from './ai/providers'
 import { supabaseReviewStore } from './ai/reviews'
@@ -27,16 +37,18 @@ const dayInput = z.object({
   tz: z.string().min(1).max(64),
 })
 
-function setup(tz: string) {
+// tier heavy: generar o personalizar un plan (también el create_plan del chat) y revisión
+// semanal, con GEMINI_MODEL_HEAVY si existe. El resto usa el modelo normal.
+function setup(tz: string, tier: AiTier = 'light') {
   const config = getAiConfig()
   const supabase = getSupabaseServerClient()
   const usage = supabaseUsageStore(supabase, {
     dailyLimit: config.dailyLimit,
     tz,
     provider: config.provider,
-    model: config.model,
+    model: modelFor(config, tier),
   })
-  const provider = createProvider(config)
+  const provider = createProvider(config, tier)
   const deps: CoachDeps | null = provider
     ? { provider, usage, dailyLimit: config.dailyLimit }
     : null
@@ -69,7 +81,7 @@ export const generatePlanProposal = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(dayInput.extend({ templateId: z.string().min(1).max(80).nullable() }))
   .handler(async ({ data, context }) => {
-    const { supabase, deps } = setup(data.tz)
+    const { supabase, deps } = setup(data.tz, 'heavy')
     if (!deps) return aiFailure('not_configured')
     try {
       const input = await loadAiContextInput(supabase, {
@@ -127,7 +139,7 @@ export const getWeeklyReview = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(dayInput.extend({ generate: z.boolean(), force: z.boolean() }))
   .handler(async ({ data, context }) => {
-    const { config, supabase, usage, provider } = setup(data.tz)
+    const { config, supabase, usage, provider } = setup(data.tz, 'heavy')
     try {
       return await weeklyReview(
         {
@@ -196,6 +208,95 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
       return aiFailure('failed')
     }
   })
+
+// Plan de un create_plan del chat: se genera con el mismo flujo que «Personalizar con IA» a
+// partir de la petición guardada en la respuesta del chat (no la del cliente) y se enlaza con
+// ella (link_chat_plan). Si ya se generó, se devuelve el guardado sin gastar consulta.
+export const prepareChatPlan = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator(dayInput.extend({ chatInteractionId: z.string().uuid() }))
+  .handler(
+    async ({ data, context }): Promise<AiResult<{ proposal: PlanProposal; cached: boolean }>> => {
+      const { config, supabase, usage, deps } = setup(data.tz, 'heavy')
+      const userId = context.auth.userId
+      try {
+        const { data: row, error } = await supabase
+          .from('ai_interactions')
+          .select('id, kind, status, output, action_results')
+          .eq('id', data.chatInteractionId)
+          .eq('user_id', userId)
+          .maybeSingle()
+        if (error) throw new Error(error.message)
+        const request = chatPlanRequestSchema.safeParse(
+          (row?.output as { plan_request?: unknown } | null)?.plan_request,
+        )
+        if (!row || row.kind !== 'chat' || row.status !== 'ok' || !request.success) {
+          return aiFailure('failed', 'Esta respuesta no propone ningún plan.')
+        }
+        const done = (row.action_results as ChatActionResults | null)?.plan
+        if (done?.status === 'accepted') return aiFailure('failed', 'Este plan ya se ha creado.')
+        if (done?.status === 'discarded') {
+          return aiFailure('failed', 'Descartaste esta propuesta de plan.')
+        }
+        if (done?.status === 'prepared') {
+          const { data: prepared, error: e2 } = await supabase
+            .from('ai_interactions')
+            .select('id, output')
+            .eq('id', done.interaction_id)
+            .eq('user_id', userId)
+            .maybeSingle()
+          if (e2) throw new Error(e2.message)
+          const proposal = (prepared?.output as { proposal?: PlanProposal } | null)?.proposal
+          if (prepared && proposal) {
+            let used = 0
+            try {
+              used = await usage.usedToday()
+            } catch {
+              used = config.dailyLimit
+            }
+            return {
+              ok: true,
+              interactionId: prepared.id,
+              remaining: Math.max(0, config.dailyLimit - used),
+              proposal,
+              cached: true,
+            }
+          }
+        }
+        if (!deps) return aiFailure('not_configured')
+
+        const [input, templates] = await Promise.all([
+          loadAiContextInput(supabase, {
+            userId,
+            profile: context.auth.profile,
+            today: data.today,
+            tz: data.tz,
+          }),
+          supabase.from('plan_templates').select('*'),
+        ])
+        if (templates.error) throw new Error(templates.error.message)
+        const list = templates.data.flatMap((r) => {
+          const structure = parseStructure(r.structure)
+          return structure ? [{ ...r, structure }] : []
+        })
+        const res = await proposeChatPlan(deps, {
+          data: input,
+          request: request.data,
+          templates: list,
+        })
+        if (!res.ok) return res
+        const linked = await supabase.rpc('link_chat_plan', {
+          p_chat: data.chatInteractionId,
+          p_plan: res.interactionId,
+        })
+        if (linked.error) throw new Error(linked.error.message)
+        return { ...res, cached: false }
+      } catch (error) {
+        console.error('[ai] plan del chat', error)
+        return aiFailure('failed')
+      }
+    },
+  )
 
 // Sustituir ejercicio con IA: solo si las reglas no encuentran alternativa.
 export const proposeExerciseSwap = createServerFn({ method: 'POST' })

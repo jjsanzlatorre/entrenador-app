@@ -15,12 +15,23 @@ import {
   type ReviewStore,
 } from './coach'
 import { getAiConfig } from './config'
-import { withFallback } from './providers/fallback'
+import { createModelChain } from './providers/chain'
 import { createGeminiProvider } from './providers/gemini'
 import { AiProviderError, type AiProvider, type JsonRequest } from './providers/types'
 import { DailyLimitError, InProgressError, type UsageStore } from './usage'
 
 // ── Simuladores ────────────────────────────────────────────
+
+// Modelo normal → reserva (cadena de providers/chain.ts, sin pesado).
+function withFallback(primary: AiProvider, fallback: AiProvider | null) {
+  return createModelChain({
+    steps: [
+      { role: 'light', provider: primary, timeoutMs: 15_000 },
+      ...(fallback ? [{ role: 'fallback' as const, provider: fallback, timeoutMs: 15_000 }] : []),
+    ],
+    budgetMs: 50_000,
+  })
+}
 
 function mockProvider(responses: (string | Error)[], model = 'mock-1') {
   const requests: JsonRequest[] = []
@@ -444,9 +455,18 @@ describe('modelo de reserva (GEMINI_FALLBACK_MODEL)', () => {
     expect(fallback.provider.generateJson).not.toHaveBeenCalled()
   })
 
-  it('sin reserva configurada es el mismo proveedor', () => {
-    const primary = mockProvider([], 'principal')
-    expect(withFallback(primary.provider, null)).toBe(primary.provider)
+  it('sin reserva configurada solo se prueba el modelo normal', async () => {
+    const primary = mockProvider([quota()], 'principal')
+    const res = await proposeDailyAdjust(
+      {
+        provider: withFallback(primary.provider, null),
+        usage: memoryUsage(20).store,
+        dailyLimit: 20,
+      },
+      { data: sampleContextInput(), today: planned('p-today', '2026-09-29') },
+    )
+    expect(res).toMatchObject({ ok: false, code: 'provider_quota' })
+    expect(primary.provider.generateJson).toHaveBeenCalledTimes(1)
   })
 
   it('Gemini: RESOURCE_EXHAUSTED cuenta como cuota aunque no sea 429', async () => {

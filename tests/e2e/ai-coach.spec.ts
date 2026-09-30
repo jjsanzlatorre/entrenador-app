@@ -178,7 +178,7 @@ test('ajuste del día: energía 1 y agujetas 5 → reducir, solo al aceptar', as
   // Cuota del proveedor agotada (sin más respuestas en el simulador): mensaje claro y la app
   // sigue funcionando.
   await today.getByRole('button', { name: '¿Ajusto el entreno de hoy?' }).click()
-  await expect(today.getByText(/agotado su cuota gratuita/)).toBeVisible()
+  await expect(today.getByText(/agotado su cuota/)).toBeVisible()
   await expect(today.getByRole('button', { name: 'Empezar planificada' })).toBeVisible()
 })
 

@@ -92,7 +92,7 @@ en orden. `supabase/snippets/` contiene SQL de un solo uso (no son migraciones).
 **Supabase**
 
 1. Crea un proyecto (plan Free).
-2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0032`).
+2. SQL Editor → pega **todas** las migraciones en orden (`0001` … `0035`).
    Comprueba en **Storage** que el bucket `progress-photos` es privado.
 3. **Authentication → Sign In / Providers**: desactiva **Allow new users to sign up**.
 4. **Authentication → URL Configuration**: Site URL `https://TU-APP.vercel.app` y Redirect URL
@@ -123,7 +123,7 @@ en orden. `supabase/snippets/` contiene SQL de un solo uso (no son migraciones).
 | `GEMINI_API_KEY`            | no          | Google AI Studio → Get API key                                 |
 | `GEMINI_MODEL`              | no          | por defecto `gemini-2.5-flash`                                 |
 | `GEMINI_MODEL_HEAVY`        | no          | modelo para planes y revisión semanal (vacío = `GEMINI_MODEL`) |
-| `GEMINI_FALLBACK_MODEL`     | no          | modelo de reserva si el principal devuelve 429                 |
+| `GEMINI_FALLBACK_MODEL`     | no          | último modelo de la cadena de reserva (429, error o timeout)   |
 | `ANTHROPIC_API_KEY`         | no          | console.anthropic.com (solo con `AI_PROVIDER=anthropic`)       |
 | `AI_MODEL`                  | no          | por defecto `claude-sonnet-5`                                  |
 | `AI_DAILY_LIMIT`            | no          | consultas por usuario y día (20)                               |
@@ -174,9 +174,16 @@ normalmente no ocurre, pero si pasa:
   personalizar un plan (también «Crear plan» desde el chat), la revisión semanal y los mensajes
   del chat que piden planificar varios días o sesiones («de hoy al domingo», «esta semana»,
   nombres de días…) usan ese modelo; el resto del chat, el ajuste del día y la sustitución usan
-  `GEMINI_MODEL`. La reserva vale para los dos. `/api/health` muestra `heavyModel`. En el chat,
-  `/entrenador?debug=1` enseña bajo cada respuesta el modelo usado y los descartes (en ese
-  dispositivo; `?debug=0` lo quita).
+  `GEMINI_MODEL`. `/api/health` muestra `heavyModel`.
+- Cadena de reserva: pesado → `GEMINI_MODEL` → `GEMINI_FALLBACK_MODEL`. Si un modelo devuelve 429
+  (cuota), falla o tarda demasiado (20 s el pesado, 15 s los demás; 30/20 s al generar un plan),
+  responde el siguiente; nunca más de ~50 s por consulta. El pesado se usa como mucho una vez por
+  mensaje. Con la cuota diaria agotada, el modelo queda bloqueado hasta la medianoche del
+  Pacífico (cuando Google la renueva; tabla `ai_model_blocks`, 0035) y ni se intenta.
+- En el chat, `/entrenador?debug=1` enseña bajo cada respuesta (y bajo cada error) el modelo
+  usado, cada intento de la cadena con su código y tiempos y los descartes (en ese dispositivo;
+  `?debug=0` lo quita). En Supabase, `ai_interactions.model` es el que respondió y
+  `output.model_log` guarda cada intento.
 - Anthropic: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` y, opcional, `AI_MODEL`.
 - Cambia las variables en Vercel y haz **Redeploy**. Sin clave, la app funciona sin IA y lo dice.
 - `AI_DAILY_LIMIT` limita las consultas por persona y día.

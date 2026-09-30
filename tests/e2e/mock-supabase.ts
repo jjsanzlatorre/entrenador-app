@@ -182,6 +182,8 @@ let chatMessages: Record<string, unknown>[] = []
 let chatSeq = 0
 let geminiQueue: unknown[] = []
 let geminiRequests: { model: string; key: string | undefined; body: unknown }[] = []
+// Modelos bloqueados por cuota (como 0035).
+let aiModelBlocks: { model: string; blocked_until: string; scope: string | null }[] = []
 // Fase 7A: cambios de permisos (PATCH partner_links) y respuestas a invitaciones.
 let partnerPatches: Record<string, unknown>[] = []
 // Invitaciones por enlace (0030): códigos, usuarios creados con service role, intentos por IP,
@@ -375,6 +377,7 @@ export function startMockSupabase(port: number) {
         aiInteractions,
         chatMessages,
         geminiRequests,
+        aiModelBlocks,
         partnerPatches,
         pairInvites: progressSeed.pairInvites ?? [],
         customActivities,
@@ -454,6 +457,7 @@ export function startMockSupabase(port: number) {
       chatSeq = 0
       geminiQueue = []
       geminiRequests = []
+      aiModelBlocks = []
       partnerPatches = []
       inviteCodes = []
       inviteSettings = { members_can_invite: false, max_active_invites_per_user: 3 }
@@ -634,6 +638,28 @@ export function startMockSupabase(port: number) {
         ],
         usageMetadata: { promptTokenCount: 1000, candidatesTokenCount: 200 },
       })
+    }
+
+    // ── Modelos bloqueados por cuota (como 0035) ──
+    if (path === '/rest/v1/rpc/ai_blocked_models') {
+      const b = (await readBody(req)) as { p_models: string[] }
+      return send(
+        res,
+        200,
+        aiModelBlocks.filter(
+          (x) => b.p_models.includes(x.model) && Date.parse(x.blocked_until) > Date.now(),
+        ),
+      )
+    }
+    if (path === '/rest/v1/rpc/block_ai_model') {
+      const b = (await readBody(req)) as {
+        p_model: string
+        p_until: string
+        p_scope: string | null
+      }
+      aiModelBlocks = aiModelBlocks.filter((x) => x.model !== b.p_model)
+      aiModelBlocks.push({ model: b.p_model, blocked_until: b.p_until, scope: b.p_scope })
+      return send(res, 200, b.p_until)
     }
 
     // ── Fase 6A: ai_interactions (como 0024) ──

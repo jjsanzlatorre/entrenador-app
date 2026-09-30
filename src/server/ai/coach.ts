@@ -11,8 +11,12 @@ import {
 } from '@/lib/ai/context'
 import { computeReviewFacts, hasSomethingToReview, reviewWeekOf } from '@/lib/ai/review'
 import {
+  AI_ERROR_MESSAGES,
   aiFailure,
   aiPlanSchema,
+  type AiFailureDebug,
+  QUOTA_MINUTE_MESSAGE,
+  QUOTA_UNKNOWN_MESSAGE,
   chatReplySchema,
   dailyAdjustSchema,
   type ChatDebug,
@@ -69,7 +73,9 @@ export type CoachDeps = {
 }
 
 // Abre la consulta (límite diario), ejecuta la tarea, la registra y traduce los errores a
-// mensajes en español. Nunca lanza: la app sigue funcionando sin IA.
+// mensajes en español. Nunca lanza: la app sigue funcionando sin IA. En ai_interactions quedan
+// el modelo que respondió y, en output.model_log, cada intento de la cadena de modelos (qué
+// modelo, por qué falló, tiempos).
 async function runTask<T, R>(
   deps: CoachDeps,
   kind: AiInteractionKind,
@@ -94,13 +100,15 @@ async function runTask<T, R>(
       return 0
     }
   }
+  const started = Date.now()
+  const modelLog = () => [...(deps.provider.attempts ?? [])]
 
   try {
     const result = await task()
     const value = toResult(result)
     await deps.usage.finish(id, {
       status: 'ok',
-      output: value,
+      output: { ...value, model_log: modelLog() },
       tokensIn: result.tokensIn,
       tokensOut: result.tokensOut,
       model: result.model,
@@ -114,35 +122,56 @@ async function runTask<T, R>(
       raw?: string[]
       issueLog?: string[][]
     }
+    const message = error instanceof Error ? error.message : String(error)
+    const debug: AiFailureDebug = { models: modelLog(), ms: Date.now() - started, error: message }
     if (error instanceof AiInvalidOutputError) {
       await deps.usage.finish(id, {
         status: 'invalid',
         error: error.message,
         // Respuestas crudas y problemas de cada intento, para depurar.
-        output: { debug: { raw: tokens.raw ?? [], issues: tokens.issueLog ?? [] } },
+        output: {
+          debug: { raw: tokens.raw ?? [], issues: tokens.issueLog ?? [] },
+          model_log: debug.models,
+        },
         tokensIn: tokens.tokensIn,
         tokensOut: tokens.tokensOut,
         model: tokens.model,
       })
-      return aiFailure('invalid_output')
+      return aiFailure('invalid_output', undefined, debug)
     }
-    const message = error instanceof Error ? error.message : String(error)
     console.error(`[ai] ${kind}`, message)
-    await deps.usage.finish(id, { status: 'error', error: message })
-    if (error instanceof AiProviderError) {
-      switch (error.kind) {
-        case 'quota':
-          return aiFailure('provider_quota')
-        case 'auth':
-          return aiFailure('provider_auth')
-        case 'blocked':
-        case 'truncated':
-          return aiFailure('invalid_output')
-        default:
-          return aiFailure('provider_unavailable')
-      }
-    }
-    return aiFailure('failed')
+    await deps.usage.finish(id, {
+      status: 'error',
+      error: message,
+      output: { model_log: debug.models },
+    })
+    if (error instanceof AiProviderError) return providerFailure(error, debug)
+    return aiFailure('failed', undefined, debug)
+  }
+}
+
+// Mensaje según la causa: cuota (de hoy o por minuto), tiempo agotado o error del proveedor.
+export function providerFailure(error: AiProviderError, debug?: AiFailureDebug) {
+  switch (error.kind) {
+    case 'quota':
+      return aiFailure(
+        'provider_quota',
+        error.scope === 'daily'
+          ? AI_ERROR_MESSAGES.provider_quota
+          : error.scope === 'minute'
+            ? QUOTA_MINUTE_MESSAGE
+            : QUOTA_UNKNOWN_MESSAGE,
+        debug,
+      )
+    case 'timeout':
+      return aiFailure('provider_timeout', undefined, debug)
+    case 'auth':
+      return aiFailure('provider_auth', undefined, debug)
+    case 'blocked':
+    case 'truncated':
+      return aiFailure('invalid_output', undefined, debug)
+    default:
+      return aiFailure('provider_unavailable', undefined, debug)
   }
 }
 
@@ -201,7 +230,7 @@ export async function proposePlan(
           return fixed.plan
         },
         maxOutputTokens: 32_768,
-        timeoutMs: 55_000,
+        timeoutMs: 50_000,
       }),
     (result) => ({
       proposal: {
@@ -504,6 +533,8 @@ export async function chatReply(
         discarded: reasons,
         text_fix: fix,
         ...(fix ? { original_reply: res.data.reply } : {}),
+        models: [...(deps.provider.attempts ?? [])],
+        ...(deps.provider.elapsedMs ? { ms: deps.provider.elapsedMs() } : {}),
       }
       return { reply, ...resolved, debug }
     },

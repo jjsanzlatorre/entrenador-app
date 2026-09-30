@@ -4,7 +4,7 @@ import { expect, test, type APIRequestContext, type BrowserContext } from '@play
 // - La revisión se genera sola al abrir «Hoy» la primera vez de la semana y se guarda: volver a
 //   abrirla no llama a la IA; «Regenerar» sí (con confirmación).
 // - Los cambios propuestos (revisión y chat) solo se aplican al pulsar «Aceptar».
-// - Con la cuota del modelo principal agotada (429) se usa el de reserva.
+// - Con la cuota del modelo pesado agotada (429) responde el normal (cadena de reserva).
 import { MOCK, USER_ID, authCookie } from './helpers'
 
 const SHOTS = process.env.E2E_SCREENSHOTS
@@ -21,6 +21,7 @@ type State = {
   }[]
   chatMessages: { role: string; content: string }[]
   geminiRequests: { model: string; body: { contents: { parts: { text: string }[] }[] } }[]
+  aiModelBlocks: { model: string; blocked_until: string; scope: string | null }[]
 }
 
 async function state(request: APIRequestContext) {
@@ -215,7 +216,7 @@ test('revisión semanal: se genera una vez, se guarda y los cambios solo al acep
   expect(s.aiInteractions.filter((a) => a.kind === 'weekly_review')).toHaveLength(2)
 })
 
-test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un 429', async ({
+test('chat: historial, cambio como tarjeta aceptable y cadena de reserva ante un 429', async ({
   page,
   context,
   request,
@@ -232,7 +233,7 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
       },
     ],
   }
-  // Primera respuesta del simulador: 429 (cuota del modelo principal agotada).
+  // Primera respuesta del simulador: 429 (cuota del modelo pesado agotada).
   await seed(request, [{ __status: 429 }, reply])
   await page.clock.setFixedTime(new Date('2026-10-07T09:00:00'))
   await login(context)
@@ -251,11 +252,13 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
   await expect(page.getByText('Consultas a la IA que te quedan hoy: 4')).toBeVisible()
 
   let s = await state(request)
-  // Nombra días → modelo pesado; 429 → una vez con el de reserva.
-  expect(s.geminiRequests.map((r) => r.model)).toEqual(['gemini-e2e-heavy', 'gemini-e2e-fallback'])
+  // Nombra días → modelo pesado; 429 → responde el normal (GEMINI_MODEL, por defecto).
+  expect(s.geminiRequests.map((r) => r.model)).toEqual(['gemini-e2e-heavy', 'gemini-2.5-flash'])
   expect(s.aiInteractions).toEqual([
-    expect.objectContaining({ kind: 'chat', status: 'ok', model: 'gemini-e2e-fallback' }),
+    expect.objectContaining({ kind: 'chat', status: 'ok', model: 'gemini-2.5-flash' }),
   ])
+  // El pesado queda bloqueado un rato: el siguiente mensaje no lo intenta.
+  expect(s.aiModelBlocks.map((b) => b.model)).toEqual(['gemini-e2e-heavy'])
   expect(s.chatMessages.map((m) => m.role)).toEqual(['user', 'assistant'])
   const prompt = s.geminiRequests[1]!.body.contents[0]!.parts[0]!.text
   expect(prompt).toContain('"message":"El domingo tengo frontón, ¿cambio algo del sábado?"')
@@ -278,11 +281,16 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
   await expect(conversation.getByText(reply.reply)).toBeVisible()
   await expect(change.getByText(/Sesión cambiada · sábado 10 oct/)).toBeVisible()
 
-  // Sin más respuestas (cuota agotada también en la reserva): aviso y el texto no se pierde.
+  // Sin más respuestas (cuota agotada también en el normal y la reserva): aviso y el texto no se
+  // pierde. El pesado (bloqueado) ni se intenta.
   await box.fill('¿Y el jueves?')
   await page.getByRole('button', { name: 'Enviar' }).click()
-  await expect(page.getByText(/agotado su cuota gratuita/)).toBeVisible()
+  await expect(page.getByText(/agotado su cuota/)).toBeVisible()
   await expect(box).toHaveValue('¿Y el jueves?')
   s = await state(request)
   expect(s.chatMessages).toHaveLength(2)
+  expect(s.geminiRequests.slice(2).map((r) => r.model)).toEqual([
+    'gemini-2.5-flash',
+    'gemini-e2e-fallback',
+  ])
 })

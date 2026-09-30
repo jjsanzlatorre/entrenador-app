@@ -1,7 +1,7 @@
 // Texto del chat del entrenador (§11.5): qué modelo usar según lo que pide el usuario, si la
 // respuesta de la IA promete tarjetas (o afirma haber hecho algo) y el texto honesto cuando no hay
 // ninguna tarjeta que enseñar. Funciones puras (se prueban sin la IA).
-import type { ChatResult } from './schemas'
+import type { ChatResult, ModelAttempt } from './schemas'
 
 // Sin acentos y en minúsculas.
 function plain(text: string) {
@@ -115,4 +115,23 @@ export function cardsSummary(output: Partial<ChatResult> | null | undefined) {
     items.push(`${c.action}_session «${c.title}»${c.date ? ` ${c.date}` : ''}`)
   }
   return items.length ? `[Tarjetas mostradas: ${items.join(' | ')}]` : '[Sin tarjetas]'
+}
+
+// Líneas del modo depuración para la cadena de modelos: modelo, papel, resultado, código y
+// tiempos («gemini-x (pesado): quota 429 diaria · 0,4 s / 20 s · bloqueado hasta …»).
+export function modelLogLines(models: ModelAttempt[] | undefined) {
+  const role = { heavy: 'pesado', light: 'normal', fallback: 'reserva' } as const
+  const secs = (ms: number) => `${(ms / 1000).toFixed(1).replace('.', ',')} s`
+  return (models ?? []).map((m) =>
+    [
+      `${m.model} (${role[m.role]}): ${m.outcome}`,
+      m.status ? ` ${m.status}` : '',
+      m.scope ? ` ${m.scope === 'daily' ? 'diaria' : 'por minuto'}` : '',
+      m.outcome === 'skipped'
+        ? ''
+        : ` · ${secs(m.ms)}${m.timeout_ms ? ` / ${secs(m.timeout_ms)}` : ''}`,
+      m.blocked_until ? ` · bloqueado hasta ${m.blocked_until}` : '',
+      m.detail && m.outcome !== 'ok' ? ` · ${m.detail}` : '',
+    ].join(''),
+  )
 }

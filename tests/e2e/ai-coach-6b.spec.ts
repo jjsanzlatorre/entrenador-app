@@ -251,8 +251,8 @@ test('chat: historial, cambio como tarjeta aceptable y modelo de reserva ante un
   await expect(page.getByText('Consultas a la IA que te quedan hoy: 4')).toBeVisible()
 
   let s = await state(request)
-  // 429 del principal → una vez con el de reserva.
-  expect(s.geminiRequests.map((r) => r.model)).toEqual(['gemini-2.5-flash', 'gemini-e2e-fallback'])
+  // Nombra días → modelo pesado; 429 → una vez con el de reserva.
+  expect(s.geminiRequests.map((r) => r.model)).toEqual(['gemini-e2e-heavy', 'gemini-e2e-fallback'])
   expect(s.aiInteractions).toEqual([
     expect.objectContaining({ kind: 'chat', status: 'ok', model: 'gemini-e2e-fallback' }),
   ])

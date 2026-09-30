@@ -262,9 +262,12 @@ export type WeeklyReviewAi = z.infer<typeof weeklyReviewSchema>
 export const CHAT_MAX_MESSAGE = 1000
 // Mensajes anteriores que se envían a la IA (para ahorrar tokens).
 export const CHAT_HISTORY_MESSAGES = 10
-export const MAX_CHAT_ACTIONS = 3
+// Tarjetas como máximo en una respuesta (p. ej. una por día de la semana).
+export const MAX_CHAT_ACTIONS = 7
 // Cambios de sesiones como máximo en una respuesta (compatibilidad con las guardadas antes).
 export const MAX_CHAT_CHANGES = MAX_CHAT_ACTIONS
+// Días como máximo de un bloque de varios días (add_sessions_range): la ventana del chat.
+export const MAX_RANGE_DAYS = 14
 
 export const CHAT_ACTION_TYPES = [
   'create_plan',
@@ -273,6 +276,7 @@ export const CHAT_ACTION_TYPES = [
   'skip_session',
   'modify_session',
   'adjust_today',
+  'add_sessions_range',
 ] as const
 export type ChatActionType = (typeof CHAT_ACTION_TYPES)[number]
 
@@ -303,6 +307,14 @@ export const chatPlanRequestSchema = z.object({
 
 export type ChatPlanRequest = z.infer<typeof chatPlanRequestSchema>
 
+// Un día de un bloque de varios días (add_sessions_range).
+export const chatRangeDaySchema = z.object({
+  date: z.string().regex(ISO_DATE, 'date debe ser AAAA-MM-DD').describe('AAAA-MM-DD'),
+  session: aiChangeSessionSchema.describe('la sesión de ese día, con session_type'),
+})
+
+export type ChatRangeDay = z.infer<typeof chatRangeDaySchema>
+
 // Una acción propuesta. Los campos que necesita cada tipo se comprueban aparte
 // (validateChatActions): si falta algo, se reintenta y, si no, se descarta con un aviso.
 export const chatActionSchema = z.object({
@@ -322,6 +334,11 @@ export const chatActionSchema = z.object({
     .optional()
     .describe('add_session y modify_session: la sesión completa'),
   plan: chatPlanRequestSchema.optional().describe('solo create_plan'),
+  days: z
+    .array(chatRangeDaySchema)
+    .max(MAX_RANGE_DAYS)
+    .optional()
+    .describe('solo add_sessions_range: un elemento por día con sesión (días sin sesión, fuera)'),
 })
 
 export type ChatAction = z.infer<typeof chatActionSchema>
@@ -340,6 +357,24 @@ export type ChatReply = z.infer<typeof chatReplySchema>
 // Ajuste del día pedido desde el chat: se genera con el ajuste del día (daily_adjust).
 export type ChatAdjustRequest = { title: string; reason: string; planned_session_id: string }
 
+// Bloque de varios días (add_sessions_range): una tarjeta que añade varias sesiones al plan a la
+// vez (respond_chat_range, 0034).
+export type ChatRange = { title: string; reason: string; days: ChatRangeDay[] }
+
+// Datos para depurar el chat (se guardan en ai_interactions.output; solo se enseñan en modo
+// depuración): modelo, respuestas crudas, problemas de cada intento y descartes.
+export type ChatDebug = {
+  model: string | null
+  tier: 'light' | 'heavy'
+  attempts: number
+  raw: string[]
+  issues: string[][]
+  discarded: string[]
+  // Motivo si la app ha cambiado o completado el texto de la IA.
+  text_fix: 'honest' | 'fewer_cards' | null
+  original_reply?: string
+}
+
 // Lo que se guarda en ai_interactions.output y llega al cliente. `changes` conserva el formato de
 // 0025 (respond_ai_change los aplica por índice).
 export type ChatResult = {
@@ -351,6 +386,8 @@ export type ChatResult = {
   adjust_today?: ChatAdjustRequest
   // Acciones descartadas por no poderse aplicar (se avisa en la tarjeta).
   discarded?: string[]
+  ranges?: ChatRange[]
+  debug?: ChatDebug
 }
 
 // Resultado real (de la base de datos, 0033) de las acciones del chat.
@@ -381,7 +418,22 @@ export type ChatAdjustResult =
     }
   | { status: 'discarded' }
 
-export type ChatActionResults = { plan?: ChatPlanResult; adjust?: ChatAdjustResult }
+export type ChatRangeResult =
+  | {
+      status: 'accepted'
+      created: number
+      dates: string[]
+      // Días que ya tenían una sesión planificada (el usuario lo aceptó).
+      conflicts: string[]
+    }
+  | { status: 'discarded' }
+
+export type ChatActionResults = {
+  plan?: ChatPlanResult
+  adjust?: ChatAdjustResult
+  // Por índice del bloque en `ranges`.
+  ranges?: Record<string, ChatRangeResult>
+}
 
 // ── Sustituir ejercicio (§11.6) ─────────────────────────────
 

@@ -227,28 +227,28 @@ describe('chat: create_plan', () => {
 })
 
 describe('chat: afirmaciones sin acción y acciones inválidas', () => {
-  it('la IA dice que ya lo ha creado sin acción → solo texto, sin cambios', async () => {
-    const { deps: d, rows } = deps([
-      reply('¡Hecho! Te he puesto el plan en tu calendario para el lunes.'),
-    ])
+  it('la IA dice que ya lo ha creado sin acción → reintento y, si insiste, texto honesto', async () => {
+    const claim = '¡Hecho! Te he puesto el plan en tu calendario para el lunes.'
+    const { deps: d, rows, requests } = deps([reply(claim), reply(claim)])
     const res = await chatReply(d, {
       data: withPlan(),
       message: 'Créame un plan',
       history: [],
     })
-    expect(res).toMatchObject({
-      ok: true,
-      reply: '¡Hecho! Te he puesto el plan en tu calendario para el lunes.',
-      changes: [],
-    })
+    expect(requests).toHaveLength(2)
+    expect(requests[1]!.prompt).toContain('«actions» no trae ninguna acción válida')
+    const honest =
+      'No he podido preparar el plan. Prueba a pedírmelo así: «Créame un plan de 3 días de fuerza».'
+    expect(res).toMatchObject({ ok: true, reply: honest, changes: [] })
     if (!res.ok) return
     expect(res.plan_request).toBeUndefined()
     expect(res.adjust_today).toBeUndefined()
     expect(res.discarded).toBeUndefined()
-    expect(rows[0]!.output).toEqual({
-      reply: '¡Hecho! Te he puesto el plan en tu calendario para el lunes.',
+    expect(rows[0]!.output).toMatchObject({
+      reply: honest,
       changes: [],
       dropped: [],
+      debug: { text_fix: 'honest', original_reply: claim, attempts: 2 },
     })
   })
 

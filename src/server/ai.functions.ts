@@ -10,8 +10,10 @@ import {
   type AiResult,
   type AiStatus,
   type ChatActionResults,
+  type ChatResult,
   type PlanProposal,
 } from '@/lib/ai/schemas'
+import { cardsSummary, chatTier } from '@/lib/ai/chat-text'
 import { recommendTemplate } from '@/lib/plan/recommend'
 import { parseStructure } from '@/lib/plan/schema'
 import { authMiddleware } from './middleware'
@@ -169,11 +171,14 @@ export const getWeeklyReview = createServerFn({ method: 'POST' })
 
 // Chat: envía los últimos mensajes guardados + el nuevo; si la IA responde bien, se guardan
 // los dos (save_chat_turn). Si falla, no se guarda nada y el texto sigue en el móvil.
+// Si el mensaje pide planificar varios días o sesiones, responde el modelo pesado
+// (GEMINI_MODEL_HEAVY); si no, el normal.
 export const sendChatMessage = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(dayInput.extend({ text: z.string().trim().min(1).max(CHAT_MAX_MESSAGE) }))
   .handler(async ({ data, context }) => {
-    const { supabase, deps } = setup(data.tz)
+    const tier = chatTier(data.text)
+    const { supabase, deps } = setup(data.tz, tier)
     if (!deps) return aiFailure('not_configured')
     try {
       const [input, recent] = await Promise.all([
@@ -185,16 +190,34 @@ export const sendChatMessage = createServerFn({ method: 'POST' })
         }),
         supabase
           .from('ai_chat_messages')
-          .select('role, content')
+          .select('role, content, interaction_id')
           .eq('user_id', context.auth.userId)
           .order('seq', { ascending: false })
           .limit(CHAT_HISTORY_MESSAGES),
       ])
       if (recent.error) throw new Error(recent.error.message)
-      const history = (recent.data ?? [])
-        .reverse()
-        .map((m) => ({ role: m.role, text: m.content.slice(0, 800) }))
-      const res = await chatReply(deps, { data: input, message: data.text, history })
+      // Tarjetas que vio el usuario en cada respuesta: así la IA sabe si las hubo o no.
+      const ids = (recent.data ?? []).flatMap((m) =>
+        m.role === 'assistant' && m.interaction_id ? [m.interaction_id] : [],
+      )
+      const outputs = new Map<string, Partial<ChatResult> | null>()
+      if (ids.length > 0) {
+        const { data: rows, error } = await supabase
+          .from('ai_interactions')
+          .select('id, output')
+          .in('id', ids)
+        if (error) console.error('[ai] no se pudieron leer las tarjetas del chat', error.message)
+        for (const r of rows ?? []) outputs.set(r.id, r.output as Partial<ChatResult> | null)
+      }
+      const history = (recent.data ?? []).reverse().map((m) => {
+        const text = m.content.slice(0, 800)
+        const cards =
+          m.role === 'assistant' && m.interaction_id
+            ? cardsSummary(outputs.get(m.interaction_id))
+            : null
+        return { role: m.role, text: cards ? `${text}\n${cards}` : text }
+      })
+      const res = await chatReply(deps, { data: input, message: data.text, history, tier })
       if (res.ok) {
         const saved = await supabase.rpc('save_chat_turn', {
           p_interaction: res.interactionId,

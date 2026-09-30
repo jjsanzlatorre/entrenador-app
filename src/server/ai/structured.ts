@@ -36,7 +36,13 @@ export type StructuredResult<T> = {
   tokensOut: number
   // Modelo que dio la última respuesta.
   model?: string
+  // Texto crudo de cada respuesta del proveedor y problemas de cada intento (para depurar).
+  raw: string[]
+  issueLog: string[][]
 }
+
+// Tamaño máximo de cada respuesta cruda que se guarda.
+const RAW_LIMIT = 20_000
 
 // Quita ```json … ``` si el modelo lo añade.
 export function extractJson(text: string): unknown {
@@ -59,6 +65,18 @@ export async function generateStructured<T>(
   let issues: string[] = []
   let lastValid: T | null = null
   let model: string | undefined
+  const raw: string[] = []
+  const issueLog: string[][] = []
+  const done = (data: T, attempts: number, repaired: boolean): StructuredResult<T> => ({
+    data,
+    attempts,
+    repaired,
+    tokensIn,
+    tokensOut,
+    model,
+    raw,
+    issueLog,
+  })
 
   for (let attempt = 1; attempt <= 2; attempt++) {
     const prompt =
@@ -80,47 +98,53 @@ export async function generateStructured<T>(
       tokensOut += res.tokensOut
       model = res.model ?? model
       text = res.text
+      raw.push(text.slice(0, RAW_LIMIT))
     } catch (error) {
       // Una respuesta cortada se trata como no válida (se reintenta); el resto se propaga.
       if (error instanceof AiProviderError && error.kind === 'truncated' && attempt === 1) {
         issues = ['La respuesta se cortó: sé más conciso (notas breves).']
+        issueLog.push(issues)
         continue
       }
       // Si el reintento falla por el proveedor (p. ej. cuota), vale la primera respuesta
       // corregida quitando lo inválido.
       if (attempt === 2 && lastValid !== null && req.repair) {
+        issueLog.push([`El reintento falló: ${error instanceof Error ? error.message : error}`])
         const fixed = req.repair(lastValid)
-        if (fixed !== null) {
-          return { data: fixed, attempts: 2, repaired: true, tokensIn, tokensOut, model }
-        }
+        if (fixed !== null) return done(fixed, 2, true)
       }
       throw error
     }
 
-    let raw: unknown
+    let json: unknown
     try {
-      raw = extractJson(text)
+      json = extractJson(text)
     } catch {
       issues = ['La respuesta no era JSON válido.']
+      issueLog.push(issues)
       continue
     }
-    const parsed = req.schema.safeParse(raw)
+    const parsed = req.schema.safeParse(json)
     if (!parsed.success) {
       issues = zodIssues(parsed.error)
+      issueLog.push(issues)
       continue
     }
     lastValid = parsed.data
     issues = req.check?.(parsed.data) ?? []
-    if (issues.length === 0) {
-      return { data: parsed.data, attempts: attempt, repaired: false, tokensIn, tokensOut, model }
-    }
+    issueLog.push(issues)
+    if (issues.length === 0) return done(parsed.data, attempt, false)
   }
 
   if (lastValid !== null && req.repair) {
     const fixed = req.repair(lastValid)
-    if (fixed !== null) {
-      return { data: fixed, attempts: 2, repaired: true, tokensIn, tokensOut, model }
-    }
+    if (fixed !== null) return done(fixed, 2, true)
   }
-  throw Object.assign(new AiInvalidOutputError(issues), { tokensIn, tokensOut, model })
+  throw Object.assign(new AiInvalidOutputError(issues), {
+    tokensIn,
+    tokensOut,
+    model,
+    raw,
+    issueLog,
+  })
 }

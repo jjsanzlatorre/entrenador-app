@@ -227,6 +227,7 @@ function planSummary(input: AiContextInput) {
   const due = plan.sessions.filter((s) => s.date < input.today || s.status === 'done')
   return {
     name: plan.name,
+    start_date: plan.startDate,
     week_of_plan: week,
     this_week: thisWeek.map((s) => ({
       date: s.date,
@@ -372,6 +373,13 @@ export function buildAiContext(input: AiContextInput, opts: AiContextOptions = {
     today_checkin: input.checkins.find((ch) => ch.date === today) ?? null,
     today_session: opts.todaySession ? plannedDetail(opts.todaySession) : null,
     review_week: opts.reviewWeek ?? null,
+    // Días de la ventana con su nombre (para que «de hoy al domingo» tenga fechas exactas).
+    calendar: opts.upcoming
+      ? Array.from({ length: daysBetween(opts.upcoming.from, opts.upcoming.to) + 1 }, (_, i) => {
+          const d = addDays(opts.upcoming!.from, i)
+          return `${d} ${dayName(d)}`
+        })
+      : null,
     upcoming_sessions: opts.upcoming
       ? upcomingSessions(input, opts.upcoming.from, opts.upcoming.to).map((s) => ({
           planned_session_id: s.id,

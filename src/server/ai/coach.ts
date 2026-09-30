@@ -15,7 +15,9 @@ import {
   aiPlanSchema,
   chatReplySchema,
   dailyAdjustSchema,
+  type ChatDebug,
   type ChatPlanRequest,
+  type ChatReply,
   type ChatResult,
   swapSchema,
   toPlanStructure,
@@ -27,9 +29,11 @@ import {
   type SwapProposal,
   type WeeklyReview,
 } from '@/lib/ai/schemas'
+import { honestReply, fewerCardsNote, promisesCards } from '@/lib/ai/chat-text'
 import {
   adjustIssues,
   attachStandards,
+  cardCount,
   changeIssues,
   chatActionIssues,
   dropInvalidAlternatives,
@@ -42,7 +46,7 @@ import {
   type ChangeRules,
   type ChatActionRules,
 } from '@/lib/ai/validate'
-import { addDays, weekStartOf, type DateKey } from '@/lib/progress/dates'
+import { addDays, isoWeekday, weekStartOf, type DateKey } from '@/lib/progress/dates'
 import type { PlanStructure } from '@/lib/plan/types'
 import { suggestAlternatives } from '@/lib/workout/substitution'
 import type { AiInteractionKind } from '@/types/database'
@@ -103,11 +107,19 @@ async function runTask<T, R>(
     })
     return { ok: true, interactionId: id, remaining: await remaining(), ...value }
   } catch (error) {
-    const tokens = error as { tokensIn?: number; tokensOut?: number; model?: string }
+    const tokens = error as {
+      tokensIn?: number
+      tokensOut?: number
+      model?: string
+      raw?: string[]
+      issueLog?: string[][]
+    }
     if (error instanceof AiInvalidOutputError) {
       await deps.usage.finish(id, {
         status: 'invalid',
         error: error.message,
+        // Respuestas crudas y problemas de cada intento, para depurar.
+        output: { debug: { raw: tokens.raw ?? [], issues: tokens.issueLog ?? [] } },
         tokensIn: tokens.tokensIn,
         tokensOut: tokens.tokensOut,
         model: tokens.model,
@@ -407,15 +419,49 @@ export function chatRules(data: AiContextInput & { planned?: ContextPlanned[] })
   }
 }
 
+// Problemas de coherencia entre el texto y las tarjetas: el texto habla de tarjetas o botones (o
+// afirma haber hecho algo) y no queda ninguna acción válida.
+export function chatCoherenceIssues(reply: ChatReply, rules: ChatActionRules) {
+  if (!promisesCards(reply.reply)) return []
+  if (cardCount(resolveChatActions(reply.actions ?? [], rules)) > 0) return []
+  return [
+    'Tu «reply» habla de tarjetas o botones (o dice que algo ya está hecho), pero «actions» no trae ninguna acción válida: el usuario no vería nada. Incluye en «actions» las acciones que propones (p. ej. add_sessions_range con un día por sesión) o, si no puedes proponer ninguna, no menciones tarjetas ni botones.',
+  ]
+}
+
+// Texto final: si promete tarjetas y no hay ninguna, uno honesto con un ejemplo; si se han
+// descartado acciones y el texto habla de tarjetas, se avisa de cuántas hay de verdad.
+function fixReply(
+  reply: string,
+  result: Omit<ChatResult, 'reply'>,
+  rules: ChatActionRules,
+  today: DateKey,
+  message: string,
+): { reply: string; fix: ChatDebug['text_fix'] } {
+  const cards = cardCount(result)
+  if (!promisesCards(reply)) return { reply, fix: null }
+  if (cards === 0) {
+    const weekday = isoWeekday(today)
+    return { reply: honestReply({ hasPlan: rules.hasPlan, weekday, message }), fix: 'honest' }
+  }
+  if ((result.discarded?.length ?? 0) > 0) {
+    return { reply: `${reply}\n\n${fewerCardsNote(cards)}`, fix: 'fewer_cards' }
+  }
+  return { reply, fix: null }
+}
+
 export async function chatReply(
   deps: CoachDeps,
   req: {
     data: AiContextInput
     message: string
     history: { role: 'user' | 'assistant'; text: string }[]
+    // Modelo elegido según lo que pide (chatTier): solo para el registro y el tamaño de salida.
+    tier?: 'light' | 'heavy'
   },
 ): Promise<AiResult<ChatResult>> {
   const today = req.data.today
+  const tier = req.tier ?? 'light'
   const to = addDays(today, CHAT_CHANGE_DAYS - 1)
   const rules = chatRules(req.data)
   const context = buildAiContext(req.data, {
@@ -429,7 +475,7 @@ export async function chatReply(
   return runTask(
     deps,
     'chat',
-    { ...summarizeContext(context), conversation: req.history.length },
+    { ...summarizeContext(context), conversation: req.history.length, tier },
     () =>
       generateStructured({
         provider: deps.provider,
@@ -437,16 +483,30 @@ export async function chatReply(
         system: SYSTEM_PROMPT,
         prompt: CHAT_PROMPT,
         context,
-        check: (reply) => chatActionIssues(reply.actions ?? [], rules),
+        check: (reply) => [
+          ...chatActionIssues(reply.actions ?? [], rules),
+          ...chatCoherenceIssues(reply, rules),
+        ],
         // Las acciones que no se pueden aplicar se quitan en toResult (con aviso).
         repair: (reply) => reply,
-        maxOutputTokens: 8192,
-        timeoutMs: 40_000,
+        maxOutputTokens: tier === 'heavy' ? 16_384 : 8192,
+        timeoutMs: tier === 'heavy' ? 45_000 : 40_000,
       }),
-    (res): ChatResult => ({
-      reply: res.data.reply,
-      ...resolveChatActions(res.data.actions ?? [], rules),
-    }),
+    (res): ChatResult => {
+      const { reasons, ...resolved } = resolveChatActions(res.data.actions ?? [], rules)
+      const { reply, fix } = fixReply(res.data.reply, resolved, rules, today, req.message)
+      const debug: ChatDebug = {
+        model: res.model ?? deps.provider.model,
+        tier,
+        attempts: res.attempts,
+        raw: res.raw,
+        issues: res.issueLog,
+        discarded: reasons,
+        text_fix: fix,
+        ...(fix ? { original_reply: res.data.reply } : {}),
+      }
+      return { reply, ...resolved, debug }
+    },
   )
 }
 

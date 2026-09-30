@@ -4,11 +4,13 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Send, Sparkles, Trash2 } from 'lucide-react'
 import { ChangeCard } from '@/components/ai/change-card'
 import { ChatAdjustCard, ChatPlanCard, DiscardedActions } from '@/components/ai/chat-actions'
+import { ChatRangeCard } from '@/components/ai/chat-range-card'
 import { Page } from '@/components/page'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import {
   aiStatusKey,
+  chatDebugEnabled,
   chatKey,
   clearChat,
   useAiRequests,
@@ -55,6 +57,8 @@ function CoachChatPage() {
   const [confirmClear, setConfirmClear] = useState(false)
   // Respuesta recién recibida: su create_plan se prepara solo.
   const [fresh, setFresh] = useState<string | null>(null)
+  // Modo depuración (?debug=1): modelo usado y descartes bajo cada respuesta.
+  const [debug] = useState(() => chatDebugEnabled(window.location.search))
   const bottom = useRef<HTMLDivElement>(null)
 
   const messages = chat.data ?? []
@@ -165,6 +169,7 @@ function CoachChatPage() {
             name={name}
             profile={profile}
             fresh={m.interactionId !== null && m.interactionId === fresh}
+            debug={debug}
           />
         ))}
         {sending && (
@@ -232,6 +237,7 @@ function MessageItem({
   name,
   profile,
   fresh,
+  debug,
 }: {
   message: ChatMessage
   userId: string
@@ -239,6 +245,7 @@ function MessageItem({
   name: (id: string) => string
   profile: TrainingProfileData
   fresh: boolean
+  debug: boolean
 }) {
   const mine = message.role === 'user'
   const interactionId = !mine ? message.interactionId : null
@@ -274,6 +281,19 @@ function MessageItem({
         />
       )}
       {interactionId &&
+        message.ranges.map((r, i) => (
+          <ChatRangeCard
+            key={`range-${i}`}
+            userId={userId}
+            sex={sex}
+            name={name}
+            chatInteractionId={interactionId}
+            index={i}
+            range={r}
+            result={message.results.ranges?.[String(i)]}
+          />
+        ))}
+      {interactionId &&
         message.changes.map((c, i) => (
           <ChangeCard
             key={i}
@@ -287,6 +307,18 @@ function MessageItem({
           />
         ))}
       {interactionId && <DiscardedActions items={message.discarded} />}
+      {debug && message.debug && (
+        <pre className="bg-muted text-muted-foreground max-w-full overflow-x-auto rounded-lg p-2 text-[11px] whitespace-pre-wrap">
+          {[
+            `modelo: ${message.debug.model ?? '?'} (${message.debug.tier}) · intentos: ${message.debug.attempts}`,
+            message.debug.text_fix ? `texto corregido: ${message.debug.text_fix}` : null,
+            ...message.debug.discarded.map((d) => `descarte: ${d}`),
+            ...message.debug.issues.flatMap((list, i) => list.map((x) => `intento ${i + 1}: ${x}`)),
+          ]
+            .filter(Boolean)
+            .join('\n')}
+        </pre>
+      )}
     </li>
   )
 }

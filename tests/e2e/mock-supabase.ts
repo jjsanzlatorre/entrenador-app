@@ -861,6 +861,80 @@ export function startMockSupabase(port: number) {
       ;(chat.action_results as Record<string, unknown>)[b.p_key] = { status: 'discarded' }
       return send(res, 200, null)
     }
+    // ── Bloque de varios días del chat (como 0034) ──
+    if (path === '/rest/v1/rpc/respond_chat_range') {
+      const b = (await readBody(req)) as {
+        p_chat: string
+        p_index: number
+        p_accept: boolean
+        p_dates?: string[] | null
+        p_allow_conflicts?: boolean
+      }
+      const chat = aiInteractions.find(
+        (x) => x.id === b.p_chat && x.kind === 'chat' && x.status === 'ok',
+      )
+      type Day = { date: string; session: Record<string, unknown> }
+      const range = (chat?.output as { ranges?: { reason: string; days: Day[] }[] } | null)
+        ?.ranges?.[b.p_index]
+      if (!chat || !range) return send(res, 400, { message: 'bloque no encontrado' })
+      const results = chat.action_results as Record<string, Record<string, unknown>>
+      results.ranges ??= {}
+      if (results.ranges[String(b.p_index)]) {
+        return send(res, 400, { message: 'propuesta ya respondida' })
+      }
+      let result: Record<string, unknown> = { status: 'discarded' }
+      if (b.p_accept) {
+        const plan = userPlans.find((p) => p.status === 'active')
+        if (!plan) return send(res, 400, { message: 'no hay plan activo' })
+        const chosen = range.days.filter((d) => !b.p_dates || b.p_dates.includes(d.date))
+        if (chosen.length === 0) return send(res, 400, { message: 'elige al menos un día' })
+        const clashes = [
+          ...new Set(
+            plannedSessions
+              .filter(
+                (p) =>
+                  p.user_plan_id === plan.id &&
+                  ['planned', 'moved'].includes(p.status) &&
+                  chosen.some((d) => d.date === p.date),
+              )
+              .map((p) => String(p.date)),
+          ),
+        ].sort()
+        if (clashes.length > 0 && !b.p_allow_conflicts) {
+          return send(res, 400, {
+            message: `conflicto: ya tienes sesiones planificadas el ${clashes.join(', ')}`,
+          })
+        }
+        for (const d of chosen) {
+          plannedSessions.push({
+            id: crypto.randomUUID(),
+            user_plan_id: plan.id,
+            user_id: MOCK_USER_ID,
+            date: d.date,
+            original_date: null,
+            week: 1,
+            session_type: d.session.session_type,
+            title: d.session.title,
+            intensity: d.session.intensity,
+            heavy_legs: d.session.heavy_legs,
+            duration_min: d.session.duration_min,
+            notes: `Añadida por la IA: ${range.reason}`,
+            blocks: d.session.blocks,
+            status: 'planned',
+            workout_session_id: null,
+          })
+        }
+        result = {
+          status: 'accepted',
+          created: chosen.length,
+          dates: chosen.map((d) => d.date),
+          conflicts: clashes,
+        }
+        chat.accepted = true
+      }
+      results.ranges[String(b.p_index)] = result
+      return send(res, 200, result)
+    }
     if (path === '/rest/v1/rpc/respond_ai_change') {
       const b = (await readBody(req)) as {
         p_interaction: string

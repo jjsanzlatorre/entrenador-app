@@ -1,6 +1,7 @@
 // Configuración del entrenador IA (solo servidor). El proveedor se elige con AI_PROVIDER:
 // - gemini (por defecto): GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MODEL_HEAVY (opcional: modelo para
-//   las tareas pesadas: generar o personalizar un plan, create_plan del chat y revisión semanal) y
+//   las tareas pesadas: generar o personalizar un plan, create_plan del chat, revisión semanal y
+//   mensajes del chat que piden planificar varios días o sesiones, chatTier) y
 //   GEMINI_FALLBACK_MODEL (opcional: modelo de reserva si el que toca devuelve 429 o cuota agotada).
 // - anthropic: ANTHROPIC_API_KEY y AI_MODEL.
 // AI_DAILY_LIMIT: llamadas por usuario y día (por defecto 20).
@@ -16,8 +17,8 @@ export const DEFAULT_MODELS: Record<AiProviderName, string> = {
 
 export const DEFAULT_DAILY_LIMIT = 20
 
-// Tipo de tarea: heavy = generar o personalizar un plan y revisión semanal; light = el resto
-// (chat, ajuste del día, sustituir ejercicio).
+// Tipo de tarea: heavy = generar o personalizar un plan, revisión semanal y chat que planifica
+// varios días; light = el resto (chat, ajuste del día, sustituir ejercicio).
 export type AiTier = 'light' | 'heavy'
 
 export type AiConfig = {

@@ -7,6 +7,7 @@ import {
   CHAT_SESSION_ACTIONS,
   type AiPlan,
   type ChatAction,
+  type ChatRange,
   type ChatResult,
   type DailyAdjust,
   type PlanChange,
@@ -234,13 +235,73 @@ function missingFields(a: ChatAction): string | null {
     case 'modify_session':
       if (!a.planned_session_id) return 'planned_session_id'
       return a.session ? null : 'session'
+    case 'add_sessions_range':
+      if (!a.days || a.days.length === 0) return 'days (al menos un día con su sesión)'
+      return a.days.every((d) => d.session.session_type) ? null : 'session_type en cada día'
   }
+}
+
+type ActionState = {
+  seen: Set<string>
+  plan: boolean
+  adjust: boolean
+  withPlan: boolean
+  // Días con una sesión nueva propuesta (add_session y add_sessions_range).
+  added: Set<string>
+}
+
+// Sesiones pendientes del plan por día (para avisar de los choques).
+function pendingByDate(rules: ChangeRules) {
+  const byDate = new Map<string, number>()
+  for (const date of rules.pending.values()) byDate.set(date, (byDate.get(date) ?? 0) + 1)
+  return byDate
+}
+
+// Días de un add_sessions_range que chocan con una sesión ya planificada (pendiente).
+export function rangeConflicts(days: { date: string }[], rules: ChangeRules) {
+  const byDate = pendingByDate(rules)
+  return days.filter((d) => byDate.has(d.date)).map((d) => d.date)
+}
+
+function rangeProblem(a: ChatAction, rules: ChatActionRules, state: ActionState) {
+  const days = a.days ?? []
+  if (!rules.hasPlan) {
+    return {
+      model:
+        'No hay plan activo: add_sessions_range añade sesiones al plan activo; sin plan no la propongas (propón create_plan o dilo en reply).',
+      user: 'no tienes un plan activo',
+    }
+  }
+  const out = days.find((d) => d.date < rules.from || d.date > rules.to)
+  if (out) {
+    return {
+      model: `La fecha ${out.date} está fuera de rango: usa días entre ${rules.from} y ${rules.to}.`,
+      user: 'alguna fecha no es válida',
+    }
+  }
+  const dates = days.map((d) => d.date)
+  const repeated = dates.find((d, i) => dates.indexOf(d) !== i)
+  if (repeated) {
+    return {
+      model: `El día ${repeated} aparece dos veces en days: una sesión por día.`,
+      user: 'repetía un día',
+    }
+  }
+  const twice = dates.find((d) => state.added.has(d))
+  if (twice) {
+    return {
+      model: `Hay dos propuestas que añaden una sesión el ${twice}: deja una.`,
+      user: 'había otra propuesta para ese día',
+    }
+  }
+  for (const d of dates) state.added.add(d)
+  return null
 }
 
 function chatActionProblem(
   a: ChatAction,
   rules: ChatActionRules,
-  state: { seen: Set<string>; plan: boolean; adjust: boolean; withPlan: boolean },
+  state: ActionState,
 ): ActionProblem | null {
   const missing = missingFields(a)
   if (missing) {
@@ -283,8 +344,14 @@ function chatActionProblem(
     state.seen.add(rules.todayPending)
     return null
   }
+  if (a.type === 'add_sessions_range') return rangeProblem(a, rules, state)
   const change = chatActionToChange(a)!
-  const problem = changeProblem(change, rules, state.seen)
+  let problem = changeProblem(change, rules, state.seen)
+  if (!problem && change.action === 'add' && change.date) {
+    if (state.added.has(change.date)) {
+      problem = `Hay dos propuestas que añaden una sesión el ${change.date}: deja una.`
+    } else state.added.add(change.date)
+  }
   if (!problem) return null
   return {
     model: problem,
@@ -292,17 +359,24 @@ function chatActionProblem(
       ? 'no tienes un plan activo'
       : change.action !== 'add' && !rules.pending.has(change.planned_session_id ?? '')
         ? 'esa sesión no está pendiente en tu plan'
-        : 'la fecha no es válida',
+        : problem.startsWith('Hay dos propuestas')
+          ? 'había otra propuesta para ese día'
+          : 'la fecha no es válida',
   }
 }
 
-function newState(actions: ChatAction[]) {
+function newState(actions: ChatAction[]): ActionState {
   return {
     seen: new Set<string>(),
     plan: false,
     adjust: false,
     withPlan: actions.some((a) => a.type === 'create_plan' && a.plan),
+    added: new Set<string>(),
   }
+}
+
+function actionSessions(a: ChatAction) {
+  return [...(a.session ? [a.session] : []), ...(a.days ?? []).map((d) => d.session)]
 }
 
 function templateIssue(a: ChatAction, rules: ChatActionRules) {
@@ -320,30 +394,55 @@ export function chatActionIssues(actions: ChatAction[], rules: ChatActionRules) 
     if (template) {
       out.push(`actions.${i}: plan.template_id «${template}» no existe en plan_templates.`)
     }
+    // Días del bloque que chocan con una sesión ya planificada: se avisa al modelo (el plan del
+    // usuario se respeta); si insiste, la tarjeta los avisa y los deja sin marcar.
+    if (!p && a.type === 'add_sessions_range') {
+      const conflicts = rangeConflicts(a.days ?? [], rules)
+      if (conflicts.length > 0) {
+        out.push(
+          `actions.${i}: ${conflicts.join(', ')} ya tiene una sesión planificada en upcoming_sessions: no pongas sesiones esos días (respeta el plan) salvo que el usuario pida sustituirla.`,
+        )
+      }
+    }
     return out
   })
-  const sessions = actions.flatMap((a) => (a.session ? [a.session] : []))
+  const sessions = actions.flatMap(actionSessions)
   return [...issues, ...unknownExerciseIssues(unknownIn(sessions, rules.known))]
+}
+
+// Número de tarjetas que se enseñan con un resultado.
+export function cardCount(result: Omit<ChatResult, 'reply'>) {
+  return (
+    result.changes.length +
+    (result.ranges?.length ?? 0) +
+    (result.plan_request ? 1 : 0) +
+    (result.adjust_today ? 1 : 0)
+  )
 }
 
 // Convierte las acciones en lo que se guarda (ChatResult sin `reply`): quita las que no se pueden
 // aplicar (con un aviso para el usuario) y los ejercicios inventados. Nunca falla.
+// `reasons`: motivo técnico de cada descarte (para depurar; no se enseña al usuario).
 export function resolveChatActions(
   actions: ChatAction[],
   rules: ChatActionRules,
-): Omit<ChatResult, 'reply'> {
+): Omit<ChatResult, 'reply'> & { reasons: string[] } {
   const state = newState(actions)
-  const dropped = unknownIn(
-    actions.flatMap((a) => (a.session ? [a.session] : [])),
-    rules.known,
-  )
+  const dropped = unknownIn(actions.flatMap(actionSessions), rules.known)
   const discarded: string[] = []
-  const result: Omit<ChatResult, 'reply'> = { changes: [], dropped }
-  for (const a of actions) {
+  const reasons: string[] = []
+  const ranges: ChatRange[] = []
+  const result: Omit<ChatResult, 'reply'> & { reasons: string[] } = {
+    changes: [],
+    dropped,
+    reasons,
+  }
+  actions.forEach((a, i) => {
     const problem = chatActionProblem(a, rules, state)
     if (problem) {
       discarded.push(`«${a.title}»: ${problem.user}.`)
-      continue
+      reasons.push(`actions.${i} (${a.type}): ${problem.model}`)
+      return
     }
     if (a.type === 'create_plan' && a.plan) {
       const { template_id, ...plan } = a.plan
@@ -353,7 +452,7 @@ export function resolveChatActions(
         title: a.title,
         reason: a.reason,
       }
-      continue
+      return
     }
     if (a.type === 'adjust_today' && rules.todayPending) {
       result.adjust_today = {
@@ -361,20 +460,38 @@ export function resolveChatActions(
         reason: a.reason,
         planned_session_id: rules.todayPending,
       }
-      continue
+      return
+    }
+    if (a.type === 'add_sessions_range') {
+      // Días ordenados; los que se quedan sin ejercicios válidos se quitan.
+      const days = [...(a.days ?? [])]
+        .sort((x, y) => x.date.localeCompare(y.date))
+        .flatMap((d) => {
+          const session = dropFrom(d.session, rules.known)
+          return session ? [{ date: d.date, session }] : []
+        })
+      if (days.length === 0) {
+        discarded.push(`«${a.title}»: usaba ejercicios que no están en tu biblioteca.`)
+        reasons.push(`actions.${i} (${a.type}): todos los días con exercise_id inexistentes`)
+        return
+      }
+      ranges.push({ title: a.title, reason: a.reason, days })
+      return
     }
     const change = chatActionToChange(a)!
     if (!change.session) {
       result.changes.push(change)
-      continue
+      return
     }
     const session = dropFrom(change.session, rules.known)
     if (!session) {
       discarded.push(`«${a.title}»: usaba ejercicios que no están en tu biblioteca.`)
-      continue
+      reasons.push(`actions.${i} (${a.type}): exercise_id inexistentes`)
+      return
     }
     result.changes.push({ ...change, session })
-  }
+  })
+  if (ranges.length > 0) result.ranges = ranges
   if (discarded.length > 0) result.discarded = discarded
   return result
 }

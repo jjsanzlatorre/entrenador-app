@@ -171,9 +171,12 @@ normalmente no ocurre, pero si pasa:
 
 - Gemini (gratis): `AI_PROVIDER=gemini`, `GEMINI_API_KEY` y, opcional, `GEMINI_MODEL` /
   `GEMINI_MODEL_HEAVY` / `GEMINI_FALLBACK_MODEL`. Con `GEMINI_MODEL_HEAVY`, generar o
-  personalizar un plan (también «Crear plan» desde el chat) y la revisión semanal usan ese
-  modelo; el chat, el ajuste del día y la sustitución usan `GEMINI_MODEL`. La reserva vale para
-  los dos. `/api/health` muestra `heavyModel`.
+  personalizar un plan (también «Crear plan» desde el chat), la revisión semanal y los mensajes
+  del chat que piden planificar varios días o sesiones («de hoy al domingo», «esta semana»,
+  nombres de días…) usan ese modelo; el resto del chat, el ajuste del día y la sustitución usan
+  `GEMINI_MODEL`. La reserva vale para los dos. `/api/health` muestra `heavyModel`. En el chat,
+  `/entrenador?debug=1` enseña bajo cada respuesta el modelo usado y los descartes (en ese
+  dispositivo; `?debug=0` lo quita).
 - Anthropic: `AI_PROVIDER=anthropic`, `ANTHROPIC_API_KEY` y, opcional, `AI_MODEL`.
 - Cambia las variables en Vercel y haz **Redeploy**. Sin clave, la app funciona sin IA y lo dice.
 - `AI_DAILY_LIMIT` limita las consultas por persona y día.

@@ -23,7 +23,10 @@ import {
   type ChangeResponses,
   type ChatActionResults,
   type ChatAdjustResult,
+  type ChatDebug,
   type ChatPlanResult,
+  type ChatRange,
+  type ChatRangeResult,
   type ChatResult,
   type PlanChange,
 } from './schemas'
@@ -160,10 +163,14 @@ export type ChatMessage = {
   responses: ChangeResponses
   planRequest: ChatResult['plan_request'] | null
   adjustToday: ChatResult['adjust_today'] | null
+  // Bloques de varios días (add_sessions_range).
+  ranges: ChatRange[]
   // Acciones que la app ha descartado por no poderse aplicar.
   discarded: string[]
-  // Resultado real de crear el plan o ajustar el día (0033).
+  // Resultado real de crear el plan, ajustar el día o añadir un bloque (0033, 0034).
   results: ChatActionResults
+  // Solo para el modo depuración.
+  debug: ChatDebug | null
 }
 
 export const chatKey = (userId: string) => ['ai-chat', userId] as const
@@ -180,6 +187,15 @@ function asObject<T>(value: unknown): T | null {
 
 function asStrings(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((v): v is string => typeof v === 'string') : []
+}
+
+function asRanges(value: unknown): ChatRange[] {
+  return Array.isArray(value)
+    ? value.filter(
+        (r): r is ChatRange =>
+          !!r && typeof r === 'object' && Array.isArray((r as { days?: unknown }).days),
+      )
+    : []
 }
 
 function asResponses(value: unknown): ChangeResponses {
@@ -230,8 +246,10 @@ export async function fetchChat(userId: string): Promise<ChatMessage[]> {
       responses: i ? asResponses(i.responses) : {},
       planRequest: i ? asObject(asObject<ChatResult>(i.output)?.plan_request) : null,
       adjustToday: i ? asObject(asObject<ChatResult>(i.output)?.adjust_today) : null,
+      ranges: i ? asRanges(asObject<ChatResult>(i.output)?.ranges) : [],
       discarded: i ? asStrings(asObject<ChatResult>(i.output)?.discarded) : [],
       results: (i && asObject<ChatActionResults>(i.action_results)) || {},
+      debug: i ? asObject<ChatDebug>(asObject<ChatResult>(i.output)?.debug) : null,
     }
   })
 }
@@ -297,6 +315,44 @@ export async function applyChatAdjust(
       }),
     ),
   ) as unknown as Extract<ChatAdjustResult, { status: 'accepted' }>
+}
+
+// Bloque de varios días del chat: añade los días elegidos (todos en una transacción) o lo
+// descarta. allowConflicts: el usuario ha visto el aviso de los días que ya tienen sesión.
+export async function respondChatRange(input: {
+  chatInteractionId: string
+  index: number
+  accept: boolean
+  dates?: string[]
+  allowConflicts?: boolean
+}) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para cambiar el plan')
+  return check(
+    await withTimeout(
+      db().rpc('respond_chat_range', {
+        p_chat: input.chatInteractionId,
+        p_index: input.index,
+        p_accept: input.accept,
+        p_dates: input.dates ?? null,
+        p_allow_conflicts: input.allowConflicts ?? false,
+      }),
+    ),
+  ) as unknown as ChatRangeResult
+}
+
+// Modo depuración del chat (/entrenador?debug=1; ?debug=0 lo quita): enseña el modelo usado y
+// los descartes de cada respuesta. Solo en este dispositivo.
+const DEBUG_KEY = 'coach-chat-debug'
+
+export function chatDebugEnabled(search?: string) {
+  try {
+    const flag = new URLSearchParams(search ?? '').get('debug')
+    if (flag === '1') localStorage.setItem(DEBUG_KEY, '1')
+    if (flag === '0') localStorage.removeItem(DEBUG_KEY)
+    return localStorage.getItem(DEBUG_KEY) === '1'
+  } catch {
+    return false
+  }
 }
 
 export async function discardChatAction(chatInteractionId: string, key: 'plan' | 'adjust') {

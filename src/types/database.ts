@@ -1267,6 +1267,17 @@ export type Database = {
         Returns: Json
       }
       discard_chat_action: { Args: { p_chat: string; p_key: string }; Returns: undefined }
+      // 0034_chat_ranges.sql
+      respond_chat_range: {
+        Args: {
+          p_chat: string
+          p_index: number
+          p_accept: boolean
+          p_dates?: string[] | null
+          p_allow_conflicts?: boolean
+        }
+        Returns: Json
+      }
       // 0028_push_notifications.sql
       save_push_subscription: {
         Args: { p_endpoint: string; p_p256dh: string; p_auth: string; p_user_agent?: string | null }

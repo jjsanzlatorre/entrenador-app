@@ -1,13 +1,19 @@
 // Adaptador de Anthropic (SDK oficial, salida estructurada con output_config.format).
 import Anthropic from '@anthropic-ai/sdk'
-import { AiProviderError, kindFromStatus, type AiProvider, type JsonRequest } from './types'
+import {
+  AiProviderError,
+  isTimeoutError,
+  kindFromStatus,
+  type AiProvider,
+  type JsonRequest,
+} from './types'
 
 export function createAnthropicProvider(opts: {
   apiKey: string
   model: string
   client?: Pick<Anthropic, 'messages'>
 }): AiProvider {
-  const client = opts.client ?? new Anthropic({ apiKey: opts.apiKey, maxRetries: 1 })
+  const client = opts.client ?? new Anthropic({ apiKey: opts.apiKey, maxRetries: 0 })
   return {
     name: 'anthropic',
     model: opts.model,
@@ -31,6 +37,9 @@ export function createAnthropicProvider(opts: {
             `Anthropic ${error.status}: ${error.message}`,
             error.status,
           )
+        }
+        if (error instanceof Anthropic.APIConnectionTimeoutError || isTimeoutError(error)) {
+          throw new AiProviderError('timeout', `Anthropic no ha respondido a tiempo`)
         }
         throw new AiProviderError('unavailable', `Anthropic no responde: ${String(error)}`)
       }

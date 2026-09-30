@@ -18,7 +18,8 @@ import {
   useChat,
   type ChatMessage,
 } from '@/lib/ai/client'
-import { CHAT_MAX_MESSAGE } from '@/lib/ai/schemas'
+import { modelLogLines } from '@/lib/ai/chat-text'
+import { CHAT_MAX_MESSAGE, type AiFailure } from '@/lib/ai/schemas'
 import { notifyError } from '@/lib/notify'
 import { useTrainingProfile } from '@/lib/plan/hooks'
 import { emptyTrainingProfile, type TrainingProfileData } from '@/lib/plan/profile'
@@ -53,7 +54,7 @@ function CoachChatPage() {
   const name = (id: string) => catalog.byId.get(id)?.name ?? id
   const [text, setText] = useState('')
   const [sending, setSending] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<AiFailure | null>(null)
   const [confirmClear, setConfirmClear] = useState(false)
   // Respuesta recién recibida: su create_plan se prepara solo.
   const [fresh, setFresh] = useState<string | null>(null)
@@ -82,7 +83,7 @@ function CoachChatPage() {
       await queryClient.invalidateQueries({ queryKey: chatKey(userId) })
     } else {
       // No se ha guardado nada: el texto vuelve a la caja para reintentar.
-      setError(res.message)
+      setError(res)
       setText(message)
     }
     setSending(null)
@@ -185,7 +186,19 @@ function CoachChatPage() {
         )}
       </ol>
 
-      {error && <p className="bg-muted rounded-xl p-3 text-sm">{error}</p>}
+      {error && <p className="bg-muted rounded-xl p-3 text-sm">{error.message}</p>}
+      {debug && error && (
+        <pre className="bg-muted text-muted-foreground max-w-full overflow-x-auto rounded-lg p-2 text-[11px] whitespace-pre-wrap">
+          {[
+            `código: ${error.code}`,
+            error.debug ? `tiempo total: ${error.debug.ms} ms` : null,
+            error.debug ? `error: ${error.debug.error}` : null,
+            ...modelLogLines(error.debug?.models),
+          ]
+            .filter(Boolean)
+            .join('\n')}
+        </pre>
+      )}
 
       {configured && (
         <form
@@ -310,7 +323,8 @@ function MessageItem({
       {debug && message.debug && (
         <pre className="bg-muted text-muted-foreground max-w-full overflow-x-auto rounded-lg p-2 text-[11px] whitespace-pre-wrap">
           {[
-            `modelo: ${message.debug.model ?? '?'} (${message.debug.tier}) · intentos: ${message.debug.attempts}`,
+            `modelo: ${message.debug.model ?? '?'} (${message.debug.tier}) · intentos: ${message.debug.attempts}${message.debug.ms !== undefined ? ` · ${message.debug.ms} ms` : ''}`,
+            ...modelLogLines(message.debug.models),
             message.debug.text_fix ? `texto corregido: ${message.debug.text_fix}` : null,
             ...message.debug.discarded.map((d) => `descarte: ${d}`),
             ...message.debug.issues.flatMap((list, i) => list.map((x) => `intento ${i + 1}: ${x}`)),

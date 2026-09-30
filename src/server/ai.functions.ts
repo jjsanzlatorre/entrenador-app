@@ -28,11 +28,11 @@ import {
   weeklyReview,
   type CoachDeps,
 } from './ai/coach'
-import { getAiConfig, modelFor, type AiTier } from './ai/config'
+import { getAiConfig, modelFor, PLAN_TIMEOUTS, type AiTier, type AiTimeouts } from './ai/config'
 import { loadAiContextInput } from './ai/load-context'
 import { createProvider } from './ai/providers'
 import { supabaseReviewStore } from './ai/reviews'
-import { supabaseUsageStore } from './ai/usage'
+import { supabaseModelBlocks, supabaseUsageStore } from './ai/usage'
 
 const dayInput = z.object({
   today: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -40,8 +40,10 @@ const dayInput = z.object({
 })
 
 // tier heavy: generar o personalizar un plan (también el create_plan del chat) y revisión
-// semanal, con GEMINI_MODEL_HEAVY si existe. El resto usa el modelo normal.
-function setup(tz: string, tier: AiTier = 'light') {
+// semanal, con GEMINI_MODEL_HEAVY si existe. El resto usa el modelo normal. Con Gemini el
+// proveedor es una cadena (pesado → normal → reserva) con presupuesto de tiempo desde aquí y los
+// modelos bloqueados por cuota compartidos (0035).
+function setup(tz: string, tier: AiTier = 'light', timeouts?: AiTimeouts) {
   const config = getAiConfig()
   const supabase = getSupabaseServerClient()
   const usage = supabaseUsageStore(supabase, {
@@ -50,7 +52,10 @@ function setup(tz: string, tier: AiTier = 'light') {
     provider: config.provider,
     model: modelFor(config, tier),
   })
-  const provider = createProvider(config, tier)
+  const provider = createProvider(config, tier, {
+    blocks: supabaseModelBlocks(supabase),
+    timeouts,
+  })
   const deps: CoachDeps | null = provider
     ? { provider, usage, dailyLimit: config.dailyLimit }
     : null
@@ -83,7 +88,7 @@ export const generatePlanProposal = createServerFn({ method: 'POST' })
   .middleware([authMiddleware])
   .validator(dayInput.extend({ templateId: z.string().min(1).max(80).nullable() }))
   .handler(async ({ data, context }) => {
-    const { supabase, deps } = setup(data.tz, 'heavy')
+    const { supabase, deps } = setup(data.tz, 'heavy', PLAN_TIMEOUTS)
     if (!deps) return aiFailure('not_configured')
     try {
       const input = await loadAiContextInput(supabase, {
@@ -240,7 +245,7 @@ export const prepareChatPlan = createServerFn({ method: 'POST' })
   .validator(dayInput.extend({ chatInteractionId: z.string().uuid() }))
   .handler(
     async ({ data, context }): Promise<AiResult<{ proposal: PlanProposal; cached: boolean }>> => {
-      const { config, supabase, usage, deps } = setup(data.tz, 'heavy')
+      const { config, supabase, usage, deps } = setup(data.tz, 'heavy', PLAN_TIMEOUTS)
       const userId = context.auth.userId
       try {
         const { data: row, error } = await supabase

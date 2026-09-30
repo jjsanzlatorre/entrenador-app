@@ -329,8 +329,9 @@ test('chat: «de hoy al domingo» → una tarjeta con los días, desmarcar y añ
   const card = page.getByRole('region', { name: 'Propuesta: Recuperación hasta el domingo' })
   await expect(card).toBeVisible()
   let s = await state(request)
-  // Planificar varios días → modelo pesado; el lunes chocaba → reintento.
-  expect(s.geminiRequests.map((r) => r.model)).toEqual(['gemini-e2e-heavy', 'gemini-e2e-heavy'])
+  // Planificar varios días → modelo pesado; el lunes chocaba → reintento con el normal (el pesado,
+  // como mucho una vez por mensaje).
+  expect(s.geminiRequests.map((r) => r.model)).toEqual(['gemini-e2e-heavy', 'gemini-2.5-flash'])
 
   const days = card.getByRole('list', { name: 'Días propuestos' }).getByRole('listitem')
   await expect(days).toHaveCount(6)

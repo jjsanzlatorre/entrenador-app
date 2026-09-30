@@ -1,7 +1,9 @@
 // Adaptador de Google Gemini (API REST generateContent, salida JSON con responseJsonSchema).
 import {
   AiProviderError,
+  isTimeoutError,
   kindFromStatus,
+  type QuotaScope,
   type AiProvider,
   type JsonRequest,
   type JsonResponse,
@@ -20,7 +22,34 @@ type GeminiResponse = {
     candidatesTokenCount?: number
     thoughtsTokenCount?: number
   }
-  error?: { message?: string; status?: string }
+  error?: { message?: string; status?: string; details?: GeminiErrorDetail[] }
+}
+
+type GeminiErrorDetail = {
+  '@type'?: string
+  violations?: { quotaId?: string; quotaMetric?: string }[]
+  retryDelay?: string
+}
+
+// Alcance de un 429: los detalles (QuotaFailure) dicen qué cuota se ha agotado
+// («GenerateRequestsPerDayPerProjectPerModel-FreeTier», «…PerMinute…»); si no, el mensaje.
+export function quotaScopeOf(error: GeminiResponse['error']): QuotaScope | null {
+  const ids = (error?.details ?? []).flatMap((d) =>
+    (d.violations ?? []).map((v) => `${v.quotaId ?? ''} ${v.quotaMetric ?? ''}`),
+  )
+  const text = [...ids, error?.message ?? ''].join(' ')
+  if (/per ?day|daily|RPD/i.test(text)) return 'daily'
+  if (/per ?minute|RPM|TPM/i.test(text)) return 'minute'
+  return null
+}
+
+// Segundos que pide esperar Gemini (RetryInfo.retryDelay «37s»).
+export function retryDelayOf(error: GeminiResponse['error']): number | null {
+  for (const d of error?.details ?? []) {
+    const m = /^(\d+(?:\.\d+)?)s$/.exec(d.retryDelay ?? '')
+    if (m) return Math.ceil(Number(m[1]))
+  }
+  return null
 }
 
 export function createGeminiProvider(opts: {
@@ -54,6 +83,12 @@ export function createGeminiProvider(opts: {
           signal: AbortSignal.timeout(req.timeoutMs),
         })
       } catch (error) {
+        if (isTimeoutError(error)) {
+          throw new AiProviderError(
+            'timeout',
+            `Gemini ${opts.model} no ha respondido en ${Math.round(req.timeoutMs / 1000)} s`,
+          )
+        }
         throw new AiProviderError('unavailable', `Gemini no responde: ${String(error)}`)
       }
 
@@ -68,7 +103,12 @@ export function createGeminiProvider(opts: {
             : res.status === 400 && /api key/i.test(detail)
               ? 'auth'
               : kindFromStatus(res.status)
-        throw new AiProviderError(kind, `Gemini ${res.status}: ${detail}`, res.status)
+        const err = new AiProviderError(kind, `Gemini ${res.status}: ${detail}`, res.status)
+        if (kind === 'quota') {
+          err.scope = quotaScopeOf(body.error)
+          err.retryAfterS = retryDelayOf(body.error)
+        }
+        throw err
       }
 
       if (body.promptFeedback?.blockReason) {

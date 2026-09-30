@@ -373,6 +373,9 @@ export type ChatDebug = {
   // Motivo si la app ha cambiado o completado el texto de la IA.
   text_fix: 'honest' | 'fewer_cards' | null
   original_reply?: string
+  // Cadena de modelos: cada intento con su resultado y tiempos; ms = duración total.
+  models?: ModelAttempt[]
+  ms?: number
 }
 
 // Lo que se guarda en ai_interactions.output y llega al cliente. `changes` conserva el formato de
@@ -453,12 +456,45 @@ export type SwapAi = z.infer<typeof swapSchema>
 
 // ── Resultado de las funciones de servidor ─────────────────
 
+// Errores del proveedor de IA:
+// quota: cuota o límite de velocidad (429). auth: clave no válida o sin permiso.
+// timeout: la llamada ha superado su tiempo máximo. unavailable: caída o error de red.
+// bad_request: el proveedor rechaza la petición (modelo inexistente, esquema no aceptado…).
+// blocked: se niega a responder (filtros de seguridad). truncated: respuesta cortada por longitud.
+export type AiProviderErrorKind =
+  'quota' | 'auth' | 'timeout' | 'unavailable' | 'bad_request' | 'blocked' | 'truncated'
+
+// Cuota diaria (RPD: hasta el día siguiente) o por minuto (RPM/TPM: unos segundos).
+export type QuotaScope = 'daily' | 'minute'
+
+// Un intento de la cadena de modelos (se guarda en ai_interactions.output.model_log y se enseña
+// en el modo depuración).
+export type ModelAttempt = {
+  model: string
+  // heavy = GEMINI_MODEL_HEAVY, light = GEMINI_MODEL (o AI_MODEL), fallback = GEMINI_FALLBACK_MODEL.
+  role: 'heavy' | 'light' | 'fallback'
+  // ok, el tipo de error o skipped (bloqueado por cuota hasta `blocked_until`, o sin tiempo).
+  outcome: 'ok' | AiProviderErrorKind | 'skipped'
+  status?: number
+  // Solo en cuota: diaria o por minuto (null = no se sabe).
+  scope?: QuotaScope | null
+  // Duración de la llamada y tiempo máximo que tenía.
+  ms: number
+  timeout_ms?: number
+  detail?: string
+  blocked_until?: string
+}
+
+// Detalle técnico de un fallo (solo se enseña en el modo depuración).
+export type AiFailureDebug = { models: ModelAttempt[]; ms: number; error: string }
+
 export const AI_ERROR_CODES = [
   'not_configured',
   'daily_limit',
   'provider_quota',
   'provider_auth',
   'provider_unavailable',
+  'provider_timeout',
   'invalid_output',
   'no_planned_session',
   'in_progress',
@@ -469,7 +505,7 @@ export const AI_ERROR_CODES = [
 ] as const
 export type AiErrorCode = (typeof AI_ERROR_CODES)[number]
 
-export type AiFailure = { ok: false; code: AiErrorCode; message: string }
+export type AiFailure = { ok: false; code: AiErrorCode; message: string; debug?: AiFailureDebug }
 export type AiSuccess<T> = { ok: true; interactionId: string; remaining: number } & T
 export type AiResult<T> = AiSuccess<T> | AiFailure
 
@@ -477,10 +513,10 @@ export const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
   not_configured:
     'El entrenador IA no está configurado (falta la clave del proveedor). La app funciona igual sin IA.',
   daily_limit: 'Has llegado al límite de consultas a la IA de hoy. Mañana podrás seguir.',
-  provider_quota:
-    'El proveedor de IA ha agotado su cuota gratuita por ahora. Prueba dentro de un rato.',
+  provider_quota: 'La IA ha llegado a su límite de hoy; mañana vuelve a estar disponible.',
   provider_auth: 'La clave del proveedor de IA no es válida. Revisa la configuración en Vercel.',
-  provider_unavailable: 'La IA no responde ahora mismo. Prueba de nuevo en unos minutos.',
+  provider_unavailable: 'La IA no está disponible ahora mismo; prueba en unos minutos.',
+  provider_timeout: 'Ha tardado demasiado; prueba con una petición más corta.',
   invalid_output:
     'La IA ha devuelto una propuesta que no se puede usar. Prueba de nuevo; tu plan no ha cambiado.',
   no_planned_session: 'Hoy no tienes ninguna sesión pendiente en el plan.',
@@ -492,8 +528,18 @@ export const AI_ERROR_MESSAGES: Record<AiErrorCode, string> = {
   failed: 'No se ha podido completar la consulta a la IA. Prueba de nuevo.',
 }
 
-export function aiFailure(code: AiErrorCode, message = AI_ERROR_MESSAGES[code]): AiFailure {
-  return { ok: false, code, message }
+// Cuota agotada por minuto (no hasta mañana) o sin saber cuál.
+export const QUOTA_MINUTE_MESSAGE =
+  'La IA ha llegado a su límite de consultas por minuto; prueba de nuevo en un minuto.'
+export const QUOTA_UNKNOWN_MESSAGE =
+  'La IA ha agotado su cuota por ahora; prueba de nuevo dentro de un rato.'
+
+export function aiFailure(
+  code: AiErrorCode,
+  message = AI_ERROR_MESSAGES[code],
+  debug?: AiFailureDebug,
+): AiFailure {
+  return debug ? { ok: false, code, message, debug } : { ok: false, code, message }
 }
 
 export type AiStatus = {

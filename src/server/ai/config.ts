@@ -2,7 +2,8 @@
 // - gemini (por defecto): GEMINI_API_KEY, GEMINI_MODEL, GEMINI_MODEL_HEAVY (opcional: modelo para
 //   las tareas pesadas: generar o personalizar un plan, create_plan del chat, revisión semanal y
 //   mensajes del chat que piden planificar varios días o sesiones, chatTier) y
-//   GEMINI_FALLBACK_MODEL (opcional: modelo de reserva si el que toca devuelve 429 o cuota agotada).
+//   GEMINI_FALLBACK_MODEL (opcional: último modelo de la cadena de reserva, providers/chain.ts:
+//   pesado → GEMINI_MODEL → GEMINI_FALLBACK_MODEL ante 429, cuota agotada, error o tiempo agotado).
 // - anthropic: ANTHROPIC_API_KEY y AI_MODEL.
 // AI_DAILY_LIMIT: llamadas por usuario y día (por defecto 20).
 // GEMINI_BASE_URL (opcional): otra URL de la API de Gemini (los E2E usan un simulador).
@@ -21,12 +22,21 @@ export const DEFAULT_DAILY_LIMIT = 20
 // varios días; light = el resto (chat, ajuste del día, sustituir ejercicio).
 export type AiTier = 'light' | 'heavy'
 
+// Tiempos de la cadena de modelos (ms). Cada llamada tiene el tiempo de su papel y todas las de
+// una consulta comparten el presupuesto: la función de Vercel corta a los 60 s.
+export type AiTimeouts = { budgetMs: number; heavyMs: number; lightMs: number }
+
+export const AI_TIMEOUTS: AiTimeouts = { budgetMs: 50_000, heavyMs: 20_000, lightMs: 15_000 }
+
+// Generar un plan de 4 semanas es la respuesta más larga: más tiempo para cada modelo.
+export const PLAN_TIMEOUTS: AiTimeouts = { budgetMs: 50_000, heavyMs: 30_000, lightMs: 20_000 }
+
 export type AiConfig = {
   provider: AiProviderName
   model: string
   // Solo Gemini: modelo de las tareas pesadas (null = el mismo que `model`).
   heavyModel: string | null
-  // Solo Gemini: modelo de reserva ante 429 / cuota agotada (null = sin reserva).
+  // Solo Gemini: último modelo de la cadena de reserva (null = sin reserva).
   fallbackModel: string | null
   apiKey: string | null
   dailyLimit: number

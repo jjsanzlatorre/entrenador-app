@@ -1,6 +1,7 @@
 // Registro de consultas en ai_interactions y límite diario por usuario (RPC en 0024).
 import type { SupabaseClient } from '@supabase/supabase-js'
 import type { AiInteractionKind, Database, Json } from '@/types/database'
+import type { ModelBlockStore } from './providers/chain'
 
 export class DailyLimitError extends Error {
   constructor() {
@@ -76,6 +77,26 @@ export function supabaseUsageStore(
       const { data, error } = await supabase.rpc('ai_calls_today', { p_tz: opts.tz })
       if (error) throw new Error(error.message)
       return data ?? 0
+    },
+  }
+}
+
+// Modelos bloqueados por cuota (0035): compartido entre peticiones y usuarios.
+export function supabaseModelBlocks(supabase: SupabaseClient<Database>): ModelBlockStore {
+  return {
+    async blocked(models) {
+      const { data, error } = await supabase.rpc('ai_blocked_models', { p_models: models })
+      if (error) throw new Error(error.message)
+      return new Map((data ?? []).map((r) => [r.model, { until: r.blocked_until, scope: r.scope }]))
+    },
+    async block(model, until, scope, reason) {
+      const { error } = await supabase.rpc('block_ai_model', {
+        p_model: model,
+        p_until: until.toISOString(),
+        p_scope: scope,
+        p_reason: reason,
+      })
+      if (error) throw new Error(error.message)
     },
   }
 }

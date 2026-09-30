@@ -912,6 +912,31 @@ export type Database = {
         Update: { [_ in never]: never }
         Relationships: []
       }
+      // 0035: modelos de IA bloqueados por cuota (solo por RPC).
+      ai_model_blocks: {
+        Row: {
+          model: string
+          blocked_until: string
+          scope: 'daily' | 'minute' | null
+          reason: string | null
+          updated_at: string
+        }
+        Insert: {
+          model: string
+          blocked_until: string
+          scope?: 'daily' | 'minute' | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Update: {
+          model?: string
+          blocked_until?: string
+          scope?: 'daily' | 'minute' | null
+          reason?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       ai_chat_messages: {
         Row: {
           id: string
@@ -1277,6 +1302,20 @@ export type Database = {
           p_allow_conflicts?: boolean
         }
         Returns: Json
+      }
+      // 0035_ai_model_blocks.sql
+      ai_blocked_models: {
+        Args: { p_models: string[] }
+        Returns: { model: string; blocked_until: string; scope: 'daily' | 'minute' | null }[]
+      }
+      block_ai_model: {
+        Args: {
+          p_model: string
+          p_until: string
+          p_scope?: 'daily' | 'minute' | null
+          p_reason?: string | null
+        }
+        Returns: string
       }
       // 0028_push_notifications.sql
       save_push_subscription: {

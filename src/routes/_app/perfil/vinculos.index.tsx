@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
+import { BackLink } from '@/components/layout/back-link'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { Check, ChevronLeft, ChevronRight, UserPlus, X } from 'lucide-react'
+import { Check, ChevronRight, UserPlus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -26,12 +27,7 @@ function PartnersPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Link
-        to="/perfil"
-        className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-      >
-        <ChevronLeft className="size-4" /> Perfil
-      </Link>
+      <BackLink to="/perfil" label="Perfil" />
       <h1 className="text-2xl font-bold">Pareja y amigos</h1>
       <p className="text-muted-foreground text-sm">
         Vincúlate con quien ya use la app (tu pareja o amigos) para ver vuestro cumplimiento juntos

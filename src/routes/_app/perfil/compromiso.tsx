@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { BackLink } from '@/components/layout/back-link'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Trash2 } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Stepper } from '@/components/ui/stepper'
@@ -52,12 +53,7 @@ function CommitmentPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Link
-        to="/perfil"
-        className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-      >
-        <ChevronLeft className="size-4" /> Perfil
-      </Link>
+      <BackLink to="/perfil" label="Perfil" />
       <h1 className="text-2xl font-bold">Mi compromiso</h1>
       <p className="text-muted-foreground text-sm">
         Lo que te comprometes a hacer cada semana (de lunes a domingo). Cuenta una sesión por día y

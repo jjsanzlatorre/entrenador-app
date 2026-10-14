@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { BackLink } from '@/components/layout/back-link'
+import { createFileRoute } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
@@ -38,12 +39,7 @@ function ExercisesPage() {
 
   return (
     <div className="flex flex-col gap-3 p-4">
-      <Link
-        to="/entrenar"
-        className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-      >
-        <ChevronLeft className="size-4" /> Entrenar
-      </Link>
+      <BackLink to="/entrenar" label="Entrenar" />
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Ejercicios</h1>
         <Button onClick={() => setCreating('')}>

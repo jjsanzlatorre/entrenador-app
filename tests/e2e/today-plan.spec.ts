@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test'
 
 // Fase 5B: «Hoy» con la sesión del plan y las atrasadas, check-in sin conexión, sugerencia de
 // peso al empezar la planificada, aviso al mover una sesión y adherencia al plan.
-import { MOCK, USER_ID, authCookie } from './helpers'
+import { MOCK, USER_ID, authCookie, openMoreToday } from './helpers'
 
 const SHOTS = process.env.E2E_SCREENSHOTS
 const PLAN = '5b000000-0000-4000-8000-000000000001'
@@ -145,6 +145,7 @@ test('Hoy: planificada, atrasada, check-in offline, sugerencia de peso y aviso a
     .toBe('skipped')
 
   // Check-in sin conexión: 4 toques y queda guardado en el móvil.
+  await openMoreToday(page)
   const checkin = page.getByRole('region', { name: 'Check-in de hoy' })
   await context.setOffline(true)
   await checkin.getByRole('button', { name: 'Sueño 4' }).click()

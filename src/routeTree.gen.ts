@@ -20,6 +20,7 @@ import { Route as AppOnboardingRouteImport } from './routes/_app/onboarding'
 import { Route as ApiHealthRouteImport } from './routes/api/health'
 import { Route as AuthCallbackRouteImport } from './routes/auth/callback'
 import { Route as UnirseCodeRouteImport } from './routes/unirse.$code'
+import { Route as AppAdminFeedbackRouteImport } from './routes/_app/admin/feedback'
 import { Route as AppAdminInvitacionesRouteImport } from './routes/_app/admin/invitaciones'
 import { Route as AppEntrenarIndexRouteImport } from './routes/_app/entrenar/index'
 import { Route as AppEntrenarActividadRouteImport } from './routes/_app/entrenar/actividad'
@@ -28,6 +29,7 @@ import { Route as AppEntrenarEjerciciosRouteImport } from './routes/_app/entrena
 import { Route as AppEntrenarSesionRouteImport } from './routes/_app/entrenar/sesion'
 import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
 import { Route as AppPerfilActividadesRouteImport } from './routes/_app/perfil/actividades'
+import { Route as AppPerfilAyudaRouteImport } from './routes/_app/perfil/ayuda'
 import { Route as AppPerfilCiudadRouteImport } from './routes/_app/perfil/ciudad'
 import { Route as AppPerfilCompromisoRouteImport } from './routes/_app/perfil/compromiso'
 import { Route as AppPerfilCreditosRouteImport } from './routes/_app/perfil/creditos'
@@ -108,6 +110,11 @@ const UnirseCodeRoute = UnirseCodeRouteImport.update({
   path: '/unirse/$code',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AppAdminFeedbackRoute = AppAdminFeedbackRouteImport.update({
+  id: '/admin/feedback',
+  path: '/admin/feedback',
+  getParentRoute: () => AppRoute,
+} as any)
 const AppAdminInvitacionesRoute = AppAdminInvitacionesRouteImport.update({
   id: '/admin/invitaciones',
   path: '/admin/invitaciones',
@@ -146,6 +153,11 @@ const AppPerfilIndexRoute = AppPerfilIndexRouteImport.update({
 const AppPerfilActividadesRoute = AppPerfilActividadesRouteImport.update({
   id: '/perfil/actividades',
   path: '/perfil/actividades',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppPerfilAyudaRoute = AppPerfilAyudaRouteImport.update({
+  id: '/perfil/ayuda',
+  path: '/perfil/ayuda',
   getParentRoute: () => AppRoute,
 } as any)
 const AppPerfilCiudadRoute = AppPerfilCiudadRouteImport.update({
@@ -290,12 +302,14 @@ export interface FileRoutesByFullPath {
   '/api/health': typeof ApiHealthRoute
   '/auth/callback': typeof AuthCallbackRoute
   '/unirse/$code': typeof UnirseCodeRoute
+  '/admin/feedback': typeof AppAdminFeedbackRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/cronometro': typeof AppEntrenarCronometroRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/perfil/actividades': typeof AppPerfilActividadesRoute
+  '/perfil/ayuda': typeof AppPerfilAyudaRoute
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
@@ -335,12 +349,14 @@ export interface FileRoutesByTo {
   '/auth/callback': typeof AuthCallbackRoute
   '/unirse/$code': typeof UnirseCodeRoute
   '/': typeof AppIndexRoute
+  '/admin/feedback': typeof AppAdminFeedbackRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/entrenar/cronometro': typeof AppEntrenarCronometroRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/perfil/actividades': typeof AppPerfilActividadesRoute
+  '/perfil/ayuda': typeof AppPerfilAyudaRoute
   '/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/perfil/creditos': typeof AppPerfilCreditosRoute
@@ -382,12 +398,14 @@ export interface FileRoutesById {
   '/auth/callback': typeof AuthCallbackRoute
   '/unirse/$code': typeof UnirseCodeRoute
   '/_app/': typeof AppIndexRoute
+  '/_app/admin/feedback': typeof AppAdminFeedbackRoute
   '/_app/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/_app/entrenar/actividad': typeof AppEntrenarActividadRoute
   '/_app/entrenar/cronometro': typeof AppEntrenarCronometroRoute
   '/_app/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/_app/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/_app/perfil/actividades': typeof AppPerfilActividadesRoute
+  '/_app/perfil/ayuda': typeof AppPerfilAyudaRoute
   '/_app/perfil/ciudad': typeof AppPerfilCiudadRoute
   '/_app/perfil/compromiso': typeof AppPerfilCompromisoRoute
   '/_app/perfil/creditos': typeof AppPerfilCreditosRoute
@@ -429,12 +447,14 @@ export interface FileRouteTypes {
     | '/api/health'
     | '/auth/callback'
     | '/unirse/$code'
+    | '/admin/feedback'
     | '/admin/invitaciones'
     | '/entrenar/actividad'
     | '/entrenar/cronometro'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
     | '/perfil/actividades'
+    | '/perfil/ayuda'
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
@@ -474,12 +494,14 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/unirse/$code'
     | '/'
+    | '/admin/feedback'
     | '/admin/invitaciones'
     | '/entrenar/actividad'
     | '/entrenar/cronometro'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
     | '/perfil/actividades'
+    | '/perfil/ayuda'
     | '/perfil/ciudad'
     | '/perfil/compromiso'
     | '/perfil/creditos'
@@ -520,12 +542,14 @@ export interface FileRouteTypes {
     | '/auth/callback'
     | '/unirse/$code'
     | '/_app/'
+    | '/_app/admin/feedback'
     | '/_app/admin/invitaciones'
     | '/_app/entrenar/actividad'
     | '/_app/entrenar/cronometro'
     | '/_app/entrenar/ejercicios'
     | '/_app/entrenar/sesion'
     | '/_app/perfil/actividades'
+    | '/_app/perfil/ayuda'
     | '/_app/perfil/ciudad'
     | '/_app/perfil/compromiso'
     | '/_app/perfil/creditos'
@@ -644,6 +668,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof UnirseCodeRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_app/admin/feedback': {
+      id: '/_app/admin/feedback'
+      path: '/admin/feedback'
+      fullPath: '/admin/feedback'
+      preLoaderRoute: typeof AppAdminFeedbackRouteImport
+      parentRoute: typeof AppRoute
+    }
     '/_app/admin/invitaciones': {
       id: '/_app/admin/invitaciones'
       path: '/admin/invitaciones'
@@ -698,6 +729,13 @@ declare module '@tanstack/react-router' {
       path: '/perfil/actividades'
       fullPath: '/perfil/actividades'
       preLoaderRoute: typeof AppPerfilActividadesRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/perfil/ayuda': {
+      id: '/_app/perfil/ayuda'
+      path: '/perfil/ayuda'
+      fullPath: '/perfil/ayuda'
+      preLoaderRoute: typeof AppPerfilAyudaRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/perfil/ciudad': {
@@ -884,12 +922,14 @@ interface AppRouteChildren {
   AppInstalarRoute: typeof AppInstalarRoute
   AppOnboardingRoute: typeof AppOnboardingRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppAdminFeedbackRoute: typeof AppAdminFeedbackRoute
   AppAdminInvitacionesRoute: typeof AppAdminInvitacionesRoute
   AppEntrenarActividadRoute: typeof AppEntrenarActividadRoute
   AppEntrenarCronometroRoute: typeof AppEntrenarCronometroRoute
   AppEntrenarEjerciciosRoute: typeof AppEntrenarEjerciciosRoute
   AppEntrenarSesionRoute: typeof AppEntrenarSesionRoute
   AppPerfilActividadesRoute: typeof AppPerfilActividadesRoute
+  AppPerfilAyudaRoute: typeof AppPerfilAyudaRoute
   AppPerfilCiudadRoute: typeof AppPerfilCiudadRoute
   AppPerfilCompromisoRoute: typeof AppPerfilCompromisoRoute
   AppPerfilCreditosRoute: typeof AppPerfilCreditosRoute
@@ -924,12 +964,14 @@ const AppRouteChildren: AppRouteChildren = {
   AppInstalarRoute: AppInstalarRoute,
   AppOnboardingRoute: AppOnboardingRoute,
   AppIndexRoute: AppIndexRoute,
+  AppAdminFeedbackRoute: AppAdminFeedbackRoute,
   AppAdminInvitacionesRoute: AppAdminInvitacionesRoute,
   AppEntrenarActividadRoute: AppEntrenarActividadRoute,
   AppEntrenarCronometroRoute: AppEntrenarCronometroRoute,
   AppEntrenarEjerciciosRoute: AppEntrenarEjerciciosRoute,
   AppEntrenarSesionRoute: AppEntrenarSesionRoute,
   AppPerfilActividadesRoute: AppPerfilActividadesRoute,
+  AppPerfilAyudaRoute: AppPerfilAyudaRoute,
   AppPerfilCiudadRoute: AppPerfilCiudadRoute,
   AppPerfilCompromisoRoute: AppPerfilCompromisoRoute,
   AppPerfilCreditosRoute: AppPerfilCreditosRoute,

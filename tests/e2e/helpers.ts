@@ -17,3 +17,9 @@ export function authCookie(exp = Math.floor(Date.now() / 1000) + 3600) {
   }
   return `base64-${Buffer.from(JSON.stringify(session)).toString('base64url')}`
 }
+
+// «Hoy» pliega lo secundario en «Más de hoy» (usabilidad 3/3): lo despliega si está plegado.
+export async function openMoreToday(page: import('@playwright/test').Page) {
+  const toggle = page.getByRole('button', { name: /Más de hoy/ })
+  if ((await toggle.getAttribute('aria-expanded')) !== 'true') await toggle.click()
+}

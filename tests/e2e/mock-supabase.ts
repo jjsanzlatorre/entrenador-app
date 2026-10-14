@@ -309,6 +309,11 @@ const globalActivities: ActivityRow[] = (
   }
 ).activity_types.map((a) => ({ ...a, id: String(a.id), owner_id: null, archived: false }))
 let customActivities: ActivityRow[] = []
+// Usabilidad 3/3 (0044): feedback, plantillas de entreno y consejos cerrados.
+type Row = Record<string, unknown> & { id: string }
+let feedbackRows: Row[] = []
+let templateRows: Row[] = []
+let dismissedTips: string[] = []
 
 function sessionRow(p: Payload) {
   return {
@@ -397,6 +402,9 @@ export function startMockSupabase(port: number) {
         partnerPatches,
         pairInvites: progressSeed.pairInvites ?? [],
         customActivities,
+        feedbackRows,
+        templateRows,
+        dismissedTips,
         inviteCodes,
         inviteSettings,
         inviteAttempts,
@@ -460,6 +468,9 @@ export function startMockSupabase(port: number) {
     if (path === '/__reset') {
       sessions.clear()
       customActivities = []
+      feedbackRows = []
+      templateRows = []
+      dismissedTips = []
       saveCalls = 0
       progressSeed = { commitments: [], partnerLinks: [], partnerDays: {} }
       profile = { ...baseProfile }
@@ -1497,6 +1508,76 @@ export function startMockSupabase(port: number) {
         profile = { ...profile, ...patch }
       }
       return send(res, 200, rows(req, [profile]))
+    }
+    if (table === 'feedback') {
+      if (req.method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown>
+        const now = new Date().toISOString()
+        feedbackRows.unshift({
+          id: randomUUID(),
+          user_id: MOCK_USER_ID,
+          status: 'new',
+          app_version: null,
+          created_at: now,
+          updated_at: now,
+          ...body,
+        })
+        return send(res, 201, [])
+      }
+      if (req.method === 'PATCH') {
+        const id = eqParam(url, 'id')
+        const row = feedbackRows.find((f) => f.id === id)
+        if (!row) return send(res, 200, [])
+        Object.assign(row, (await readBody(req)) as Record<string, unknown>)
+        return send(res, 200, [row])
+      }
+      return send(res, 200, rows(req, feedbackRows))
+    }
+    if (table === 'workout_templates') {
+      const id = eqParam(url, 'id')
+      if (req.method === 'POST') {
+        const body = (await readBody(req)) as Record<string, unknown>
+        const now = new Date().toISOString()
+        const row: Row = {
+          id: randomUUID(),
+          user_id: MOCK_USER_ID,
+          activity_type_id: null,
+          created_at: now,
+          updated_at: now,
+          last_used_at: null,
+          ...body,
+        }
+        templateRows.push(row)
+        return send(res, 201, rows(req, [row]))
+      }
+      if (req.method === 'PATCH') {
+        const row = templateRows.find((t) => t.id === id)
+        if (!row) return send(res, 200, [])
+        Object.assign(row, (await readBody(req)) as Record<string, unknown>)
+        return send(res, 200, [row])
+      }
+      if (req.method === 'DELETE') {
+        templateRows = templateRows.filter((t) => t.id !== id)
+        return send(res, 204, undefined)
+      }
+      return send(res, 200, rows(req, templateRows))
+    }
+    if (table === 'dismissed_tips') {
+      if (req.method === 'POST') {
+        const body = (await readBody(req)) as { tip_id: string } | { tip_id: string }[]
+        for (const b of Array.isArray(body) ? body : [body])
+          if (!dismissedTips.includes(b.tip_id)) dismissedTips.push(b.tip_id)
+        return send(res, 201, [])
+      }
+      if (req.method === 'DELETE') {
+        dismissedTips = []
+        return send(res, 204, undefined)
+      }
+      return send(
+        res,
+        200,
+        dismissedTips.map((tip_id) => ({ tip_id })),
+      )
     }
     if (table === 'exercises') return send(res, 200, rows(req, exercises))
     if (table === 'activity_types') {

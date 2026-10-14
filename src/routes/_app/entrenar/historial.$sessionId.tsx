@@ -1,13 +1,18 @@
 import { useMemo } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, CloudUpload, Pencil, Trash2 } from 'lucide-react'
+import { CloudUpload, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { PairComparison } from '@/components/partners/pair'
 import { ReceivedReactions } from '@/components/partners/reactions'
 import { SessionBody } from '@/components/workout/session-view'
 import { SyncBadge } from '@/components/workout/sync-badge'
+import { SaveTemplateButton } from '@/components/workout/templates'
+import { BackLink } from '@/components/layout/back-link'
+import { useActiveSession } from '@/lib/workout/active-session'
+import { isRepeatable } from '@/lib/workout/templates'
+import { useStartFromStructure } from '@/lib/workout/templates-api'
 import { listOutbox } from '@/lib/offline/outbox'
 import { deleteSession, editSession, getLocalSession } from '@/lib/workout/active-session'
 import { fetchPreviousPerformance, fetchSession, isOnline } from '@/lib/workout/api'
@@ -48,6 +53,8 @@ function SessionDetailPage() {
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   const catalog = useCatalog(auth.userId)
+  const starter = useStartFromStructure(auth.userId)
+  const active = useActiveSession()
 
   const query = useQuery({
     queryKey: ['session', sessionId],
@@ -84,7 +91,7 @@ function SessionDetailPage() {
   if (query.isError || !session) {
     return (
       <div className="flex flex-col gap-3 p-4">
-        <BackLink />
+        <BackLink to="/entrenar" label="Entrenar" />
         <p className="text-muted-foreground">
           {query.isError ? query.error.message : 'No se ha encontrado la sesión.'}
         </p>
@@ -121,7 +128,7 @@ function SessionDetailPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <BackLink />
+      <BackLink to="/entrenar" label="Entrenar" />
 
       {nueva ? (
         <div className="rounded-2xl bg-emerald-700 p-4 text-white">
@@ -192,6 +199,20 @@ function SessionDetailPage() {
         <ReceivedReactions userId={auth.userId} kind="session" targetKey={session.id} />
       )}
 
+      {session.endedAt && isRepeatable(session) && (
+        <div className="grid grid-cols-2 gap-2">
+          {!active.session && (
+            <Button size="lg" disabled={starter.busy} onClick={() => void starter.repeat(session)}>
+              <RotateCcw /> Repetir
+            </Button>
+          )}
+          <SaveTemplateButton
+            userId={auth.userId}
+            session={session}
+            className={active.session ? 'col-span-2' : undefined}
+          />
+        </div>
+      )}
       <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" size="lg" onClick={() => void handleEdit()}>
           <Pencil /> Editar
@@ -211,16 +232,5 @@ function SessionDetailPage() {
         </Button>
       ) : null}
     </div>
-  )
-}
-
-function BackLink() {
-  return (
-    <Link
-      to="/entrenar"
-      className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-    >
-      <ChevronLeft className="size-4" /> Entrenar
-    </Link>
   )
 }

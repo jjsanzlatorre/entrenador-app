@@ -1,7 +1,9 @@
 import { useState } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { BackLink } from '@/components/layout/back-link'
+import { Tip } from '@/components/help/tip'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronDown, ChevronLeft, Plus, Watch } from 'lucide-react'
+import { ChevronDown, Plus, Watch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -104,13 +106,12 @@ function QuickActivityPage() {
 
   return (
     <div className="flex flex-col gap-5 p-4">
-      <Link
-        to="/entrenar"
-        className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-      >
-        <ChevronLeft className="size-4" /> Entrenar
-      </Link>
+      <BackLink to="/entrenar" label="Entrenar" />
       <h1 className="text-2xl font-bold">Registrar actividad</h1>
+      <Tip id="activity" title="Deporte o clase en una pantalla">
+        Elige la actividad, pon la duración («60», «1h15») y el esfuerzo, y «Guardar». Con «Nueva»
+        creas la tuya con su emoji.
+      </Tip>
 
       <div className="grid grid-cols-3 gap-2" role="group" aria-label="Tipo de actividad">
         {options.map((a) => (

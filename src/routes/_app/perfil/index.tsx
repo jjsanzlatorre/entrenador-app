@@ -4,6 +4,8 @@ import { useQueryClient } from '@tanstack/react-query'
 import {
   Bell,
   ChevronRight,
+  CircleHelp,
+  MessageSquareWarning,
   Download,
   ClipboardList,
   Info,
@@ -23,6 +25,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Page } from '@/components/page'
+import { FeedbackSheet } from '@/components/feedback/feedback-sheet'
 import { Switch } from '@/components/ui/switch'
 import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { resetAuthState, signOut } from '@/lib/auth'
@@ -38,6 +41,7 @@ function ProfilePage() {
   const router = useRouter()
   const queryClient = useQueryClient()
   const { profile } = auth
+  const [feedback, setFeedback] = useState(false)
 
   async function handleSignOut() {
     await signOut(queryClient)
@@ -62,28 +66,14 @@ function ProfilePage() {
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Datos personales</CardTitle>
-          <CardDescription>Altura y año de nacimiento.</CardDescription>
-        </CardHeader>
-        <CardContent className="text-muted-foreground text-sm">
-          <dl className="grid grid-cols-2 gap-2">
-            <dt>Altura</dt>
-            <dd>{profile.height_cm ? `${profile.height_cm} cm` : '—'}</dd>
-            <dt>Año de nacimiento</dt>
-            <dd>{profile.birth_year ?? '—'}</dd>
-          </dl>
-          <p className="mt-3 text-xs">Se editan en el perfil de entrenamiento.</p>
-        </CardContent>
-      </Card>
-
       <div className="flex flex-col gap-2">
         <Button asChild variant="outline" size="lg" className="justify-between">
           <Link to="/onboarding">
             <span className="flex items-center gap-2">
               <ClipboardList /> Perfil de entrenamiento
-              <span className="text-muted-foreground font-normal">objetivos, días…</span>
+              <span className="text-muted-foreground truncate font-normal">
+                objetivos, días, altura…
+              </span>
             </span>
             <ChevronRight />
           </Link>
@@ -158,12 +148,42 @@ function ProfilePage() {
         </CardContent>
       </Card>
 
-      {profile.role === 'admin' && (
-        <Button asChild variant="outline" size="lg">
-          <Link to="/admin/invitaciones">
-            <ShieldCheck /> Invitaciones y usuarios
+      <section aria-label="Ayuda" className="flex flex-col gap-2">
+        <h2 className="text-lg font-semibold">Ayuda</h2>
+        <Button asChild variant="outline" size="lg" className="justify-between">
+          <Link to="/perfil/ayuda">
+            <span className="flex items-center gap-2">
+              <CircleHelp /> Cómo funciona
+            </span>
+            <ChevronRight />
           </Link>
         </Button>
+        <Button
+          variant="outline"
+          size="lg"
+          className="justify-start"
+          onClick={() => setFeedback(true)}
+        >
+          <MessageSquareWarning /> Enviar feedback
+          <span className="text-muted-foreground font-normal">fallo, idea o algo incómodo</span>
+        </Button>
+      </section>
+      <FeedbackSheet open={feedback} onClose={() => setFeedback(false)} />
+
+      {profile.role === 'admin' && (
+        <section aria-label="Administración" className="flex flex-col gap-2">
+          <h2 className="text-lg font-semibold">Administración</h2>
+          <Button asChild variant="outline" size="lg" className="justify-start">
+            <Link to="/admin/invitaciones">
+              <ShieldCheck /> Invitaciones y usuarios
+            </Link>
+          </Button>
+          <Button asChild variant="outline" size="lg" className="justify-start">
+            <Link to="/admin/feedback">
+              <MessageSquareWarning /> Feedback recibido
+            </Link>
+          </Button>
+        </section>
       )}
 
       <Button asChild variant="ghost" size="lg" className="justify-between">

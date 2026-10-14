@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Tip } from '@/components/help/tip'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
@@ -185,6 +186,10 @@ function PlanPage() {
 
   return (
     <Page title="Plan">
+      <Tip id="plan" title="Tu semana planificada">
+        Toca una sesión para empezarla, moverla o saltarla; mantén pulsada y arrástrala a otro día.
+        En ⋯ «Opciones del plan» puedes pausar o desplazar todo el plan.
+      </Tip>
       <Card className="gap-2">
         <CardHeader>
           <CardTitle>{plan.data.name}</CardTitle>

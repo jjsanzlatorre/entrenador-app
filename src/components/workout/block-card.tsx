@@ -9,6 +9,7 @@ import {
   Plus,
   Replace,
   Trash2,
+  Unlink,
 } from 'lucide-react'
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
@@ -36,6 +37,17 @@ export type BlockActions = {
   onRevertSuggestion: (blockId: string, exerciseId: string) => void
   // Serie isométrica cronometrada: guarda el tiempo y la completa (arranca el descanso).
   onCompleteHold: (setId: string, durationS: number) => void
+  // Superseries (usabilidad 3/3): «Unir con el siguiente» y «Separar de la superserie».
+  onMergeNext: (blockId: string) => void
+  onSplit: (blockId: string, exerciseId: string) => void
+}
+
+// Arrastre (mantener pulsado el nombre y soltar sobre otro bloque) para unir en superserie.
+export type BlockDrag = {
+  bind: (id: string, label: string) => Record<string, unknown>
+  // Bloque bajo el dedo mientras se arrastra (resaltado como destino).
+  over: string | null
+  dragging: string | null
 }
 
 function lastSummary(last: LastPerformance | undefined, exercise: Exercise | undefined) {
@@ -64,6 +76,9 @@ export function BlockCard({
   lastByExercise,
   selectedSetId,
   actions,
+  canMergeNext = false,
+  groupable = false,
+  drag,
 }: {
   block: LocalBlock
   letter: string
@@ -73,6 +88,9 @@ export function BlockCard({
   lastByExercise: Map<string, LastPerformance> | undefined
   selectedSetId: string | null
   actions: BlockActions
+  canMergeNext?: boolean
+  groupable?: boolean
+  drag?: BlockDrag
 }) {
   const [menuFor, setMenuFor] = useState<string | null>(null)
   const isSuperset = block.exercises.length > 1
@@ -81,8 +99,17 @@ export function BlockCard({
 
   return (
     <section
-      className={cn('bg-card rounded-2xl border p-3 shadow-xs', isSuperset && 'border-primary/40')}
+      className={cn(
+        'bg-card rounded-2xl border p-3 shadow-xs transition-shadow',
+        isSuperset && 'border-primary/40',
+        drag?.dragging &&
+          drag.dragging !== block.id &&
+          drag.over === block.id &&
+          'ring-primary ring-4',
+        drag?.dragging === block.id && 'opacity-60',
+      )}
       aria-label={`Bloque ${letter}`}
+      {...(groupable ? { 'data-drop-block': block.id } : {})}
     >
       {isSuperset && (
         <p className="text-primary mb-2 flex items-center gap-1 text-xs font-semibold uppercase">
@@ -98,7 +125,10 @@ export function BlockCard({
           const code = isSuperset ? `${letter}${i + 1}` : letter
           return (
             <div key={be.exerciseId}>
-              <div className="mb-1 flex items-start gap-2">
+              <div
+                className="mb-1 flex items-start gap-2 select-none"
+                {...(groupable && drag ? drag.bind(block.id, exercise?.name ?? be.exerciseId) : {})}
+              >
                 <span className="bg-primary/10 text-primary mt-0.5 rounded-md px-1.5 py-0.5 text-xs font-bold">
                   {code}
                 </span>
@@ -236,8 +266,30 @@ export function BlockCard({
               setMenuFor(null)
             }}
           >
-            Añadir ejercicio en superserie
+            Añadir otro ejercicio en superserie
           </MenuButton>
+          {canMergeNext && (
+            <MenuButton
+              icon={Link2}
+              onClick={() => {
+                actions.onMergeNext(block.id)
+                setMenuFor(null)
+              }}
+            >
+              Unir con el siguiente (superserie)
+            </MenuButton>
+          )}
+          {isSuperset && block.blockType === 'superset' && menuFor && (
+            <MenuButton
+              icon={Unlink}
+              onClick={() => {
+                actions.onSplit(block.id, menuFor)
+                setMenuFor(null)
+              }}
+            >
+              Separar de la superserie
+            </MenuButton>
+          )}
           <MenuButton
             icon={Replace}
             disabled={!menuExercise}

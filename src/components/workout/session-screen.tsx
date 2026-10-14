@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Link, useNavigate } from '@tanstack/react-router'
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
@@ -27,6 +28,11 @@ import { cardioExerciseFor } from '@/lib/workout/session-kinds'
 import * as timed from '@/lib/workout/timed-blocks'
 import type { Exercise, LocalSession } from '@/lib/workout/types'
 import { PairBanner } from '@/components/partners/pair'
+import { AppMenuButton } from '@/components/layout/app-menu'
+import { Tip } from '@/components/help/tip'
+import { notifyUndoable, notifyWarning } from '@/lib/notify'
+import { useLongPressDrag } from '@/lib/plan/use-long-press-drag'
+import { getActiveSession } from '@/lib/workout/active-session'
 import { AddBlockSheet, type NewBlock } from './add-block-sheet'
 import { BlockCard, type BlockActions } from './block-card'
 import { ExercisePicker, type PickerMode } from './exercise-picker'
@@ -116,7 +122,21 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       setManualSelection(null)
     },
     onToggleWarmup: (setId) => updateActiveSession((s) => ops.toggleWarmup(s, setId, Date.now())),
-    onRemoveSet: (setId) => updateActiveSession((s) => ops.removeSet(s, setId, Date.now())),
+    onRemoveSet: (setId) => {
+      const current = getActiveSession()
+      const block = current?.blocks.find((b) => b.sets.some((x) => x.id === setId))
+      const position = block?.sets.findIndex((x) => x.id === setId) ?? -1
+      const removed = block?.sets[position]
+      updateActiveSession((s) => ops.removeSet(s, setId, Date.now()))
+      if (block && removed) {
+        notifyUndoable(`Serie ${removed.setIndex + 1} borrada`, () =>
+          updateActiveSession((s) => ops.restoreSet(s, block.id, removed, position, Date.now())),
+        )
+      }
+    },
+    onMergeNext: (blockId) => updateActiveSession((s) => ops.mergeWithNext(s, blockId, Date.now())),
+    onSplit: (blockId, exerciseId) =>
+      updateActiveSession((s) => ops.splitExercise(s, blockId, exerciseId, Date.now())),
     onAddSet: (blockId, exerciseId) => {
       updateActiveSession((s) => ops.addSet(s, blockId, exerciseId, Date.now()))
       setManualSelection(null)
@@ -138,6 +158,14 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       setManualSelection(null)
     },
   }
+
+  // Mantener pulsado el nombre de un ejercicio y soltarlo sobre otro bloque: superserie.
+  const { drag, bind } = useLongPressDrag((sourceId, targetId) => {
+    const before = getActiveSession()
+    updateActiveSession((s) => ops.mergeBlocks(s, sourceId, targetId, Date.now()))
+    if (getActiveSession() === before) notifyWarning('Esos ejercicios no se pueden unir')
+  }, 'drop-block')
+  const blockDrag = { bind, over: drag?.overDate ?? null, dragging: drag?.id ?? null }
 
   const skipRest = useCallback(() => updateActiveSession((s) => ops.clearRest(s)), [])
 
@@ -274,6 +302,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
             </div>
           </div>
           <SoundToggle className="-mr-1" />
+          <AppMenuButton className="-mr-1" />
           <Button size="lg" onClick={() => setFinishing(true)} className="h-11 px-4">
             {live ? 'Terminar' : 'Guardar'}
           </Button>
@@ -286,6 +315,13 @@ export function SessionScreen({ session }: { session: LocalSession }) {
           <p className="text-destructive rounded-lg border p-3 text-sm">{catalog.error.message}</p>
         )}
 
+        {live && session.blocks.some((b) => !timed.isTimedBlock(b)) && (
+          <Tip id="session-sets" title="Registrar series rápido">
+            ✓ o desliza la serie a la derecha para completarla (la siguiente se rellena con los
+            mismos valores); a la izquierda, para borrarla. Mantén pulsado el nombre de un ejercicio
+            y suéltalo sobre otro para hacer una superserie.
+          </Tip>
+        )}
         {session.blocks.length === 0 && (
           <div className="text-muted-foreground rounded-2xl border border-dashed p-6 text-center">
             <p className="font-medium">Sesión vacía</p>
@@ -317,6 +353,9 @@ export function SessionScreen({ session }: { session: LocalSession }) {
               lastByExercise={last.data}
               selectedSetId={selectedSetId}
               actions={actions}
+              groupable={ops.isGroupable(block)}
+              canMergeNext={ops.canMergeWithNext(session, block.id)}
+              drag={blockDrag}
             />
           ),
         )}
@@ -391,6 +430,24 @@ export function SessionScreen({ session }: { session: LocalSession }) {
         onClose={() => setAddingBlock(false)}
         onCreate={(b) => void handleNewBlock(b)}
       />
+
+      {drag &&
+        typeof document !== 'undefined' &&
+        createPortal(
+          <div
+            aria-hidden
+            className="bg-primary text-primary-foreground pointer-events-none fixed z-50 max-w-60 -translate-x-1/2 -translate-y-full rounded-xl px-3 py-2 text-sm font-semibold shadow-lg"
+            style={{ left: drag.x, top: drag.y - 12 }}
+          >
+            {drag.label}
+            <span className="block text-xs font-normal opacity-90">
+              {drag.overDate && drag.overDate !== drag.id
+                ? 'Suelta para hacer superserie'
+                : 'Suéltalo sobre otro ejercicio'}
+            </span>
+          </div>,
+          document.body,
+        )}
 
       {finishing && (
         <FinishSheet

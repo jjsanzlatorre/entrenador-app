@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
+import { Tip } from '@/components/help/tip'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { BookOpen, ChevronRight, CloudUpload, Play, Timer } from 'lucide-react'
+import { BookOpen, ChevronRight, CloudUpload, Play, RotateCcw, Timer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Page } from '@/components/page'
 import { StartSessionButtons } from '@/components/workout/start-session'
@@ -13,6 +14,7 @@ import { sessionTypeEmoji } from '@/lib/workout/session-kinds'
 import { activityEmoji, activityKey, activityLabel } from '@/lib/activities/catalog'
 import { cn } from '@/lib/utils'
 import { historySummary } from '@/lib/workout/summary'
+import { useStartFromStructure } from '@/lib/workout/templates-api'
 
 export const Route = createFileRoute('/_app/entrenar/')({
   ssr: false,
@@ -25,6 +27,7 @@ function TrainPage() {
   const { session } = useActiveSession()
   const history = useHistory(userId)
   const catalog = useCatalog(userId)
+  const starter = useStartFromStructure(userId)
 
   useEffect(() => {
     void loadActiveSession(userId)
@@ -59,6 +62,10 @@ function TrainPage() {
       ) : (
         <StartSessionButtons userId={userId} />
       )}
+      <Tip id="train" title="Empieza en dos toques">
+        «Empezar entreno» → «Repetir último entreno» o una plantilla. En el historial, «Repetir»
+        copia cualquier sesión con los pesos sugeridos.
+      </Tip>
 
       <Button asChild variant="outline" size="lg" className="justify-between">
         <Link to="/entrenar/ejercicios">
@@ -120,11 +127,11 @@ function TrainPage() {
         )}
         <ul className="flex flex-col gap-2">
           {shown.map((item) => (
-            <li key={item.id}>
+            <li key={item.id} className="flex items-stretch gap-1.5">
               <Link
                 to="/entrenar/historial/$sessionId"
                 params={{ sessionId: item.id }}
-                className="bg-card hover:bg-accent flex items-center gap-3 rounded-xl border p-3"
+                className="bg-card hover:bg-accent flex min-w-0 flex-1 items-center gap-3 rounded-xl border p-3"
               >
                 <div className="bg-muted flex w-12 shrink-0 flex-col items-center rounded-lg py-1 text-xs font-medium">
                   <span aria-hidden className="text-base">
@@ -146,6 +153,17 @@ function TrainPage() {
                 )}
                 <ChevronRight className="text-muted-foreground size-5" />
               </Link>
+              {!session && item.endedAt && item.exerciseIds.length > 0 && (
+                <button
+                  type="button"
+                  disabled={starter.busy}
+                  onClick={() => void starter.repeat(item.id)}
+                  aria-label={`Repetir «${item.title}»`}
+                  className="bg-card hover:bg-accent text-primary flex w-14 shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border text-[11px] font-medium"
+                >
+                  <RotateCcw className="size-5" /> Repetir
+                </button>
+              )}
             </li>
           ))}
         </ul>

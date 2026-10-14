@@ -61,6 +61,17 @@ sola vez para copiarla o mandarla por WhatsApp, y al entrar le obliga a cambiarl
 la sesión del día (a la hora que elijas) y un aviso suave si la semana va por detrás del
 compromiso (como mucho uno al día). Todo se puede desactivar.
 
+### Empezar y registrar rápido
+
+- «Empezar entreno» → **«Repetir último entreno»** o una de **«Mis plantillas»**: la sesión sale con los mismos ejercicios y series y los pesos sugeridos. En el historial, «Repetir» en cualquier sesión; en su detalle, «Guardar como plantilla».
+- En la sesión: ✓ o deslizar la serie a la derecha para completarla; a la izquierda para borrarla («Deshacer» en el aviso). Superserie: ⋮ → «Unir con el siguiente», o mantener pulsado el nombre de un ejercicio y soltarlo sobre otro.
+
+### Feedback y ayuda
+
+- Menú ⋯ (arriba a la derecha de cualquier pantalla) → «Enviar feedback»: fallo, idea o algo incómodo. Se adjuntan la pantalla, la fecha y el dispositivo.
+- El admin lo ve en Perfil → «Feedback recibido»: marcar hecho o descartado y «Exportar como texto» para pegarlo en Claude Code.
+- Perfil → «Cómo funciona»: guía breve por pantalla y «Volver a ver los consejos».
+
 ### Mover sesiones y el plan
 
 - **Una sesión**: en **Plan** o en **Hoy**, «Mover» abre una tira con esta semana y la

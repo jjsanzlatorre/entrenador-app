@@ -3,7 +3,7 @@ import { expect, test, type APIRequestContext, type BrowserContext } from '@play
 // Fase 6A: entrenador IA contra el simulador de Gemini del mock (nunca la API real).
 // - Check-in con energía 1 y agujetas 5 → la IA propone reducir; solo se aplica al aceptar.
 // - «Elegir plan» → «Recomiéndame un plan» → vista previa → Aceptar crea un plan de origen IA.
-import { MOCK, USER_ID, authCookie } from './helpers'
+import { MOCK, USER_ID, authCookie, openMoreToday } from './helpers'
 
 const SHOTS = process.env.E2E_SCREENSHOTS
 const PLAN = '6a000000-0000-4000-8000-000000000001'
@@ -118,6 +118,7 @@ test('ajuste del día: energía 1 y agujetas 5 → reducir, solo al aceptar', as
   const today = page.getByRole('region', { name: 'Plan de hoy' })
   await expect(today.getByText('Pierna pesada')).toBeVisible()
 
+  await openMoreToday(page)
   const checkin = page.getByRole('region', { name: 'Check-in de hoy' })
   await checkin.getByRole('button', { name: 'Sueño 3' }).click()
   await checkin.getByRole('button', { name: 'Energía 1' }).click()

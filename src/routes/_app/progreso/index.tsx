@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
+import { Tip } from '@/components/help/tip'
 import {
   Activity,
   BarChart3,
@@ -77,6 +78,10 @@ function ProgressPage() {
   const { auth } = Route.useRouteContext()
   return (
     <Page title="Progreso">
+      <Tip id="progress" title="Cómo vas">
+        Cumplimiento frente a tu compromiso, músculos trabajados, récords y logros. Todo se calcula
+        solo con lo que registras.
+      </Tip>
       <WeekAdherenceCard userId={auth.userId} />
       <AcwrAlert userId={auth.userId} />
       <ul className="flex flex-col gap-2">

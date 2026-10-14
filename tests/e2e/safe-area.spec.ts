@@ -132,6 +132,7 @@ test('vertical (Dynamic Island): cabeceras, navegación, pantallas completas, ho
     '/entrenador',
     '/progreso/logros',
     '/entrenar/cronometro',
+    '/perfil/ayuda',
   ]) {
     await page.goto(path)
     await expect(page.getByRole('heading').first()).toBeVisible()
@@ -213,11 +214,18 @@ test('horizontal (notch a un lado): nada queda bajo el notch ni la barra de gest
     '/onboarding',
     '/entrenar/actividad',
     '/entrenar/cronometro',
+    '/perfil/ayuda',
   ]) {
     await page.goto(path)
     await page.waitForLoadState('networkidle')
     await expectSafe(page, LANDSCAPE, `${path} (horizontal)`)
   }
+  // Menú ⋯ y hoja de feedback (usabilidad 3/3).
+  await page.goto('/perfil')
+  await page.getByRole('button', { name: 'Más opciones' }).click()
+  await page.getByRole('dialog').getByRole('button', { name: 'Enviar feedback' }).click()
+  await expect(page.getByRole('dialog', { name: 'Enviar feedback' })).toBeVisible()
+  await expectSafe(page, LANDSCAPE, 'feedback en horizontal')
   await page.goto('/entrenar')
   await page.getByRole('button', { name: 'Empezar entreno' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()

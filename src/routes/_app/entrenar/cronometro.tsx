@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useState } from 'react'
-import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
+import { BackLink } from '@/components/layout/back-link'
+import { Tip } from '@/components/help/tip'
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import {
-  ChevronLeft,
   Flag,
   Maximize2,
   Pause,
@@ -133,15 +134,14 @@ function TimerToolPage() {
   return (
     <div className="pb-nav flex flex-col gap-5 p-4">
       <div className="flex items-center justify-between">
-        <Link
-          to="/entrenar"
-          className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-        >
-          <ChevronLeft className="size-4" /> Entrenar
-        </Link>
+        <BackLink to="/entrenar" label="Entrenar" />
         <SoundToggle />
       </div>
       <h1 className="text-2xl font-bold">Cronómetro</h1>
+      <Tip id="timer-tool" title="Temporizadores sin sesión">
+        Elige el tipo, ajusta y «Empezar». Guarda tus favoritos y, al terminar, «Guardar como
+        sesión» si quieres que cuente.
+      </Tip>
 
       {run ? (
         <RunView

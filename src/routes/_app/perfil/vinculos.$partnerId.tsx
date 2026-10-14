@@ -1,7 +1,8 @@
 import { useState } from 'react'
+import { BackLink } from '@/components/layout/back-link'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Lock } from 'lucide-react'
+import { ChevronRight, Lock } from 'lucide-react'
 import { PERMISSION_INFO, sharedSummary } from '@/components/partners/permissions'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
@@ -24,14 +25,7 @@ function PartnerSettingsPage() {
   const { link, isPending, error } = usePartnerLink(auth.userId, partnerId)
   const [saving, setSaving] = useState<SharePerm | null>(null)
 
-  const back = (
-    <Link
-      to="/perfil/vinculos"
-      className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-    >
-      <ChevronLeft className="size-4" /> Pareja y amigos
-    </Link>
-  )
+  const back = <BackLink to="/perfil/vinculos" label="Pareja y amigos" />
 
   if (isPending) return <p className="text-muted-foreground p-6 text-center">Cargando…</p>
   if (!link) {

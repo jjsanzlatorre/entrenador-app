@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
+import { BackLink } from '@/components/layout/back-link'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { AlertTriangle, CalendarDays, ChevronLeft, Sparkles } from 'lucide-react'
+import { AlertTriangle, CalendarDays, Sparkles } from 'lucide-react'
 import { AiPlanSheet } from '@/components/ai/ai-plan-sheet'
 import { Chip } from '@/components/plan/chip'
 import { Badge } from '@/components/ui/badge'
@@ -59,12 +60,7 @@ function ChoosePlanPage() {
 
   return (
     <div className="flex flex-col gap-4 p-4">
-      <Link
-        to="/plan"
-        className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium"
-      >
-        <ChevronLeft className="size-4" /> Plan
-      </Link>
+      <BackLink to="/plan" label="Plan" />
       <h1 className="text-2xl font-bold">Elegir plan</h1>
       <p className="text-muted-foreground text-sm">
         Planes de 4 semanas: tres de progresión y una de descarga. Se reparten en tus días

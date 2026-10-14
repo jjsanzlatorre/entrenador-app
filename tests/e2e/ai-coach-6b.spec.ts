@@ -5,7 +5,7 @@ import { expect, test, type APIRequestContext, type BrowserContext } from '@play
 //   abrirla no llama a la IA; «Regenerar» sí (con confirmación).
 // - Los cambios propuestos (revisión y chat) solo se aplican al pulsar «Aceptar».
 // - Con la cuota del modelo pesado agotada (429) responde el normal (cadena de reserva).
-import { MOCK, USER_ID, authCookie } from './helpers'
+import { MOCK, USER_ID, authCookie, openMoreToday } from './helpers'
 
 const SHOTS = process.env.E2E_SCREENSHOTS
 const PLAN = '6b000000-0000-4000-8000-000000000001'
@@ -152,6 +152,7 @@ test('revisión semanal: se genera una vez, se guarda y los cambios solo al acep
   if (SHOTS) await page.setViewportSize({ width: 375, height: 812 })
 
   await page.goto('/')
+  await openMoreToday(page)
   const card = page.getByRole('link', { name: /Revisión semanal/ })
   await expect(card.getByText('¡Semana a medias, pero seguimos!')).toBeVisible()
   await expect(card.getByText('2 cambios propuestos')).toBeVisible()

@@ -1,9 +1,21 @@
 import type { ReactNode } from 'react'
+import { BackLink } from '@/components/layout/back-link'
 
-export function Page({ title, children }: { title: string; children: ReactNode }) {
+// Pantalla estándar: «Atrás» (si la hay) arriba a la izquierda, título y contenido. El menú ⋯
+// va arriba a la derecha (layout) y la acción principal, abajo.
+export function Page({
+  title,
+  back,
+  children,
+}: {
+  title: string
+  back?: { to: string; label: string }
+  children: ReactNode
+}) {
   return (
     <div className="flex flex-col gap-4 p-4">
-      <h1 className="text-2xl font-bold">{title}</h1>
+      {back && <BackLink to={back.to} label={back.label} />}
+      <h1 className="pr-10 text-2xl font-bold">{title}</h1>
       {children}
     </div>
   )

@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
-import { createFileRoute, Link } from '@tanstack/react-router'
+import { Tip } from '@/components/help/tip'
+import { createFileRoute } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { ChevronLeft, Send, Sparkles, Trash2 } from 'lucide-react'
+import { Send, Sparkles, Trash2 } from 'lucide-react'
 import { ChangeCard } from '@/components/ai/change-card'
 import { ChatAdjustCard, ChatPlanCard, DiscardedActions } from '@/components/ai/chat-actions'
 import { ChatRangeCard } from '@/components/ai/chat-range-card'
@@ -100,13 +101,12 @@ function CoachChatPage() {
   }
 
   return (
-    <Page title="Entrenador">
-      <div className="-mt-2 flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/">
-            <ChevronLeft /> Hoy
-          </Link>
-        </Button>
+    <Page title="Entrenador" back={{ to: '/', label: 'Hoy' }}>
+      <Tip id="coach" title="Pídeselo con tus palabras">
+        Por ejemplo: «muéveme la sesión del jueves» o «de hoy al domingo algo suave». Los cambios
+        salen como tarjetas y solo se aplican si pulsas «Aceptar».
+      </Tip>
+      <div className="-mt-2 flex items-center justify-end empty:hidden">
         {messages.length > 0 && (
           <Button variant="ghost" size="sm" onClick={() => setConfirmClear(true)}>
             <Trash2 /> Borrar conversación

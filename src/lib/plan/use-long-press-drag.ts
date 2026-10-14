@@ -20,12 +20,15 @@ export type DragState = {
   overDate: string | null
 }
 
-function dropDateAt(x: number, y: number): string | null {
+// `target`: atributo data-* del destino ('drop-date' en el plan; 'drop-block' en la sesión para
+// unir ejercicios en superserie). `overDate` es el valor de ese atributo bajo el dedo.
+function dropTargetAt(x: number, y: number, target: string): string | null {
   const el = document.elementFromPoint(x, y)
-  return el?.closest<HTMLElement>('[data-drop-date]')?.dataset.dropDate ?? null
+  return el?.closest<HTMLElement>(`[data-${target}]`)?.getAttribute(`data-${target}`) ?? null
 }
 
-export function useLongPressDrag(onDrop: (id: string, date: string) => void) {
+export function useLongPressDrag(onDrop: (id: string, date: string) => void, target = 'drop-date') {
+  const dropDateAt = (x: number, y: number) => dropTargetAt(x, y, target)
   const [drag, setDrag] = useState<DragState | null>(null)
   const dragRef = useRef<DragState | null>(null)
   const suppressClick = useRef(false)
@@ -48,12 +51,12 @@ export function useLongPressDrag(onDrop: (id: string, date: string) => void) {
       const delta = d.y < EDGE_PX ? -14 : d.y > h - EDGE_PX ? 14 : 0
       if (!delta) return
       window.scrollBy(0, delta)
-      const next = { ...d, overDate: dropDateAt(d.x, d.y) }
+      const next = { ...d, overDate: dropTargetAt(d.x, d.y, target) }
       dragRef.current = next
       setDrag(next)
     }, 30)
     return () => window.clearInterval(id)
-  }, [dragging])
+  }, [dragging, target])
 
   function update(x: number, y: number) {
     const d = dragRef.current

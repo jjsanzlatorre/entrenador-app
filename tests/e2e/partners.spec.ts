@@ -3,7 +3,7 @@ import { expect, test } from '@playwright/test'
 // Fase 7A: «Evolución de {nombre}» solo con las secciones compartidas, interruptores por persona
 // y unirse a un entreno en pareja (misma estructura, pesos propios y pair_group_id común).
 // La RLS real de cada permiso la cubren los tests PGlite (tests/db/partner-sharing.test.ts).
-import { MOCK, authCookie } from './helpers'
+import { MOCK, authCookie, openMoreToday } from './helpers'
 
 const SHOTS = process.env.E2E_SCREENSHOTS
 const shot = async (page: import('@playwright/test').Page, name: string) => {
@@ -76,6 +76,7 @@ test('la evolución de la otra persona solo enseña lo que comparte; los permiso
 
   // Desde «Nosotros», el nombre lleva a su evolución.
   await page.goto('/')
+  await openMoreToday(page)
   await shot(page, '7a-hoy-nosotros')
   const us = page.locator('[data-slot="card"]').filter({ hasText: 'Nosotros' })
   await us.getByRole('link', { name: 'Bea' }).click()

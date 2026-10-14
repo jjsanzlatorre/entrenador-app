@@ -63,6 +63,8 @@ export type AiInteractionStatus = 'pending' | 'ok' | 'invalid' | 'error'
 export type AiChatRole = 'user' | 'assistant'
 export type AiChangeResponse = 'accepted' | 'discarded'
 export type InviteCodeState = 'active' | 'used' | 'expired' | 'revoked'
+export type FeedbackKind = 'bug' | 'idea' | 'awkward'
+export type FeedbackStatus = 'new' | 'done' | 'discarded'
 
 export type Database = {
   public: {
@@ -802,6 +804,72 @@ export type Database = {
         }
         Relationships: []
       }
+      // 0044_feedback_templates_tips.sql
+      feedback: {
+        Row: {
+          id: string
+          user_id: string
+          kind: FeedbackKind
+          message: string
+          route: string | null
+          device: string | null
+          app_version: string | null
+          status: FeedbackStatus
+          created_at: string
+          updated_at: string
+        }
+        Insert: {
+          kind: FeedbackKind
+          message: string
+          route?: string | null
+          device?: string | null
+          app_version?: string | null
+        }
+        Update: {
+          status?: FeedbackStatus
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      workout_templates: {
+        Row: {
+          id: string
+          user_id: string
+          name: string
+          session_type: SessionType
+          activity_type_id: string | null
+          structure: Json
+          created_at: string
+          updated_at: string
+          last_used_at: string | null
+        }
+        Insert: {
+          id?: string
+          name: string
+          session_type: SessionType
+          activity_type_id?: string | null
+          structure: Json
+        }
+        Update: {
+          name?: string
+          structure?: Json
+          updated_at?: string
+          last_used_at?: string | null
+        }
+        Relationships: []
+      }
+      dismissed_tips: {
+        Row: {
+          user_id: string
+          tip_id: string
+          dismissed_at: string
+        }
+        Insert: {
+          tip_id: string
+        }
+        Update: { [_ in never]: never }
+        Relationships: []
+      }
       // 0043_plan_changes.sql (solo lectura; se escribe con apply_plan_change / undo_plan_change)
       plan_changes: {
         Row: {
@@ -1447,6 +1515,8 @@ export type DailyCheckinRow = Tables<'daily_checkins'>
 export type AiInteractionRow = Tables<'ai_interactions'>
 export type AiChatMessageRow = Tables<'ai_chat_messages'>
 export type PairInviteRow = Tables<'pair_invites'>
+export type FeedbackRow = Tables<'feedback'>
+export type WorkoutTemplateRow = Tables<'workout_templates'>
 export type ReactionRow = Tables<'reactions'>
 export type PushSubscriptionRow = Tables<'push_subscriptions'>
 export type NotificationSettingsRow = Tables<'notification_settings'>

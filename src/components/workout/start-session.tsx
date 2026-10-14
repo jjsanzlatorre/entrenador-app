@@ -9,6 +9,7 @@ import { useActivityTypes } from '@/lib/activities/hooks'
 import type { PartnerLink } from '@/lib/progress/api'
 import { startNewSession } from '@/lib/workout/active-session'
 import { START_OPTIONS, sessionTypeEmoji } from '@/lib/workout/session-kinds'
+import { QuickStartOptions } from './templates'
 import type { SessionType } from '@/types/database'
 
 // Botones de inicio: «Empezar entreno» (elige tipo), «Registrar actividad» y, si hay personas
@@ -80,6 +81,7 @@ export function StartSessionButtons({
         }}
         title={partner ? `¿Qué entrenáis ${partner.displayName} y tú?` : '¿Qué vas a entrenar?'}
       >
+        {!partner && <QuickStartOptions userId={userId} onStarted={() => setChoosing(false)} />}
         <div className="grid grid-cols-2 gap-2 pb-2">
           {START_OPTIONS.map((o) => (
             <button

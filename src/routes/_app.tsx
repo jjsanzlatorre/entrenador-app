@@ -2,6 +2,9 @@ import { useEffect } from 'react'
 import { createFileRoute, Outlet, redirect, useLocation } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
 import { BottomNav } from '@/components/bottom-nav'
+import { AppMenuButton } from '@/components/layout/app-menu'
+import { flushFeedbackOutbox } from '@/lib/feedback/api'
+import { initTips } from '@/lib/help/tips'
 import { useActivityTypes } from '@/lib/activities/hooks'
 import { onSessionsSynced, startSyncEngine } from '@/lib/offline/sync-engine'
 import { refreshPushSubscription } from '@/lib/notifications/push'
@@ -51,7 +54,11 @@ function AppLayout() {
     warmPageCache()
     void refreshPushSubscription()
     void applyPendingInvite(queryClient, userId)
-    return onSessionsSynced((ids) => {
+    void initTips(userId)
+    void flushFeedbackOutbox()
+    const onOnline = () => void flushFeedbackOutbox()
+    window.addEventListener('online', onOnline)
+    const unsubscribe = onSessionsSynced((ids) => {
       void queryClient.invalidateQueries({ queryKey: historyQueryKey(userId) })
       // Récords y cumplimiento dependen de las sesiones del servidor.
       for (const key of [
@@ -65,6 +72,10 @@ function AppLayout() {
       }
       for (const id of ids) void queryClient.invalidateQueries({ queryKey: ['session', id] })
     })
+    return () => {
+      window.removeEventListener('online', onOnline)
+      unsubscribe()
+    }
   }, [auth.userId, queryClient])
 
   // Márgenes de seguridad para TODAS las pantallas (también las de pantalla completa): arriba
@@ -72,7 +83,10 @@ function AppLayout() {
   // todo el ancho; abajo, la navegación inferior o la propia pantalla (CLAUDE.md §2).
   return (
     <div className="pt-safe px-safe min-h-dvh">
-      <div className={inSession ? 'mx-auto max-w-lg' : 'pb-nav mx-auto max-w-lg'}>
+      <div className={inSession ? 'mx-auto max-w-lg' : 'pb-nav relative mx-auto max-w-lg'}>
+        {/* Menú ⋯ de la pantalla: siempre arriba a la derecha (la sesión en curso lo lleva en
+            su cabecera). */}
+        {!inSession && <AppMenuButton className="absolute top-2 right-2 z-20" />}
         <main>
           <Outlet />
         </main>

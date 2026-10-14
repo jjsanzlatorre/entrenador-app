@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { ChevronLeft, MessageCircle } from 'lucide-react'
+import { MessageCircle } from 'lucide-react'
 import { WeeklyReviewView } from '@/components/ai/weekly-review'
 import { Page } from '@/components/page'
 import { Button } from '@/components/ui/button'
@@ -17,13 +17,8 @@ function ReviewPage() {
   const catalog = useCatalog(auth.userId)
   const name = (id: string) => catalog.byId.get(id)?.name ?? id
   return (
-    <Page title="Revisión semanal">
-      <div className="-mt-2 flex items-center justify-between">
-        <Button asChild variant="ghost" size="sm" className="-ml-2">
-          <Link to="/plan">
-            <ChevronLeft /> Plan
-          </Link>
-        </Button>
+    <Page title="Revisión semanal" back={{ to: '/plan', label: 'Plan' }}>
+      <div className="-mt-2 flex items-center justify-end">
         <Button asChild variant="ghost" size="sm">
           <Link to="/entrenador">
             <MessageCircle /> Preguntar

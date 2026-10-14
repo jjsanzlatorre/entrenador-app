@@ -228,6 +228,87 @@ export function substituteExercise(
   )
 }
 
+// Bloques que se pueden unir en superserie: series normales o superseries (no circuitos ni
+// bloques con temporizador).
+export function isGroupable(block: LocalBlock) {
+  return !isTimedBlock(block) && (block.blockType === 'straight' || block.blockType === 'superset')
+}
+
+// Une el bloque `sourceId` al bloque `targetId` (superserie): sus ejercicios y series pasan al
+// destino, que conserva su sitio. No se unen si comparten algún ejercicio.
+export function mergeBlocks(
+  session: LocalSession,
+  sourceId: string,
+  targetId: string,
+  now: number,
+): LocalSession {
+  if (sourceId === targetId) return session
+  const source = session.blocks.find((b) => b.id === sourceId)
+  const target = session.blocks.find((b) => b.id === targetId)
+  if (!source || !target || !isGroupable(source) || !isGroupable(target)) return session
+  const ids = new Set(target.exercises.map((e) => e.exerciseId))
+  if (source.exercises.some((e) => ids.has(e.exerciseId))) return session
+  const exercises = [...target.exercises, ...source.exercises]
+  const merged: LocalBlock = {
+    ...target,
+    blockType: 'superset',
+    exercises,
+    sets: [...target.sets, ...source.sets],
+  }
+  const blocks = session.blocks.flatMap((b) =>
+    b.id === sourceId ? [] : b.id === targetId ? [merged] : [b],
+  )
+  return bump({ ...session, blocks: reindexBlocks(blocks) }, now)
+}
+
+// «Unir con el siguiente»: el bloque siguiente pasa a formar superserie con este.
+export function mergeWithNext(session: LocalSession, blockId: string, now: number) {
+  const index = session.blocks.findIndex((b) => b.id === blockId)
+  const next = session.blocks[index + 1]
+  return index < 0 || !next ? session : mergeBlocks(session, next.id, blockId, now)
+}
+
+export function canMergeWithNext(session: Pick<LocalSession, 'blocks'>, blockId: string) {
+  const index = session.blocks.findIndex((b) => b.id === blockId)
+  const block = session.blocks[index]
+  const next = session.blocks[index + 1]
+  if (!block || !next || !isGroupable(block) || !isGroupable(next)) return false
+  const ids = new Set(block.exercises.map((e) => e.exerciseId))
+  return !next.exercises.some((e) => ids.has(e.exerciseId))
+}
+
+// «Separar de la superserie»: el ejercicio pasa a su propio bloque, justo después.
+export function splitExercise(
+  session: LocalSession,
+  blockId: string,
+  exerciseId: string,
+  now: number,
+  newId: IdFn = defaultId,
+): LocalSession {
+  const index = session.blocks.findIndex((b) => b.id === blockId)
+  const block = session.blocks[index]
+  if (!block || !isGroupable(block) || block.exercises.length < 2) return session
+  const exercise = block.exercises.find((e) => e.exerciseId === exerciseId)
+  if (!exercise) return session
+  const rest = block.exercises.filter((e) => e.exerciseId !== exerciseId)
+  const kept: LocalBlock = {
+    ...block,
+    blockType: rest.length > 1 ? 'superset' : 'straight',
+    exercises: rest,
+    sets: block.sets.filter((s) => s.exerciseId !== exerciseId),
+  }
+  const alone: LocalBlock = {
+    id: newId(),
+    order: index + 1,
+    blockType: 'straight',
+    exercises: [exercise],
+    sets: block.sets.filter((s) => s.exerciseId === exerciseId),
+  }
+  const blocks = [...session.blocks]
+  blocks.splice(index, 1, kept, alone)
+  return bump({ ...session, blocks: reindexBlocks(blocks) }, now)
+}
+
 export function moveBlock(
   session: LocalSession,
   blockId: string,
@@ -280,6 +361,29 @@ export function removeSet(session: LocalSession, setId: string, now: number): Lo
     session,
     block.id,
     (b) => ({ ...b, sets: reindexSets(b.sets.filter((s) => s.id !== setId)) }),
+    now,
+  )
+}
+
+// «Deshacer» tras borrar una serie: vuelve a su sitio (si el bloque sigue existiendo).
+export function restoreSet(
+  session: LocalSession,
+  blockId: string,
+  set: SetEntry,
+  position: number,
+  now: number,
+): LocalSession {
+  const block = session.blocks.find((b) => b.id === blockId)
+  if (!block || block.sets.some((s) => s.id === set.id)) return session
+  if (!block.exercises.some((e) => e.exerciseId === set.exerciseId)) return session
+  return mapBlock(
+    session,
+    blockId,
+    (b) => {
+      const sets = [...b.sets]
+      sets.splice(Math.min(Math.max(0, position), sets.length), 0, set)
+      return { ...b, sets: reindexSets(sets) }
+    },
     now,
   )
 }
@@ -337,6 +441,8 @@ export function updateSetAndFollowing(
   )
 }
 
+const CARRY_FIELDS = ['weightKg', 'reps', 'durationS', 'distanceM', 'calories'] as const
+
 export function toggleWarmup(session: LocalSession, setId: string, now: number) {
   const set = session.blocks.flatMap((b) => b.sets).find((s) => s.id === setId)
   return set ? updateSet(session, setId, { isWarmup: !set.isWarmup }, now) : session
@@ -350,6 +456,25 @@ export function toggleSetComplete(session: LocalSession, setId: string, now: num
   if (!block || !set) return session
 
   const completed = !set.completed
+  // Al completar una serie de trabajo, la siguiente pendiente del mismo ejercicio se precarga con
+  // los mismos valores en lo que tenga vacío (usabilidad 3/3).
+  const carryTo =
+    completed && !set.isWarmup && !isTimedBlock(block) && block.blockType !== 'circuit'
+      ? block.sets
+          .filter(
+            (s) =>
+              s.exerciseId === set.exerciseId &&
+              s.setIndex > set.setIndex &&
+              !s.completed &&
+              !s.isWarmup,
+          )
+          .sort((a, b) => a.setIndex - b.setIndex)[0]
+      : undefined
+  // Solo se rellenan los campos vacíos: una pirámide precargada de la última vez o lo prescrito
+  // por el plan se respetan (los cambios en series iguales ya se arrastran al editar).
+  const carried: SetPatch = {}
+  for (const key of CARRY_FIELDS)
+    if (set[key] !== null && carryTo && carryTo[key] === null) carried[key] = set[key]
   let next = mapBlock(
     session,
     block.id,
@@ -358,7 +483,9 @@ export function toggleSetComplete(session: LocalSession, setId: string, now: num
       sets: b.sets.map((s) =>
         s.id === setId
           ? { ...s, completed, completedAt: completed ? new Date(now).toISOString() : null }
-          : s,
+          : s.id === carryTo?.id
+            ? { ...s, ...carried }
+            : s,
       ),
     }),
     now,

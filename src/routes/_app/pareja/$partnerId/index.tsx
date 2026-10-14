@@ -1,7 +1,8 @@
 import { useMemo } from 'react'
+import { BackLink } from '@/components/layout/back-link'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight, Settings } from 'lucide-react'
+import { ChevronRight, Settings } from 'lucide-react'
 import { z } from 'zod'
 import { ReactionBar } from '@/components/partners/reactions'
 import { AdherenceOverview } from '@/components/progress/adherence'
@@ -53,11 +54,7 @@ function PartnerEvolutionPage() {
   const { link, isPending, error } = usePartnerLink(auth.userId, partnerId)
   const owner: DataOwner = { viewerId: auth.userId, userId: partnerId }
 
-  const back = (
-    <Link to="/" className="text-primary -ml-1 inline-flex items-center gap-1 text-sm font-medium">
-      <ChevronLeft className="size-4" /> Hoy
-    </Link>
-  )
+  const back = <BackLink to="/" label="Hoy" />
 
   if (isPending) return <p className="text-muted-foreground p-6 text-center">Cargando…</p>
   if (!link) {

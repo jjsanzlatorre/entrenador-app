@@ -1,6 +1,7 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
-import { ChevronRight, MessageCircle, Play } from 'lucide-react'
+import { ChevronDown, ChevronRight, MessageCircle, Play } from 'lucide-react'
+import { Tip } from '@/components/help/tip'
 import { WeeklyReviewCard } from '@/components/ai/weekly-review'
 import { PairInviteCards } from '@/components/partners/pair'
 import { ReactionsNotice } from '@/components/partners/reactions'
@@ -49,10 +50,7 @@ function TodayPage() {
 
   return (
     <Page title={name ? `Hola, ${name}` : 'Hoy'}>
-      <WeekAdherenceCard userId={auth.userId} />
-      <ReactionsNotice userId={auth.userId} />
-      <AcwrAlert userId={auth.userId} />
-      <PairInviteCards userId={auth.userId} canStart={!session} />
+      {/* Primero lo importante: la sesión en curso o la de hoy, empezar y la semana. */}
       {session ? (
         <Link
           to="/entrenar/sesion"
@@ -68,22 +66,81 @@ function TodayPage() {
           <ChevronRight className="size-6" />
         </Link>
       ) : null}
-      <WeeklyReviewCard review={review} />
+      <PairInviteCards userId={auth.userId} canStart={!session} />
       <TodayPlan userId={auth.userId} today={today} sex={auth.profile.sex} canStart={!session} />
       {!session && <StartSessionButtons userId={auth.userId} label="Entreno libre" />}
-      <CheckinCard userId={auth.userId} today={today} />
-      {ai.data?.configured && (
-        <Link
-          to="/entrenador"
-          className="bg-muted flex items-center gap-3 rounded-2xl p-3 text-sm font-medium"
-        >
-          <MessageCircle className="text-primary size-5" />
-          <span className="flex-1">Pregunta a tu entrenador</span>
-          <ChevronRight className="size-5" />
-        </Link>
-      )}
-      <UsCard userId={auth.userId} myName={name ?? 'Yo'} />
+      <WeekAdherenceCard userId={auth.userId} />
+      <AcwrAlert userId={auth.userId} />
+      <Tip id="today" title="Tu día de un vistazo">
+        Arriba, lo que toca hoy y el botón para empezar; en «Empezar entreno» puedes repetir el
+        último o usar una plantilla. Lo demás está en «Más de hoy».
+      </Tip>
+      <ReactionsNotice userId={auth.userId} />
+      <MoreToday>
+        <WeeklyReviewCard review={review} />
+        <CheckinCard userId={auth.userId} today={today} />
+        {ai.data?.configured && (
+          <Link
+            to="/entrenador"
+            className="bg-muted flex items-center gap-3 rounded-2xl p-3 text-sm font-medium"
+          >
+            <MessageCircle className="text-primary size-5" />
+            <span className="flex-1">Pregunta a tu entrenador</span>
+            <ChevronRight className="size-5" />
+          </Link>
+        )}
+        <UsCard userId={auth.userId} myName={name ?? 'Yo'} />
+      </MoreToday>
       {!session && <MonthSummaryPopup profile={auth.profile} />}
     </Page>
+  )
+}
+
+const MORE_KEY = 'today-more-open'
+
+// «Más de hoy»: check-in, revisión semanal, entrenador y pareja, plegados (se recuerda en el
+// dispositivo). El contenido se monta igualmente (la revisión semanal se genera sola).
+function MoreToday({ children }: { children: React.ReactNode }) {
+  const [open, setOpen] = useState(() => {
+    try {
+      return typeof window !== 'undefined' && localStorage.getItem(MORE_KEY) === '1'
+    } catch {
+      return false
+    }
+  })
+  function toggle() {
+    const next = !open
+    setOpen(next)
+    try {
+      localStorage.setItem(MORE_KEY, next ? '1' : '0')
+    } catch {
+      // sin almacenamiento: no se recuerda
+    }
+  }
+  return (
+    <section className="flex flex-col gap-3">
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls="today-more"
+        onClick={toggle}
+        className="bg-card flex min-h-12 items-center gap-2 rounded-2xl border px-4 py-2 text-left"
+      >
+        <span className="flex-1">
+          <span className="block font-semibold">Más de hoy</span>
+          <span className="text-muted-foreground block text-xs">
+            Check-in, revisión semanal, entrenador y pareja
+          </span>
+        </span>
+        <ChevronDown
+          className={
+            open ? 'size-5 rotate-180 transition-transform' : 'size-5 transition-transform'
+          }
+        />
+      </button>
+      <div id="today-more" hidden={!open} className="flex flex-col gap-3">
+        {children}
+      </div>
+    </section>
   )
 }

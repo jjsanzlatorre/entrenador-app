@@ -5,6 +5,7 @@ import { idbGet, idbPut } from '@/lib/offline/idb'
 import { isOnline, OfflineError, withTimeout } from '@/lib/workout/api'
 import type {
   Json,
+  PlanChangeKind,
   PlannedStatus,
   PlanFamily,
   SessionIntensity,
@@ -14,6 +15,7 @@ import type {
 } from '@/types/database'
 import { fromRow, toRow, type TrainingProfileData } from './profile'
 import type { ScheduledSession } from './schedule'
+import type { PlanChange, PlanPause } from './reschedule'
 import { parseBlocks, parseStructure } from './schema'
 import type { PlanBlock, PlanStructure } from './types'
 
@@ -118,6 +120,9 @@ export type ActivePlan = {
   startDate: string
   status: UserPlanStatus
   sessions: PlannedSession[]
+  // Pausas vigentes (0043) y el último cambio de fechas que se puede deshacer.
+  pauses?: PlanPause[]
+  lastChange?: { id: string; kind: PlanChangeKind; createdAt: string } | null
 }
 
 type PlannedRow = {
@@ -183,6 +188,7 @@ export function fetchActivePlan(userId: string): Promise<ActivePlan | null> {
           .order('date'),
       ),
     )
+    const changes = await fetchPlanChanges(userId, plan.id)
     return {
       id: plan.id,
       name: plan.name,
@@ -190,8 +196,68 @@ export function fetchActivePlan(userId: string): Promise<ActivePlan | null> {
       startDate: plan.start_date,
       status: plan.status,
       sessions: rows.map(toPlanned),
+      ...changes,
     }
   })
+}
+
+// Cambios de fechas sin deshacer (0043). Si la migración aún no está aplicada, el plan se ve
+// igual, sin pausas ni «deshacer».
+async function fetchPlanChanges(userId: string, planId: string) {
+  try {
+    const rows = check(
+      await withTimeout(
+        db()
+          .from('plan_changes')
+          .select('id, kind, params, created_at')
+          .eq('user_id', userId)
+          .eq('user_plan_id', planId)
+          .is('undone_at', null)
+          .order('created_at', { ascending: false })
+          .limit(50),
+      ),
+    )
+    const pauses = rows.flatMap((r) => {
+      const p = r.params as { from?: unknown; until?: unknown } | null
+      return r.kind === 'pause' && typeof p?.from === 'string' && typeof p.until === 'string'
+        ? [{ from: p.from, until: p.until }]
+        : []
+    })
+    const last = rows[0]
+    return {
+      pauses,
+      lastChange: last ? { id: last.id, kind: last.kind, createdAt: last.created_at } : null,
+    }
+  } catch (error) {
+    console.error('[plan_changes]', error)
+    return { pauses: [], lastChange: null }
+  }
+}
+
+// Aplica un cambio de fechas (mover, intercambiar, desplazar, pausar, repetir) en una
+// transacción. Devuelve el id del cambio para poder deshacerlo.
+export async function applyPlanChange(planId: string, change: PlanChange): Promise<string> {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para cambiar el plan')
+  if (change.error) throw new Error(change.error)
+  const result = check(
+    await withTimeout(
+      db().rpc('apply_plan_change', {
+        p_plan: planId,
+        p_kind: change.kind,
+        p_moves: change.moves.map((m) => ({ id: m.id, date: m.to })),
+        p_copies: change.copies.map((c) => ({ source_id: c.sourceId, date: c.date })),
+        p_new_start: change.newStart,
+        p_params: change.params,
+      }),
+    ),
+  ) as { change_id?: string }
+  if (!result.change_id) throw new Error('No se ha podido cambiar el plan')
+  return result.change_id
+}
+
+export async function undoPlanChange(changeId: string) {
+  if (!isOnline()) throw new OfflineError('Necesitas conexión para deshacer')
+  check(await withTimeout(db().rpc('undo_plan_change', { p_change: changeId })))
 }
 
 export async function createPlan(input: {

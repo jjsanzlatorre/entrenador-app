@@ -219,6 +219,13 @@ describe('tipos de sesión', () => {
     expect(session.blocks[0]?.sets[0]?.exerciseId).toBe('run')
   })
 
+  it('el cronómetro libre empieza en 0:00 (sin sumar la cuenta atrás que no tiene)', () => {
+    let session = createSessionOfType('u1', 'running', T0, sequentialIds())
+    const blockId = session.blocks[0]!.id
+    session = applyTimerAction(session, blockId, 'start-now', T0)
+    expect(session.blocks[0]!.timer?.startedAt).toBe(T0)
+  })
+
   it('Registrar actividad crea una sesión ya terminada', () => {
     const session = createQuickActivity(
       'u1',

@@ -23,6 +23,7 @@ import { Route as UnirseCodeRouteImport } from './routes/unirse.$code'
 import { Route as AppAdminInvitacionesRouteImport } from './routes/_app/admin/invitaciones'
 import { Route as AppEntrenarIndexRouteImport } from './routes/_app/entrenar/index'
 import { Route as AppEntrenarActividadRouteImport } from './routes/_app/entrenar/actividad'
+import { Route as AppEntrenarCronometroRouteImport } from './routes/_app/entrenar/cronometro'
 import { Route as AppEntrenarEjerciciosRouteImport } from './routes/_app/entrenar/ejercicios'
 import { Route as AppEntrenarSesionRouteImport } from './routes/_app/entrenar/sesion'
 import { Route as AppPerfilIndexRouteImport } from './routes/_app/perfil/index'
@@ -120,6 +121,11 @@ const AppEntrenarIndexRoute = AppEntrenarIndexRouteImport.update({
 const AppEntrenarActividadRoute = AppEntrenarActividadRouteImport.update({
   id: '/entrenar/actividad',
   path: '/entrenar/actividad',
+  getParentRoute: () => AppRoute,
+} as any)
+const AppEntrenarCronometroRoute = AppEntrenarCronometroRouteImport.update({
+  id: '/entrenar/cronometro',
+  path: '/entrenar/cronometro',
   getParentRoute: () => AppRoute,
 } as any)
 const AppEntrenarEjerciciosRoute = AppEntrenarEjerciciosRouteImport.update({
@@ -286,6 +292,7 @@ export interface FileRoutesByFullPath {
   '/unirse/$code': typeof UnirseCodeRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
+  '/entrenar/cronometro': typeof AppEntrenarCronometroRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/perfil/actividades': typeof AppPerfilActividadesRoute
@@ -330,6 +337,7 @@ export interface FileRoutesByTo {
   '/': typeof AppIndexRoute
   '/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/entrenar/actividad': typeof AppEntrenarActividadRoute
+  '/entrenar/cronometro': typeof AppEntrenarCronometroRoute
   '/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/perfil/actividades': typeof AppPerfilActividadesRoute
@@ -376,6 +384,7 @@ export interface FileRoutesById {
   '/_app/': typeof AppIndexRoute
   '/_app/admin/invitaciones': typeof AppAdminInvitacionesRoute
   '/_app/entrenar/actividad': typeof AppEntrenarActividadRoute
+  '/_app/entrenar/cronometro': typeof AppEntrenarCronometroRoute
   '/_app/entrenar/ejercicios': typeof AppEntrenarEjerciciosRoute
   '/_app/entrenar/sesion': typeof AppEntrenarSesionRoute
   '/_app/perfil/actividades': typeof AppPerfilActividadesRoute
@@ -422,6 +431,7 @@ export interface FileRouteTypes {
     | '/unirse/$code'
     | '/admin/invitaciones'
     | '/entrenar/actividad'
+    | '/entrenar/cronometro'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
     | '/perfil/actividades'
@@ -466,6 +476,7 @@ export interface FileRouteTypes {
     | '/'
     | '/admin/invitaciones'
     | '/entrenar/actividad'
+    | '/entrenar/cronometro'
     | '/entrenar/ejercicios'
     | '/entrenar/sesion'
     | '/perfil/actividades'
@@ -511,6 +522,7 @@ export interface FileRouteTypes {
     | '/_app/'
     | '/_app/admin/invitaciones'
     | '/_app/entrenar/actividad'
+    | '/_app/entrenar/cronometro'
     | '/_app/entrenar/ejercicios'
     | '/_app/entrenar/sesion'
     | '/_app/perfil/actividades'
@@ -651,6 +663,13 @@ declare module '@tanstack/react-router' {
       path: '/entrenar/actividad'
       fullPath: '/entrenar/actividad'
       preLoaderRoute: typeof AppEntrenarActividadRouteImport
+      parentRoute: typeof AppRoute
+    }
+    '/_app/entrenar/cronometro': {
+      id: '/_app/entrenar/cronometro'
+      path: '/entrenar/cronometro'
+      fullPath: '/entrenar/cronometro'
+      preLoaderRoute: typeof AppEntrenarCronometroRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/entrenar/ejercicios': {
@@ -867,6 +886,7 @@ interface AppRouteChildren {
   AppIndexRoute: typeof AppIndexRoute
   AppAdminInvitacionesRoute: typeof AppAdminInvitacionesRoute
   AppEntrenarActividadRoute: typeof AppEntrenarActividadRoute
+  AppEntrenarCronometroRoute: typeof AppEntrenarCronometroRoute
   AppEntrenarEjerciciosRoute: typeof AppEntrenarEjerciciosRoute
   AppEntrenarSesionRoute: typeof AppEntrenarSesionRoute
   AppPerfilActividadesRoute: typeof AppPerfilActividadesRoute
@@ -906,6 +926,7 @@ const AppRouteChildren: AppRouteChildren = {
   AppIndexRoute: AppIndexRoute,
   AppAdminInvitacionesRoute: AppAdminInvitacionesRoute,
   AppEntrenarActividadRoute: AppEntrenarActividadRoute,
+  AppEntrenarCronometroRoute: AppEntrenarCronometroRoute,
   AppEntrenarEjerciciosRoute: AppEntrenarEjerciciosRoute,
   AppEntrenarSesionRoute: AppEntrenarSesionRoute,
   AppPerfilActividadesRoute: AppPerfilActividadesRoute,

@@ -5,6 +5,7 @@ export const PAGES_TO_CACHE = [
   '/entrenar',
   '/entrenar/sesion',
   '/entrenar/ejercicios',
+  '/entrenar/cronometro',
   '/progreso/musculos',
   '/progreso/carga',
   '/plan',

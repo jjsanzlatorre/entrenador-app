@@ -61,6 +61,27 @@ sola vez para copiarla o mandarla por WhatsApp, y al entrar le obliga a cambiarl
 la sesión del día (a la hora que elijas) y un aviso suave si la semana va por detrás del
 compromiso (como mucho uno al día). Todo se puede desactivar.
 
+### Mover sesiones y el plan
+
+- **Una sesión**: en **Plan** o en **Hoy**, «Mover» abre una tira con esta semana y la
+  siguiente; un toque la mueve (⚠ = aviso de reglas, no bloquea) y el aviso trae **Deshacer**.
+  «Intercambiar» la cambia de día con otra sesión pendiente. En el calendario semanal también se
+  puede **mantener pulsada** una sesión y arrastrarla a otro día.
+- **El plan entero**: **Plan → Opciones del plan**: **Desplazar** (las pendientes ± días o semanas
+  desde una fecha), **Pausar** (vacaciones o lesión: lo pendiente se reprograma después, mismos
+  días de la semana) y **Repetir esta semana**. Siempre con vista previa antes de aplicar y
+  «Deshacer el último cambio» después.
+
+### Cronómetro
+
+- En cualquier bloque con tiempo (descanso, EMOM, AMRAP, Tabata, For Time, intervalos) hay
+  **Pantalla completa**: dígitos enormes, color por fase, minuto o ronda, ejercicio actual y
+  siguiente. Tocar en cualquier sitio pausa o continúa. Se abre sola al empezar un bloque
+  (desmarcable); en los descansos, solo si lo activas.
+- **Entrenar → Cronómetro**: cronómetro, cuenta atrás, EMOM, AMRAP, Tabata e intervalos
+  personalizados, sin crear sesión. Guarda tus configuraciones como **favoritas** y, al terminar,
+  **Guardar como sesión**.
+
 ### Compartir un logro
 
 En **Mis logros**, en el resumen de una sesión con récord, en **Cumplimiento** (semana

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
-import { BookOpen, ChevronRight, CloudUpload, Play } from 'lucide-react'
+import { BookOpen, ChevronRight, CloudUpload, Play, Timer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Page } from '@/components/page'
 import { StartSessionButtons } from '@/components/workout/start-session'
@@ -64,6 +64,17 @@ function TrainPage() {
         <Link to="/entrenar/ejercicios">
           <span className="flex items-center gap-2">
             <BookOpen /> Biblioteca de ejercicios
+          </span>
+          <ChevronRight />
+        </Link>
+      </Button>
+      <Button asChild variant="outline" size="lg" className="justify-between">
+        <Link to="/entrenar/cronometro">
+          <span className="flex items-center gap-2">
+            <Timer /> Cronómetro
+            <span className="text-muted-foreground text-xs font-normal">
+              EMOM, AMRAP, Tabata, intervalos…
+            </span>
           </span>
           <ChevronRight />
         </Link>

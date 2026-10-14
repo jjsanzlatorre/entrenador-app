@@ -181,8 +181,11 @@ test('Hoy: planificada, atrasada, check-in offline, sugerencia de peso y aviso a
   await expect(page.getByText('0 de 1 (0 %)')).toBeVisible()
   await page.getByRole('button', { name: /Full body C/ }).click()
   const sheet = page.getByRole('dialog')
-  await sheet.getByRole('button', { name: 'Mover' }).click()
-  await sheet.getByRole('button', { name: 'miércoles 7 oct (con aviso)' }).click()
+  await sheet.getByRole('button', { name: 'Mover', exact: true }).click()
+  await page
+    .getByRole('dialog')
+    .getByRole('button', { name: /^Mover al miércoles 7 oct \(con aviso\)/ })
+    .click()
   await expect(
     page.getByText('Pierna pesada el día antes de frontón (el jueves 8 oct).'),
   ).toBeVisible()

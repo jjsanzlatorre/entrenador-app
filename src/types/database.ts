@@ -55,6 +55,7 @@ export type PlanFamily = 'running' | 'swimming' | 'strength' | 'hyrox' | 'deka' 
 export type UserPlanStatus = 'active' | 'completed' | 'archived'
 export type PlanSource = 'template' | 'ai'
 export type PlannedStatus = 'planned' | 'done' | 'skipped' | 'moved'
+export type PlanChangeKind = 'move' | 'swap' | 'shift' | 'pause' | 'repeat'
 export type SessionIntensity = 'easy' | 'moderate' | 'hard'
 export type AiInteractionKind =
   'plan_generation' | 'daily_adjust' | 'weekly_review' | 'chat' | 'exercise_swap'
@@ -801,6 +802,24 @@ export type Database = {
         }
         Relationships: []
       }
+      // 0043_plan_changes.sql (solo lectura; se escribe con apply_plan_change / undo_plan_change)
+      plan_changes: {
+        Row: {
+          id: string
+          user_id: string
+          user_plan_id: string
+          kind: PlanChangeKind
+          params: Json
+          before: Json
+          inserted: string[]
+          previous_start: string | null
+          created_at: string
+          undone_at: string | null
+        }
+        Insert: { [_ in never]: never }
+        Update: { [_ in never]: never }
+        Relationships: []
+      }
       // 0023_phase5b.sql
       daily_checkins: {
         Row: {
@@ -1226,6 +1245,22 @@ export type Database = {
       set_planned_session_done: {
         Args: { p_planned: string; p_done: boolean; p_workout?: string | null }
         Returns: undefined
+      }
+      // 0043_plan_changes.sql
+      apply_plan_change: {
+        Args: {
+          p_plan: string
+          p_kind: PlanChangeKind
+          p_moves: Json
+          p_copies?: Json
+          p_new_start?: string | null
+          p_params?: Json
+        }
+        Returns: Json
+      }
+      undo_plan_change: {
+        Args: { p_change: string }
+        Returns: Json
       }
       // 0023_phase5b.sql
       recent_exercise_sets: {

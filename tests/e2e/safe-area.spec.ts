@@ -131,6 +131,7 @@ test('vertical (Dynamic Island): cabeceras, navegación, pantallas completas, ho
     '/entrenar/actividad',
     '/entrenador',
     '/progreso/logros',
+    '/entrenar/cronometro',
   ]) {
     await page.goto(path)
     await expect(page.getByRole('heading').first()).toBeVisible()
@@ -176,6 +177,14 @@ test('vertical (Dynamic Island): cabeceras, navegación, pantallas completas, ho
   await page.mouse.wheel(0, 2000)
   await expectSafe(page, PORTRAIT, '/entrenar/sesion con scroll')
 
+  // Cronómetro a pantalla completa (se abre solo al empezar).
+  await page.goto('/entrenar/cronometro')
+  await page.getByRole('button', { name: 'Cuenta atrás', exact: true }).click()
+  await page.getByRole('button', { name: 'Empezar sin cuenta atrás' }).click()
+  await expect(page.getByRole('dialog', { name: /a pantalla completa/ })).toBeVisible()
+  await expectSafe(page, PORTRAIT, 'cronómetro a pantalla completa')
+  await page.getByRole('button', { name: 'Salir de pantalla completa' }).click()
+
   // Hoja inferior con su pie y un aviso (toast) arriba.
   await page.goto('/perfil/actividades')
   await page.getByRole('button', { name: 'Nueva actividad' }).click()
@@ -197,7 +206,14 @@ test('horizontal (notch a un lado): nada queda bajo el notch ni la barra de gest
   await page.setViewportSize({ width: 844, height: 390 })
   await simulateInsets(page, LANDSCAPE)
   await login(page)
-  for (const path of ['/', '/entrenar', '/perfil', '/onboarding', '/entrenar/actividad']) {
+  for (const path of [
+    '/',
+    '/entrenar',
+    '/perfil',
+    '/onboarding',
+    '/entrenar/actividad',
+    '/entrenar/cronometro',
+  ]) {
     await page.goto(path)
     await page.waitForLoadState('networkidle')
     await expectSafe(page, LANDSCAPE, `${path} (horizontal)`)
@@ -206,4 +222,10 @@ test('horizontal (notch a un lado): nada queda bajo el notch ni la barra de gest
   await page.getByRole('button', { name: 'Empezar entreno' }).click()
   await expect(page.getByRole('dialog')).toBeVisible()
   await expectSafe(page, LANDSCAPE, 'hoja en horizontal')
+
+  await page.goto('/entrenar/cronometro')
+  await page.getByRole('button', { name: 'AMRAP', exact: true }).click()
+  await page.getByRole('button', { name: 'Empezar sin cuenta atrás' }).click()
+  await expect(page.getByRole('dialog', { name: /a pantalla completa/ })).toBeVisible()
+  await expectSafe(page, LANDSCAPE, 'cronómetro a pantalla completa (horizontal)')
 })

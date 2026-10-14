@@ -4,6 +4,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { searchExercises } from '@/lib/workout/search'
 import { suggestAlternatives } from '@/lib/workout/substitution'
 import type { Exercise } from '@/lib/workout/types'
+import { CreateExerciseSheet, NoResults } from './create-exercise-sheet'
 import { EMPTY_FILTER, ExerciseFilters, type FilterState } from './exercise-filters'
 import { ExerciseListItem } from './exercise-list-item'
 
@@ -15,6 +16,7 @@ export type PickerMode =
 const MAX_RESULTS = 80
 
 export function ExercisePicker({
+  userId,
   mode,
   exercises,
   equipment,
@@ -24,6 +26,8 @@ export function ExercisePicker({
   onPick,
   onClose,
 }: {
+  // Con usuario, si no hay resultados se puede crear el ejercicio sin salir de la sesión.
+  userId?: string
   mode: PickerMode | null
   exercises: Exercise[]
   equipment: string[]
@@ -34,6 +38,7 @@ export function ExercisePicker({
   onClose: () => void
 }) {
   const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER)
+  const [creating, setCreating] = useState<string | null>(null)
   const exclude = useMemo(() => new Set(excludeIds), [excludeIds])
 
   const suggestions = useMemo(
@@ -112,11 +117,16 @@ export function ExercisePicker({
           <p className="text-muted-foreground py-4 text-center text-sm">Cargando ejercicios…</p>
         )}
         {error && <p className="text-destructive py-2 text-sm">{error}</p>}
-        {!loading && results.length === 0 && !error && (
-          <p className="text-muted-foreground py-4 text-center text-sm">
-            Nada con esos filtros. Puedes crear tu propio ejercicio en Entrenar → Ejercicios.
-          </p>
-        )}
+        {!loading &&
+          results.length === 0 &&
+          !error &&
+          (userId ? (
+            <NoResults query={filter.query} onCreate={(name) => setCreating(name)} />
+          ) : (
+            <p className="text-muted-foreground py-4 text-center text-sm">
+              Nada con esos filtros. Puedes crear tu propio ejercicio en Entrenar → Ejercicios.
+            </p>
+          ))}
         <ul className="divide-y">
           {results.map((e) => (
             <ExerciseListItem
@@ -130,6 +140,18 @@ export function ExercisePicker({
           ))}
         </ul>
       </div>
+      {userId && (
+        <CreateExerciseSheet
+          open={creating !== null}
+          initialName={creating ?? ''}
+          userId={userId}
+          onClose={() => setCreating(null)}
+          onCreated={(e) => {
+            setFilter(EMPTY_FILTER)
+            onPick(e)
+          }}
+        />
+      )}
     </Sheet>
   )
 }

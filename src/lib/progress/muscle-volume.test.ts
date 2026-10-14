@@ -104,6 +104,50 @@ describe('muscleVolume', () => {
   })
 })
 
+describe('movilidad y máquinas de cardio', () => {
+  const lib = new Map<
+    string,
+    { category?: string; muscles: { muscleId: string; role: MuscleRole }[] }
+  >([
+    ['pigeon_stretch', { category: 'mobility', ...m(['glutes'], ['quads']) }],
+    ['treadmill_run', { category: 'cardio', ...m(['quads', 'hamstrings'], ['calves']) }],
+    ['back_squat', { category: 'strength', ...m(['quads', 'glutes']) }],
+  ])
+
+  it('los ejercicios de movilidad no suman series efectivas', () => {
+    const v = muscleVolume(
+      [session('s1', 'strength', '2026-09-28T09:00:00', 45)],
+      [
+        { sessionId: 's1', exerciseId: 'pigeon_stretch', sets: 3 },
+        { sessionId: 's1', exerciseId: 'back_squat', sets: 2 },
+      ],
+      lib,
+    )
+    expect(setsOf(v, 'glutes')).toBe(2)
+    expect(setsOf(v, 'quads')).toBe(2)
+  })
+
+  it('cinta en una sesión de carrera: solo cuenta la aproximación (sin doble cuenta)', () => {
+    const v = muscleVolume(
+      [session('s1', 'running', '2026-09-28T09:00:00', 30)],
+      [{ sessionId: 's1', exerciseId: 'treadmill_run', sets: 1 }],
+      lib,
+    )
+    expect(setsOf(v, 'quads')).toBe(2)
+    expect(v.get('quads')!.approxSets).toBe(2)
+  })
+
+  it('cinta dentro de un entreno de fuerza: suma como un ejercicio más', () => {
+    const v = muscleVolume(
+      [session('s1', 'strength', '2026-09-28T09:00:00', 60)],
+      [{ sessionId: 's1', exerciseId: 'treadmill_run', sets: 1 }],
+      lib,
+    )
+    expect(setsOf(v, 'quads')).toBe(1)
+    expect(setsOf(v, 'calves')).toBe(0.5)
+  })
+})
+
 describe('aproximación de cardio y deportes', () => {
   it('carrera de 30 min: 2 series a cuádriceps, isquios, gemelos y glúteo', () => {
     expect(cardioApproxSets('running', 30)).toEqual([

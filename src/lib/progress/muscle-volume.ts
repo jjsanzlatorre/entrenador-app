@@ -55,7 +55,12 @@ export type VolumeSession = Pick<
   'id' | 'sessionType' | 'activityTypeId' | 'startedAt' | 'endedAt' | 'durationMin'
 >
 
-type MuscleCatalog = Map<string, { muscles: { muscleId: string; role: MuscleRole }[] }>
+// category: los ejercicios de movilidad (estiramientos, 90/90…) tienen músculos para buscarlos,
+// pero no suman series efectivas.
+type MuscleCatalog = Map<
+  string,
+  { category?: string; muscles: { muscleId: string; role: MuscleRole }[] }
+>
 
 // De dónde salen las series de un músculo: un ejercicio o un tipo de cardio/deporte.
 export type Contribution =
@@ -92,11 +97,19 @@ export function muscleVolume(
 ): VolumeMap {
   const ids = new Set(sessions.map((s) => s.id))
   const map: VolumeMap = new Map()
+  // Sesiones de cardio o deporte con aproximación por duración: sus ejercicios de cardio
+  // (cinta, bici estática…) no suman otra vez.
+  const approxSessions = new Set(
+    sessions
+      .filter((s) => cardioApproxSets(activityKey(s), sessionMinutes(s), lookup).length > 0)
+      .map((s) => s.id),
+  )
 
   for (const c of setCounts) {
     if (!ids.has(c.sessionId) || c.sets <= 0) continue
     const exercise = catalog.get(c.exerciseId)
-    if (!exercise) continue
+    if (!exercise || exercise.category === 'mobility') continue
+    if (exercise.category === 'cardio' && approxSessions.has(c.sessionId)) continue
     for (const { muscleId, role } of exercise.muscles) {
       const sets = c.sets * (role === 'primary' ? 1 : 0.5)
       const v = entry(map, muscleId)

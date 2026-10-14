@@ -1,0 +1,305 @@
+{
+  "_comment": "Máquinas de cardio. Las series muestran distancia, tiempo y/o calorías según la máquina (src/lib/workout/fields.ts). SkiErg, remo ergómetro y air bike ya estaban en exercises.json. npm run seed:sql genera la migración.",
+  "migration": "0036_seed_exercises_cardio_machines.sql",
+  "description": "Semilla: máquinas de cardio (escaladora, bici estática, cinta, elíptica, echo bike…) con su técnica. Requiere 0026.",
+  "exercises": [
+    {
+      "id": "stair_climber",
+      "name": "Escaladora / StairMaster",
+      "aliases": [
+        "stairmaster",
+        "stair climber",
+        "stepmill",
+        "step mill",
+        "escaleras",
+        "máquina de escaleras",
+        "subir escaleras"
+      ],
+      "category": "cardio",
+      "tracking_type": "duration_only",
+      "equipment": ["stair_climber"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Torso erguido, todo el pie en el escalón y las manos solo para equilibrarse.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["calves", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Sube a la máquina con ella parada y elige un ritmo que puedas mantener hablando a medias.",
+          "Apoya todo el pie en cada escalón y empuja con el talón para que trabaje el glúteo.",
+          "Mantén el torso erguido; las manos rozan los pasamanos solo para no perder el equilibrio."
+        ],
+        "mistakes": [
+          "Colgarse de los pasamanos e inclinarse hacia delante: quita trabajo a las piernas.",
+          "Pisar solo con la punta del pie.",
+          "Empezar demasiado rápido y tener que parar a los pocos minutos."
+        ]
+      }
+    },
+    {
+      "id": "stationary_bike",
+      "name": "Bici estática",
+      "aliases": [
+        "stationary bike",
+        "bicicleta estática",
+        "upright bike",
+        "cicloergómetro",
+        "bike"
+      ],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["stationary_bike"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sillín a la altura de la cadera, rodilla casi estirada abajo y pedaleo redondo.",
+      "primary": ["quads"],
+      "secondary": ["glutes", "calves", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Ajusta el sillín: con el pedal abajo, la rodilla queda ligeramente flexionada.",
+          "Coloca la parte delantera del pie sobre el pedal y aprieta las correas si las hay.",
+          "Pedalea redondo, empujando y tirando, con la cadera quieta sobre el sillín.",
+          "Sube la resistencia en vez de pedalear sin control a muchas revoluciones."
+        ],
+        "mistakes": [
+          "Sillín demasiado bajo: carga las rodillas.",
+          "Balancear la cadera de lado a lado.",
+          "Encorvar la espalda y cargar el peso en las manos."
+        ]
+      }
+    },
+    {
+      "id": "recumbent_bike",
+      "name": "Bici reclinada",
+      "aliases": ["recumbent bike", "bicicleta reclinada", "bici horizontal", "bici con respaldo"],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["stationary_bike"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Espalda apoyada, rodilla casi estirada al alejar el pedal y ritmo constante.",
+      "primary": ["quads"],
+      "secondary": ["glutes", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Ajusta el asiento para que, con el pedal lejos, la rodilla quede casi estirada.",
+          "Apoya la espalda y la cadera en el respaldo y sujeta las asas laterales.",
+          "Pedalea a un ritmo constante, empujando con todo el pie."
+        ],
+        "mistakes": [
+          "Asiento tan cerca que las rodillas suben hacia el pecho.",
+          "Bloquear la rodilla de golpe al estirar.",
+          "Separar la espalda del respaldo para empujar."
+        ]
+      }
+    },
+    {
+      "id": "treadmill_run",
+      "name": "Cinta de correr",
+      "aliases": ["treadmill", "cinta", "correr en cinta", "treadmill run", "tapiz rodante"],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["treadmill"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Paso corto y frecuente, mirada al frente y un 1 % de inclinación para imitar la calle.",
+      "primary": ["quads", "hamstrings"],
+      "secondary": ["calves", "glutes"],
+      "technique": {
+        "steps": [
+          "Ponte en los laterales, arranca la cinta despacio y entra caminando.",
+          "Pon un 1 % de inclinación para que se parezca más a correr fuera.",
+          "Corre en el centro de la cinta con pasos cortos, mirando al frente y con los brazos relajados.",
+          "Para bajar la velocidad poco a poco antes de salir; usa la pinza de seguridad."
+        ],
+        "mistakes": [
+          "Agarrarse a la barra delantera mientras se corre.",
+          "Zancada demasiado larga, aterrizando con el talón muy por delante del cuerpo.",
+          "Mirar los pies o la pantalla todo el rato."
+        ]
+      }
+    },
+    {
+      "id": "incline_walk",
+      "name": "Caminar en cinta inclinada",
+      "aliases": [
+        "incline walk",
+        "caminata inclinada",
+        "treadmill walk",
+        "andar en cinta",
+        "12-3-30",
+        "inclined walking"
+      ],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["treadmill"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Inclinación alta y paso firme sin agarrarse: trabaja glúteo y gemelo con poco impacto.",
+      "primary": ["glutes", "calves"],
+      "secondary": ["hamstrings", "quads"],
+      "technique": {
+        "steps": [
+          "Empieza caminando en llano y sube la inclinación poco a poco (10–15 %).",
+          "Camina erguido, con pasos firmes y apoyando todo el pie.",
+          "Mueve los brazos con naturalidad; la velocidad es la que te permita no agarrarte."
+        ],
+        "mistakes": [
+          "Colgarse de los pasamanos: quita casi todo el trabajo.",
+          "Inclinarse mucho hacia delante desde la cintura.",
+          "Subir la inclinación de golpe sin calentar los gemelos."
+        ]
+      }
+    },
+    {
+      "id": "curved_treadmill",
+      "name": "Cinta curva",
+      "aliases": [
+        "curved treadmill",
+        "assault runner",
+        "woodway",
+        "skillmill",
+        "cinta sin motor",
+        "cinta manual"
+      ],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["treadmill"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sin motor: tú marcas la velocidad. Adelante en la curva acelera, atrás frena.",
+      "primary": ["quads", "hamstrings"],
+      "secondary": ["glutes", "calves"],
+      "technique": {
+        "steps": [
+          "Sube sujetándote a los pasamanos y empieza a caminar en la parte baja de la curva.",
+          "Para acelerar, avanza hacia la parte delantera; para frenar, vuelve hacia atrás.",
+          "Corre sobre la parte delantera del pie con el torso ligeramente inclinado."
+        ],
+        "mistakes": [
+          "Pisar demasiado arriba de la curva y acelerar sin querer.",
+          "Aterrizar con el talón como en una cinta normal.",
+          "Bajar de golpe con la cinta todavía girando."
+        ]
+      }
+    },
+    {
+      "id": "elliptical",
+      "name": "Elíptica",
+      "aliases": [
+        "elliptical",
+        "elliptical trainer",
+        "bicicleta elíptica",
+        "cross trainer",
+        "eliptica"
+      ],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["elliptical"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sin impacto: pies planos en los pedales, torso erguido y empuja y tira con los brazos.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["hamstrings", "calves", "chest"],
+      "technique": {
+        "steps": [
+          "Sube con los pedales parados y coloca todo el pie en el centro de cada pedal.",
+          "Mantén el torso erguido y la mirada al frente.",
+          "Empuja y tira de las asas a la vez que mueves las piernas, con un ritmo constante.",
+          "Ajusta la resistencia para que no vayas solo a inercia."
+        ],
+        "mistakes": [
+          "Levantar los talones y empujar solo con las puntas.",
+          "Inclinarse sobre las asas fijas y apoyar el peso en ellas.",
+          "Resistencia tan baja que el pedal arrastra a las piernas."
+        ]
+      }
+    },
+    {
+      "id": "echo_bike",
+      "name": "Echo bike",
+      "aliases": ["rogue echo bike", "fan bike", "bici de aire echo", "bike erg de aire"],
+      "category": "cardio",
+      "tracking_type": "calories",
+      "equipment": ["echo_bike"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Como la air bike: empuja y tira con brazos y piernas; cuanto más fuerte, más resistencia.",
+      "primary": ["quads"],
+      "secondary": ["hamstrings", "glutes", "delt_front", "triceps"],
+      "technique": {
+        "steps": [
+          "Ajusta el sillín para que la rodilla quede algo flexionada con el pedal abajo.",
+          "Coge las asas a la altura del pecho y empuja una mientras tiras de la otra.",
+          "Coordina brazos y piernas y mantén el core firme para no balancearte.",
+          "En los esprints, sube el ritmo poco a poco: la resistencia crece muy rápido."
+        ],
+        "mistakes": [
+          "Empezar a tope y quedarse vacío a los 20 segundos.",
+          "Usar solo las piernas y dejar los brazos muertos.",
+          "Sillín demasiado bajo."
+        ]
+      }
+    },
+    {
+      "id": "bike_erg",
+      "name": "BikeErg",
+      "aliases": ["bike erg", "concept2 bike", "bici concept2"],
+      "category": "cardio",
+      "tracking_type": "distance_time",
+      "equipment": ["bike_erg"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Bici de aire de Concept2: el damper marca la sensación de resistencia; potencia constante.",
+      "primary": ["quads"],
+      "secondary": ["glutes", "calves", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Ajusta sillín y manillar: rodilla casi estirada abajo y espalda neutra.",
+          "Elige un damper entre 3 y 6 para empezar.",
+          "Pedalea redondo y mira los vatios o el ritmo por 1000 m en la pantalla para mantenerlo."
+        ],
+        "mistakes": [
+          "Poner el damper al máximo pensando que trabaja más.",
+          "Botar sobre el sillín a cadencias muy altas.",
+          "Encorvar la espalda hacia el manillar."
+        ]
+      }
+    },
+    {
+      "id": "versaclimber",
+      "name": "VersaClimber",
+      "aliases": ["versa climber", "escaladora vertical", "climber", "escalador vertical"],
+      "category": "cardio",
+      "tracking_type": "duration_only",
+      "equipment": ["versaclimber"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Movimiento de escalar: brazo y pierna contrarios a la vez, con recorridos largos.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["delt_front", "lats", "calves"],
+      "technique": {
+        "steps": [
+          "Ata los pies a los pedales y coge las asas a la altura de los hombros.",
+          "Sube un brazo a la vez que la pierna contraria, como al escalar.",
+          "Usa recorridos largos y un ritmo que puedas mantener; acelera acortando el recorrido."
+        ],
+        "mistakes": [
+          "Recorridos muy cortos y rápidos desde el principio.",
+          "Echar la cadera hacia atrás y alejarse de la máquina.",
+          "Tirar solo con los brazos."
+        ]
+      }
+    }
+  ]
+}

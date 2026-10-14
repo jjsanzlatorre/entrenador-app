@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { loadAllSeedExercises } from '../../../scripts/seed-exercises'
 import { isLazyPublicFile } from '../../../scripts/vite-sw-plugin'
 import {
   EXERCISE_IMAGE_MAX_BYTES,
@@ -11,16 +12,10 @@ import {
 } from './exercise-images'
 
 const root = join(import.meta.dirname, '../../..')
-const seedIds = (
-  JSON.parse(readFileSync(join(root, 'supabase/seed/exercises.json'), 'utf8')) as {
-    exercises: { id: string }[]
-  }
-).exercises.map((e) => e.id)
-const technique = (
-  JSON.parse(readFileSync(join(root, 'supabase/seed/exercise_technique.json'), 'utf8')) as {
-    technique: Record<string, { steps: string[]; mistakes: string[] }>
-  }
-).technique
+// Toda la biblioteca: exercises.json + supabase/seed/exercises/*.json.
+const library = loadAllSeedExercises(root)
+const seedIds = library.exercises.map((e) => e.id)
+const technique = library.technique
 const imagesDir = join(root, 'public/exercises')
 
 describe('técnica en texto (fase 6C)', () => {

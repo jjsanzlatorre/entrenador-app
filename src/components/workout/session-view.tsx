@@ -17,8 +17,8 @@ import {
   type PersonalRecord,
 } from '@/lib/progress/records'
 import { sessionStats, tonnage } from '@/lib/workout/calc'
-import { setFields } from '@/lib/workout/fields'
-import { formatClock, formatInt, formatKg } from '@/lib/workout/format'
+import { formatSetValues } from '@/lib/workout/fields'
+import { formatInt } from '@/lib/workout/format'
 import { muscleName } from '@/lib/workout/labels'
 import {
   formatDistance,
@@ -350,18 +350,7 @@ function Stat({ label, value, hint }: { label: string; value: string; hint?: str
 }
 
 function formatSet(set: SetEntry, exercise: Exercise | undefined) {
-  const fields = setFields(exercise?.trackingType ?? 'weight_reps', exercise?.category)
-  return fields
-    .map((f) => {
-      const v = set[f]
-      if (v === null) return '—'
-      if (f === 'weightKg') return `${formatKg(v)} kg`
-      if (f === 'reps') return `${v} reps`
-      if (f === 'durationS') return formatClock(v)
-      if (f === 'distanceM') return `${formatKg(v)} m`
-      return `${v} kcal`
-    })
-    .join(' × ')
+  return formatSetValues(set, exercise)
 }
 
 function paceText(set: SetEntry) {

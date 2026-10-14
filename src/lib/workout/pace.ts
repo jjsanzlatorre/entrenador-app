@@ -9,10 +9,19 @@ const SWIM_EXERCISES = new Set([
   'swim_breaststroke',
   'swim_drills',
 ])
-const BIKE_EXERCISES = new Set(['bike', 'spinning', 'air_bike'])
+const BIKE_EXERCISES = new Set([
+  'bike',
+  'spinning',
+  'air_bike',
+  'echo_bike',
+  'stationary_bike',
+  'recumbent_bike',
+  'bike_erg',
+])
+const RUN_EXERCISES = new Set(['run', 'treadmill_run', 'curved_treadmill'])
 
 export function paceKindForExercise(exerciseId: string): PaceKind | null {
-  if (exerciseId === 'run') return 'run'
+  if (RUN_EXERCISES.has(exerciseId)) return 'run'
   if (SWIM_EXERCISES.has(exerciseId)) return 'swim'
   if (BIKE_EXERCISES.has(exerciseId)) return 'bike'
   return null

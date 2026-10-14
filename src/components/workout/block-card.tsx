@@ -13,7 +13,7 @@ import {
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
-import { setFields } from '@/lib/workout/fields'
+import { fieldSpecs, formatSetValues } from '@/lib/workout/fields'
 import { formatClock, formatKg } from '@/lib/workout/format'
 import type { SetPatch } from '@/lib/workout/session-ops'
 import type { Exercise, LastPerformance, LocalBlock } from '@/lib/workout/types'
@@ -34,6 +34,8 @@ export type BlockActions = {
   onSubstitute: (blockId: string, exercise: Exercise) => void
   onRemoveExercise: (blockId: string, exerciseId: string) => void
   onRevertSuggestion: (blockId: string, exerciseId: string) => void
+  // Serie isométrica cronometrada: guarda el tiempo y la completa (arranca el descanso).
+  onCompleteHold: (setId: string, durationS: number) => void
 }
 
 function lastSummary(last: LastPerformance | undefined, exercise: Exercise | undefined) {
@@ -44,10 +46,7 @@ function lastSummary(last: LastPerformance | undefined, exercise: Exercise | und
     if (exercise?.trackingType === 'weight_reps' && s.weightKg !== null)
       return `${formatKg(s.weightKg)}×${s.reps ?? '—'}`
     if (s.reps !== null) return `${s.reps}`
-    if (s.distanceM !== null) return `${formatKg(s.distanceM)} m`
-    if (s.durationS !== null) return formatClock(s.durationS)
-    if (s.calories !== null) return `${s.calories} kcal`
-    return '—'
+    return formatSetValues(s, exercise)
   })
   const date = new Date(last.endedAt).toLocaleDateString('es-ES', {
     day: 'numeric',
@@ -93,7 +92,7 @@ export function BlockCard({
       <div className="flex flex-col gap-4">
         {block.exercises.map((be, i) => {
           const exercise = exercisesById.get(be.exerciseId)
-          const fields = setFields(exercise?.trackingType ?? 'weight_reps', exercise?.category)
+          const specs = fieldSpecs(exercise)
           const sets = block.sets.filter((s) => s.exerciseId === be.exerciseId)
           const last = lastSummary(lastByExercise?.get(be.exerciseId), exercise)
           const code = isSuperset ? `${letter}${i + 1}` : letter
@@ -159,7 +158,7 @@ export function BlockCard({
                   <SetRow
                     key={set.id}
                     set={set}
-                    fields={fields}
+                    specs={specs}
                     label={`${set.setIndex + 1}`}
                     selected={selectedSetId === set.id}
                     onSelect={() => actions.onSelectSet(set.id)}
@@ -167,6 +166,11 @@ export function BlockCard({
                     onToggleComplete={() => actions.onToggleComplete(set.id)}
                     onToggleWarmup={() => actions.onToggleWarmup(set.id)}
                     onRemove={() => actions.onRemoveSet(set.id)}
+                    onCompleteHold={
+                      exercise?.trackingType === 'time'
+                        ? (durationS) => actions.onCompleteHold(set.id, durationS)
+                        : undefined
+                    }
                   />
                 ))}
               </div>

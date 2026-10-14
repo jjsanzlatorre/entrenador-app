@@ -1,0 +1,678 @@
+{
+  "_comment": "Máquinas de gimnasio y poleas. npm run seed:sql genera la migración.",
+  "migration": "0038_seed_exercises_gym_machines.sql",
+  "description": "Semilla: máquinas de gimnasio y poleas (hack squat, prensa inclinada, pec deck, remo sentado, abductores…) con su técnica. Requiere 0026.",
+  "exercises": [
+    {
+      "id": "hack_squat",
+      "name": "Sentadilla hack",
+      "aliases": ["hack squat", "hack", "sentadilla en máquina hack", "máquina hack"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Espalda apoyada en el respaldo, pies en el centro y bajar hasta 90° o algo más.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors"],
+      "technique": {
+        "steps": [
+          "Colócate con la espalda y los hombros bien apoyados en las almohadillas.",
+          "Pies en el centro de la plataforma, a la anchura de la cadera.",
+          "Quita los seguros y baja controlando hasta que los muslos pasen de paralelo si tu movilidad lo permite.",
+          "Sube empujando con todo el pie sin bloquear las rodillas arriba."
+        ],
+        "mistakes": [
+          "Despegar los talones de la plataforma.",
+          "Rodillas que se van hacia dentro.",
+          "Bloquear las rodillas de golpe arriba."
+        ]
+      }
+    },
+    {
+      "id": "incline_leg_press",
+      "name": "Prensa inclinada 45°",
+      "aliases": [
+        "incline leg press",
+        "prensa 45",
+        "prensa de 45 grados",
+        "leg press 45",
+        "prensa inclinada"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Cadera pegada al respaldo, bajar hasta 90° de rodilla y empujar sin bloquear.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Siéntate con la espalda y la cadera bien apoyadas en el respaldo.",
+          "Pies a la anchura de la cadera en el centro de la plataforma; más arriba trabaja más el glúteo.",
+          "Quita los seguros y baja despacio hasta unos 90° de rodilla, sin que se levante la cadera.",
+          "Empuja con todo el pie hasta casi estirar y vuelve a bajar controlando."
+        ],
+        "mistakes": [
+          "Bajar tanto que la cadera se despega y la lumbar se redondea.",
+          "Bloquear las rodillas arriba.",
+          "Poner las manos en las rodillas para empujar."
+        ]
+      }
+    },
+    {
+      "id": "smith_squat",
+      "name": "Sentadilla en multipower",
+      "aliases": [
+        "smith machine squat",
+        "sentadilla smith",
+        "multipower",
+        "sentadilla en smith",
+        "sentadilla guiada"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["smith"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Barra guiada en la espalda alta, pies algo adelantados y bajar con el torso firme.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors", "core"],
+      "technique": {
+        "steps": [
+          "Colócate bajo la barra con ella apoyada en la parte alta de la espalda.",
+          "Adelanta un poco los pies respecto a la barra, a la anchura de los hombros.",
+          "Desbloquea girando la barra y baja hasta paralelo con el pecho alto.",
+          "Sube empujando el suelo y vuelve a bloquear la barra al terminar."
+        ],
+        "mistakes": [
+          "Pies justo debajo de la barra: carga mucho las rodillas.",
+          "Olvidar bloquear la barra al acabar.",
+          "Redondear la lumbar abajo."
+        ]
+      }
+    },
+    {
+      "id": "pec_deck",
+      "name": "Contractor de pecho (pec deck)",
+      "aliases": [
+        "pec deck",
+        "peck deck",
+        "butterfly",
+        "aperturas en máquina",
+        "máquina de aperturas",
+        "contractor",
+        "chest fly machine"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 75,
+      "technique_notes": "Codos algo flexionados a la altura del pecho; junta los brazos sin encoger hombros.",
+      "primary": ["chest"],
+      "secondary": ["delt_front"],
+      "technique": {
+        "steps": [
+          "Ajusta el asiento para que los agarres queden a la altura del pecho.",
+          "Apoya la espalda, saca pecho y lleva los hombros atrás.",
+          "Junta los brazos delante del pecho con los codos ligeramente doblados.",
+          "Vuelve despacio hasta notar el estiramiento sin pasar de la línea de los hombros."
+        ],
+        "mistakes": [
+          "Despegar la espalda y encorvarse al cerrar.",
+          "Abrir tanto que los hombros sufren.",
+          "Dejar que el peso choque al volver."
+        ]
+      }
+    },
+    {
+      "id": "reverse_pec_deck",
+      "name": "Pájaro en máquina (pec deck inverso)",
+      "aliases": [
+        "reverse pec deck",
+        "reverse fly machine",
+        "pájaros en máquina",
+        "deltoides posterior en máquina",
+        "rear delt machine"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Sentado mirando a la máquina, abre los brazos casi estirados hacia atrás.",
+      "primary": ["delt_rear"],
+      "secondary": ["upper_back"],
+      "technique": {
+        "steps": [
+          "Siéntate mirando al respaldo con el pecho apoyado y los agarres a la altura de los hombros.",
+          "Con los brazos casi estirados, ábrelos hacia atrás en un arco.",
+          "Aprieta un segundo atrás y vuelve despacio."
+        ],
+        "mistakes": [
+          "Encoger los hombros hacia las orejas.",
+          "Doblar los codos y convertirlo en un remo.",
+          "Despegar el pecho del respaldo para tirar."
+        ]
+      }
+    },
+    {
+      "id": "chest_press_machine",
+      "name": "Press de pecho en máquina",
+      "aliases": [
+        "chest press",
+        "machine chest press",
+        "press en máquina",
+        "press banca en máquina",
+        "press horizontal en máquina"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Agarres a la altura del pecho, hombros atrás y empuje sin bloquear los codos.",
+      "primary": ["chest"],
+      "secondary": ["triceps", "delt_front"],
+      "technique": {
+        "steps": [
+          "Ajusta el asiento para que los agarres queden a la altura de la mitad del pecho.",
+          "Apoya la espalda y junta los omóplatos.",
+          "Empuja hacia delante hasta casi estirar los brazos.",
+          "Vuelve despacio hasta notar el estiramiento en el pecho."
+        ],
+        "mistakes": [
+          "Asiento demasiado bajo o alto: empujan los hombros.",
+          "Despegar la espalda del respaldo.",
+          "Bloquear los codos de golpe."
+        ]
+      }
+    },
+    {
+      "id": "shoulder_press_machine",
+      "name": "Press de hombro en máquina",
+      "aliases": [
+        "machine shoulder press",
+        "shoulder press",
+        "press militar en máquina",
+        "press de hombros sentado en máquina"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Agarres a la altura de los hombros, espalda apoyada y empujar hacia arriba.",
+      "primary": ["delt_front"],
+      "secondary": ["delt_side", "triceps"],
+      "technique": {
+        "steps": [
+          "Ajusta el asiento para que los agarres queden a la altura de los hombros.",
+          "Apoya la espalda en el respaldo y aprieta el abdomen.",
+          "Empuja hacia arriba hasta casi estirar los brazos y baja controlando."
+        ],
+        "mistakes": [
+          "Arquear la lumbar para empujar.",
+          "Bajar poco el recorrido.",
+          "Encoger los hombros arriba."
+        ]
+      }
+    },
+    {
+      "id": "seated_cable_row",
+      "name": "Remo sentado en polea",
+      "aliases": [
+        "seated cable row",
+        "remo en polea baja",
+        "remo gironda",
+        "low row",
+        "cable row",
+        "remo con triángulo"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["cable"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Torso erguido y quieto; tira llevando los codos atrás y junta los omóplatos.",
+      "primary": ["upper_back", "lats"],
+      "secondary": ["biceps", "delt_rear"],
+      "technique": {
+        "steps": [
+          "Siéntate con los pies en los apoyos y las rodillas algo flexionadas.",
+          "Coge el agarre con la espalda recta y el pecho alto.",
+          "Tira hacia el abdomen llevando los codos atrás y juntando los omóplatos.",
+          "Vuelve estirando los brazos sin dejar que el torso se vaya adelante."
+        ],
+        "mistakes": [
+          "Balancear el torso adelante y atrás para mover el peso.",
+          "Redondear la espalda al estirar.",
+          "Encoger los hombros al tirar."
+        ]
+      }
+    },
+    {
+      "id": "machine_row",
+      "name": "Remo en máquina",
+      "aliases": [
+        "machine row",
+        "remo sentado en máquina",
+        "chest supported row",
+        "remo con pecho apoyado"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Pecho apoyado en el respaldo; tira de los codos hacia atrás sin despegarte.",
+      "primary": ["upper_back", "lats"],
+      "secondary": ["biceps", "delt_rear"],
+      "technique": {
+        "steps": [
+          "Ajusta el asiento y el apoyo para que los agarres queden a la altura del pecho.",
+          "Apoya el pecho y coge los agarres con los brazos estirados.",
+          "Tira llevando los codos atrás y aprieta la espalda un segundo.",
+          "Vuelve despacio hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Despegar el pecho del apoyo para tirar con la espalda baja.",
+          "Encoger los hombros.",
+          "Recorrido corto."
+        ]
+      }
+    },
+    {
+      "id": "close_grip_pulldown",
+      "name": "Jalón agarre estrecho",
+      "aliases": [
+        "close grip pulldown",
+        "jalón con triángulo",
+        "jalón neutro",
+        "v-bar pulldown",
+        "jalón estrecho"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["cable", "machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Agarre estrecho o neutro; baja al pecho llevando los codos hacia las costillas.",
+      "primary": ["lats"],
+      "secondary": ["biceps", "upper_back"],
+      "technique": {
+        "steps": [
+          "Siéntate con las rodillas bajo los rodillos y coge el triángulo o una barra estrecha.",
+          "Inclina un poco el torso hacia atrás y saca pecho.",
+          "Tira hacia la parte alta del pecho llevando los codos hacia abajo y pegados.",
+          "Sube estirando los brazos del todo y controlando."
+        ],
+        "mistakes": [
+          "Echarse muy atrás y convertirlo en un remo.",
+          "Tirar con los brazos sin bajar los hombros.",
+          "Soltar el peso de golpe arriba."
+        ]
+      }
+    },
+    {
+      "id": "straight_arm_pulldown",
+      "name": "Pullover en polea (brazos rectos)",
+      "aliases": [
+        "straight arm pulldown",
+        "straight-arm pulldown",
+        "pullover en polea",
+        "jalón con brazos rectos"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["cable"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Brazos casi rectos: baja la barra o la cuerda hasta los muslos con el dorsal.",
+      "primary": ["lats"],
+      "secondary": ["triceps", "core"],
+      "technique": {
+        "steps": [
+          "De pie frente a la polea alta, coge la barra o la cuerda con los brazos casi estirados.",
+          "Inclina un poco el torso hacia delante con la espalda recta.",
+          "Baja los brazos en arco hasta los muslos sin doblar los codos.",
+          "Sube despacio hasta la altura de la cabeza."
+        ],
+        "mistakes": [
+          "Doblar los codos y empujar como un tríceps.",
+          "Mover el torso para ayudarse.",
+          "Subir tanto que los hombros se encogen."
+        ]
+      }
+    },
+    {
+      "id": "assisted_pull_up",
+      "name": "Dominada asistida",
+      "aliases": [
+        "assisted pull-up",
+        "dominadas asistidas",
+        "gravitron",
+        "dominada con goma",
+        "band assisted pull-up"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["machine", "band", "pullup_bar"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "La máquina o la goma te ayudan: más ayuda, más fácil. Anota la ayuda en notas.",
+      "primary": ["lats"],
+      "secondary": ["biceps", "upper_back"],
+      "technique": {
+        "steps": [
+          "Elige la ayuda (contrapeso o goma) que te deje hacer las repeticiones con buena técnica.",
+          "Cuélgate con agarre algo más ancho que los hombros y los hombros activos.",
+          "Sube llevando el pecho a la barra y los codos hacia las costillas.",
+          "Baja despacio hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Tanta ayuda que no cuesta nada.",
+          "Medio recorrido sin estirar los brazos abajo.",
+          "Balancearse para subir."
+        ]
+      }
+    },
+    {
+      "id": "hip_abduction_machine",
+      "name": "Máquina de abductores",
+      "aliases": [
+        "hip abduction",
+        "abductores",
+        "abducción de cadera",
+        "abductor machine",
+        "máquina de abducción"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Sentado, abre las piernas contra las almohadillas: trabaja el glúteo medio.",
+      "primary": ["glutes"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Siéntate con la espalda apoyada y las almohadillas por fuera de las rodillas.",
+          "Abre las piernas empujando hacia fuera con control.",
+          "Aguanta un segundo abierto y vuelve despacio sin que choque el peso."
+        ],
+        "mistakes": [
+          "Despegar la espalda y balancearse.",
+          "Volver de golpe.",
+          "Recorrido muy corto con demasiado peso."
+        ]
+      }
+    },
+    {
+      "id": "hip_adduction_machine",
+      "name": "Máquina de aductores",
+      "aliases": [
+        "hip adduction",
+        "aductores",
+        "aducción de cadera",
+        "adductor machine",
+        "máquina de aducción"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Sentado, cierra las piernas contra las almohadillas internas.",
+      "primary": ["adductors"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Ajusta la apertura para notar un estiramiento suave, sin dolor.",
+          "Apoya la espalda y coloca las almohadillas por dentro de las rodillas.",
+          "Junta las piernas con control y vuelve despacio."
+        ],
+        "mistakes": [
+          "Empezar con demasiada apertura y forzar la ingle.",
+          "Cerrar de golpe.",
+          "Balancear el cuerpo."
+        ]
+      }
+    },
+    {
+      "id": "seated_calf_raise",
+      "name": "Elevación de gemelos sentado",
+      "aliases": ["seated calf raise", "gemelos sentado", "sóleo", "máquina de gemelos sentado"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Rodillas dobladas a 90°: trabaja sobre todo el sóleo. Recorrido completo.",
+      "primary": ["calves"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Siéntate con la almohadilla sobre los muslos, cerca de las rodillas.",
+          "Apoya la parte delantera del pie en el escalón con los talones en el aire.",
+          "Baja los talones todo lo que puedas y sube hasta ponerte de puntillas.",
+          "Aguanta un segundo arriba y baja despacio."
+        ],
+        "mistakes": [
+          "Rebotar abajo.",
+          "Medio recorrido.",
+          "Empujar con las manos sobre la almohadilla."
+        ]
+      }
+    },
+    {
+      "id": "back_extension",
+      "name": "Extensión lumbar (banco a 45°)",
+      "aliases": [
+        "back extension",
+        "hiperextensiones",
+        "hyperextension",
+        "banco romano",
+        "extensiones lumbares",
+        "lumbares"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["machine", "bench"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Cadera en el borde del apoyo; baja con la espalda neutra y sube hasta alinear el cuerpo.",
+      "primary": ["lower_back", "glutes"],
+      "secondary": ["hamstrings"],
+      "technique": {
+        "steps": [
+          "Ajusta el apoyo para que quede justo por debajo de la cadera y engancha los tobillos.",
+          "Cruza los brazos en el pecho (o sujeta un disco) con la espalda recta.",
+          "Baja doblando la cadera hasta notar los isquios.",
+          "Sube apretando glúteos hasta que el cuerpo quede en línea, sin pasarte."
+        ],
+        "mistakes": [
+          "Subir por encima de la línea del cuerpo y arquear la lumbar.",
+          "Hacerlo con rebote.",
+          "Apoyo demasiado alto que bloquea la cadera."
+        ]
+      }
+    },
+    {
+      "id": "glute_kickback",
+      "name": "Patada de glúteo en polea o máquina",
+      "aliases": [
+        "glute kickback",
+        "cable kickback",
+        "patada de glúteo",
+        "patada trasera",
+        "kickback de glúteo"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["cable", "machine"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Lleva la pierna atrás apretando el glúteo sin arquear la lumbar.",
+      "primary": ["glutes"],
+      "secondary": ["hamstrings"],
+      "technique": {
+        "steps": [
+          "Engancha la tobillera a la polea baja (o colócate en la máquina).",
+          "Inclina un poco el torso y sujétate con las manos.",
+          "Lleva la pierna atrás apretando el glúteo, con la rodilla casi estirada.",
+          "Vuelve despacio y haz todas las repeticiones antes de cambiar."
+        ],
+        "mistakes": [
+          "Arquear la lumbar para subir más la pierna.",
+          "Balancear la pierna con impulso.",
+          "Girar la cadera hacia fuera."
+        ]
+      }
+    },
+    {
+      "id": "cable_fly",
+      "name": "Cruce de poleas",
+      "aliases": ["cable crossover", "cable fly", "aperturas en polea", "cruces", "crossover"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["cable"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Un paso adelante, codos algo flexionados y junta las manos delante del pecho.",
+      "primary": ["chest"],
+      "secondary": ["delt_front"],
+      "technique": {
+        "steps": [
+          "Coloca las poleas a la altura de los hombros (o más altas) y coge un agarre en cada mano.",
+          "Da un paso adelante con el pecho alto y los codos ligeramente flexionados.",
+          "Junta las manos delante del pecho en un arco amplio.",
+          "Vuelve despacio hasta notar el estiramiento sin llevar los brazos muy atrás."
+        ],
+        "mistakes": [
+          "Doblar mucho los codos y convertirlo en un press.",
+          "Encorvarse hacia delante al cerrar.",
+          "Abrir demasiado y forzar el hombro."
+        ]
+      }
+    },
+    {
+      "id": "preacher_curl",
+      "name": "Curl predicador (banco Scott)",
+      "aliases": [
+        "preacher curl",
+        "curl scott",
+        "banco scott",
+        "curl en banco scott",
+        "curl predicador"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "dumbbell", "ez_bar", "machine"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 75,
+      "technique_notes": "Brazos apoyados en el banco: sube sin despegar los codos y baja casi hasta estirar.",
+      "primary": ["biceps"],
+      "secondary": ["forearms"],
+      "technique": {
+        "steps": [
+          "Ajusta el asiento para que las axilas queden sobre el borde del apoyo.",
+          "Coge la barra con las palmas arriba y los brazos apoyados.",
+          "Sube flexionando los codos sin despegarlos del apoyo.",
+          "Baja despacio casi hasta estirar, sin bloquear del todo."
+        ],
+        "mistakes": [
+          "Dejar caer el peso abajo con el codo bloqueado.",
+          "Levantar los codos del apoyo.",
+          "Echar el cuerpo atrás para subir."
+        ]
+      }
+    },
+    {
+      "id": "t_bar_row",
+      "name": "Remo en T",
+      "aliases": [
+        "t-bar row",
+        "t bar row",
+        "remo en punta",
+        "remo landmine",
+        "remo con barra en t"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["landmine", "barbell", "machine"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Torso inclinado y espalda neutra; tira del agarre hacia el abdomen.",
+      "primary": ["upper_back", "lats"],
+      "secondary": ["biceps", "delt_rear", "lower_back"],
+      "technique": {
+        "steps": [
+          "Colócate a horcajadas sobre la barra con el agarre en V bajo el pecho.",
+          "Inclina el torso unos 45° con la espalda recta y las rodillas algo flexionadas.",
+          "Tira hacia el abdomen llevando los codos atrás y juntando los omóplatos.",
+          "Baja controlando hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Redondear la espalda.",
+          "Levantar el torso en cada repetición para mover más peso.",
+          "Tirar solo con los brazos."
+        ]
+      }
+    },
+    {
+      "id": "cable_overhead_triceps",
+      "name": "Extensión de tríceps sobre la cabeza en polea",
+      "aliases": [
+        "overhead cable triceps extension",
+        "cable overhead extension",
+        "extensión de tríceps tras nuca en polea",
+        "francés en polea"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["cable"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "De espaldas a la polea, cuerda tras la cabeza y estira los codos hacia delante.",
+      "primary": ["triceps"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "De espaldas a la polea, coge la cuerda por encima de la cabeza con los codos doblados.",
+          "Da un paso adelante y aprieta el abdomen.",
+          "Estira los codos hacia delante y arriba sin moverlos de sitio.",
+          "Vuelve despacio hasta notar el estiramiento del tríceps."
+        ],
+        "mistakes": [
+          "Abrir mucho los codos hacia fuera.",
+          "Arquear la lumbar.",
+          "Mover los hombros en vez de los codos."
+        ]
+      }
+    }
+  ]
+}

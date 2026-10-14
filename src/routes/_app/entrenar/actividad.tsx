@@ -5,9 +5,10 @@ import { ChevronDown, ChevronLeft, Plus, Watch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { DurationField, WatchField } from '@/components/ui/quantity-input'
 import { Textarea } from '@/components/ui/textarea'
 import { saveFinishedSession } from '@/lib/workout/active-session'
-import { parseInteger } from '@/lib/workout/format'
+import { parseCount, parseDuration } from '@/lib/input/quantity'
 import { historyQueryKey } from '@/lib/workout/hooks'
 import { createQuickActivity } from '@/lib/workout/session-kinds'
 import { quickActivityOptions } from '@/lib/activities/catalog'
@@ -22,8 +23,6 @@ export const Route = createFileRoute('/_app/entrenar/actividad')({
   ssr: false,
   component: QuickActivityPage,
 })
-
-const DURATION_PRESETS = [30, 45, 60, 90, 120]
 
 function localDateTimeValue(date: Date) {
   const pad = (n: number) => String(n).padStart(2, '0')
@@ -48,6 +47,8 @@ function QuickActivityPage() {
   const [duration, setDuration] = useState('60')
   // Por defecto: terminó ahora y empezó hace «duración» minutos.
   const [start, setStart] = useState(() => startForDuration(60))
+  // Mientras no se toque «Empezó», se recalcula al cambiar la duración (terminó ahora).
+  const [startTouched, setStartTouched] = useState(false)
   const [rpe, setRpe] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [watchOpen, setWatchOpen] = useState(false)
@@ -56,12 +57,15 @@ function QuickActivityPage() {
   const [calories, setCalories] = useState('')
   const [saving, setSaving] = useState(false)
 
-  const durationMin = parseInteger(duration)
+  const durationS = parseDuration(duration, 'min')
+  const durationMin = durationS === null ? null : Math.round(durationS / 60)
   const valid = rpe !== null && durationMin !== null && durationMin > 0 && start !== ''
 
-  function pickDuration(min: number) {
-    setDuration(String(min))
-    setStart(startForDuration(min))
+  function changeDuration(value: string) {
+    setDuration(value)
+    const seconds = parseDuration(value, 'min')
+    if (!startTouched && seconds !== null && seconds > 0)
+      setStart(startForDuration(Math.round(seconds / 60)))
   }
 
   async function save() {
@@ -77,9 +81,9 @@ function QuickActivityPage() {
           durationMin,
           rpe,
           notes: notes.trim() || null,
-          avgHr: parseInteger(avgHr),
-          maxHr: parseInteger(maxHr),
-          calories: parseInteger(calories),
+          avgHr: parseCount(avgHr),
+          maxHr: parseCount(maxHr),
+          calories: parseCount(calories),
         },
         Date.now(),
       )
@@ -143,34 +147,12 @@ function QuickActivityPage() {
         onSaved={(a) => setType(a.id)}
       />
 
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="act-duration">Duración (min)</Label>
-        <div className="flex flex-wrap gap-1.5">
-          {DURATION_PRESETS.map((m) => (
-            <button
-              key={m}
-              type="button"
-              onClick={() => pickDuration(m)}
-              aria-pressed={duration === String(m)}
-              className={cn(
-                'h-10 rounded-full border px-4 text-sm font-medium',
-                duration === String(m)
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'bg-background',
-              )}
-            >
-              {m}
-            </button>
-          ))}
-        </div>
-        <Input
-          id="act-duration"
-          inputMode="numeric"
-          value={duration}
-          onChange={(e) => setDuration(e.target.value)}
-          className="h-12 text-lg"
-        />
-      </div>
+      <DurationField
+        id="act-duration"
+        value={duration}
+        onChange={changeDuration}
+        chips={[30, 45, 60, 90, 120]}
+      />
 
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 text-sm font-medium">¿Cómo de dura ha sido? (RPE)</legend>
@@ -199,7 +181,10 @@ function QuickActivityPage() {
             id="act-start"
             type="datetime-local"
             value={start}
-            onChange={(e) => setStart(e.target.value)}
+            onChange={(e) => {
+              setStart(e.target.value)
+              setStartTouched(true)
+            }}
           />
         </div>
         <div className="flex flex-col gap-2">
@@ -228,9 +213,21 @@ function QuickActivityPage() {
         </button>
         {watchOpen && (
           <div className="grid grid-cols-3 gap-2 px-3 pb-3">
-            <WatchInput id="act-avg" label="FC media" value={avgHr} onChange={setAvgHr} />
-            <WatchInput id="act-max" label="FC máx" value={maxHr} onChange={setMaxHr} />
-            <WatchInput id="act-cal" label="Calorías" value={calories} onChange={setCalories} />
+            <WatchField
+              id="act-avg"
+              label="FC media"
+              unit="ppm"
+              value={avgHr}
+              onChange={setAvgHr}
+            />
+            <WatchField id="act-max" label="FC máx" unit="ppm" value={maxHr} onChange={setMaxHr} />
+            <WatchField
+              id="act-cal"
+              label="Calorías"
+              unit="kcal"
+              value={calories}
+              onChange={setCalories}
+            />
           </div>
         )}
       </div>
@@ -253,27 +250,6 @@ function QuickActivityPage() {
       >
         {saving ? 'Guardando…' : 'Guardar actividad'}
       </Button>
-    </div>
-  )
-}
-
-function WatchInput({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (v: string) => void
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
-      <Input id={id} inputMode="numeric" value={value} onChange={(e) => onChange(e.target.value)} />
     </div>
   )
 }

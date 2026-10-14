@@ -4,15 +4,14 @@ import { useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Stepper } from '@/components/ui/stepper'
 import { committedSessions, currentCommitment } from '@/lib/progress/adherence'
 import { deleteCommitment, endCommitment, saveCommitment } from '@/lib/progress/api'
 import { formatDayMonth, localDateKey, weekStartOf } from '@/lib/progress/dates'
 import { commitmentsKey, useCommitments } from '@/lib/progress/hooks'
 import type { Commitment } from '@/lib/progress/types'
-import { parseInteger } from '@/lib/workout/format'
+import { QuantityInput } from '@/components/ui/quantity-input'
+import { parseDuration } from '@/lib/input/quantity'
 import { notifyError, notifySaved } from '@/lib/notify'
 import { planSessionsPerWeek } from '@/lib/plan/calendar'
 import { useActivePlan } from '@/lib/plan/hooks'
@@ -122,7 +121,8 @@ function CommitmentForm({
   async function submit(e: FormEvent) {
     e.preventDefault()
     setError(null)
-    const minutesValue = minutes.trim() ? parseInteger(minutes) : null
+    const minutesSeconds = minutes.trim() ? parseDuration(minutes, 'min') : null
+    const minutesValue = minutesSeconds === null ? null : Math.round(minutesSeconds / 60)
     if (minutes.trim() && (!minutesValue || minutesValue < 1)) {
       setError('Los minutos tienen que ser un número mayor que 0')
       notifyError('los minutos tienen que ser un número mayor que 0', 'guardar el compromiso')
@@ -181,15 +181,15 @@ function CommitmentForm({
           <CardDescription>Opcional. Añade una segunda barra con los minutos.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Label htmlFor="minutes" className="sr-only">
-            Minutos por semana
-          </Label>
-          <Input
+          <QuantityInput
             id="minutes"
-            inputMode="numeric"
-            placeholder="p. ej. 180"
+            label={<span className="sr-only">Minutos por semana</span>}
+            placeholder="p. ej. 180 o 3h"
             value={minutes}
-            onChange={(e) => setMinutes(e.target.value)}
+            onChange={setMinutes}
+            quantity={{ kind: 'duration', bare: 'min' }}
+            steps={[15, 30]}
+            chips={[90, 120, 150, 180, 240]}
           />
         </CardContent>
       </Card>

@@ -5,6 +5,7 @@ import { randomUUID } from 'node:crypto'
 import http from 'node:http'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { loadAllSeedExercises } from '../../scripts/seed-exercises.ts'
 
 const EMPTY_TABLES = new Set([
   'notification_settings',
@@ -49,12 +50,12 @@ type SeedExercise = {
   secondary: string[]
 }
 
-const seed = JSON.parse(readFileSync(join(root, 'supabase/seed/exercises.json'), 'utf8')) as {
+// Toda la biblioteca semilla (exercises.json + supabase/seed/exercises/*.json) con su técnica.
+const seed = loadAllSeedExercises(root) as {
   exercises: SeedExercise[]
+  technique: Record<string, { steps: string[]; mistakes: string[] }>
 }
-const { technique } = JSON.parse(
-  readFileSync(join(root, 'supabase/seed/exercise_technique.json'), 'utf8'),
-) as { technique: Record<string, { steps: string[]; mistakes: string[] }> }
+const { technique } = seed
 const exercises = seed.exercises.map((e) => ({
   id: e.id,
   name: e.name,

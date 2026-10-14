@@ -261,7 +261,9 @@ function recent(input: AiContextInput) {
     }
   })
 
-  const catalog = new Map(input.exercises.map((e) => [e.id, { muscles: e.muscles }]))
+  const catalog = new Map(
+    input.exercises.map((e) => [e.id, { category: e.category, muscles: e.muscles }]),
+  )
   const volumeFor = (from: DateKey) =>
     muscleVolume(
       loadSessions.filter(

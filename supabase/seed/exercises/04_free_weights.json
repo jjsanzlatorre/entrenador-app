@@ -1,0 +1,886 @@
+{
+  "_comment": "Fuerza con pesos libres (barra, mancuernas, barra Z, landmine). npm run seed:sql genera la migración.",
+  "migration": "0039_seed_exercises_free_weights.sql",
+  "description": "Semilla: fuerza con pesos libres (sentadilla frontal, peso muerto sumo, step-up, hip bridge, curl martillo…) con su técnica. Requiere 0026.",
+  "exercises": [
+    {
+      "id": "front_squat",
+      "name": "Sentadilla frontal",
+      "aliases": ["front squat", "sentadilla delantera", "sentadilla con barra delante"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "rack"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 180,
+      "technique_notes": "Barra sobre los hombros delanteros, codos altos y torso muy erguido.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["core", "upper_back", "adductors"],
+      "technique": {
+        "steps": [
+          "Apoya la barra sobre los deltoides delanteros, cerca del cuello, con los dedos bajo la barra.",
+          "Sube los codos hasta que los brazos queden casi paralelos al suelo.",
+          "Baja con el torso erguido y las rodillas hacia delante, al menos hasta paralelo.",
+          "Sube empujando con todo el pie y manteniendo los codos altos."
+        ],
+        "mistakes": [
+          "Dejar caer los codos: la barra rueda hacia delante.",
+          "Inclinar el torso como en la sentadilla trasera.",
+          "Agarrar la barra con toda la mano si falta movilidad de muñeca (mejor cruzar brazos o correas)."
+        ]
+      }
+    },
+    {
+      "id": "sumo_deadlift",
+      "name": "Peso muerto sumo",
+      "aliases": ["sumo deadlift", "sumo", "peso muerto con piernas abiertas"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 180,
+      "technique_notes": "Pies muy abiertos, agarre por dentro de las piernas y torso más vertical.",
+      "primary": ["glutes", "hamstrings", "adductors"],
+      "secondary": ["quads", "lower_back", "upper_back", "forearms"],
+      "technique": {
+        "steps": [
+          "Abre los pies bastante más que los hombros, con las puntas hacia fuera y la barra sobre la mitad del pie.",
+          "Coge la barra con los brazos estirados por dentro de las rodillas.",
+          "Empuja las rodillas hacia fuera, saca pecho y tensa la espalda.",
+          "Empuja el suelo con las piernas hasta quedar erguido con la cadera extendida."
+        ],
+        "mistakes": [
+          "Rodillas que se van hacia dentro al subir.",
+          "Subir la cadera antes que la barra.",
+          "Redondear la espalda al arrancar."
+        ]
+      }
+    },
+    {
+      "id": "trap_bar_deadlift",
+      "name": "Peso muerto con barra hexagonal",
+      "aliases": [
+        "trap bar deadlift",
+        "hex bar deadlift",
+        "barra hexagonal",
+        "trap bar",
+        "peso muerto hexagonal"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["trap_bar"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 180,
+      "technique_notes": "Dentro de la barra, agarres a los lados: más amable con la espalda.",
+      "primary": ["quads", "glutes", "hamstrings"],
+      "secondary": ["lower_back", "upper_back", "forearms"],
+      "technique": {
+        "steps": [
+          "Colócate en el centro de la barra con los pies a la anchura de la cadera.",
+          "Baja la cadera y coge los agarres con la espalda neutra y el pecho alto.",
+          "Empuja el suelo y sube hasta estar erguido, con los hombros atrás.",
+          "Baja controlando por el mismo camino."
+        ],
+        "mistakes": [
+          "Ponerse descentrado dentro de la barra.",
+          "Redondear la espalda abajo.",
+          "Echar los hombros atrás de más arriba."
+        ]
+      }
+    },
+    {
+      "id": "good_morning",
+      "name": "Buenos días (good morning)",
+      "aliases": ["good morning", "good mornings", "buenos días", "buenos dias con barra"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "band"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Barra en la espalda, inclina el torso llevando la cadera atrás con la espalda neutra.",
+      "primary": ["hamstrings", "lower_back"],
+      "secondary": ["glutes"],
+      "technique": {
+        "steps": [
+          "Coloca una barra ligera en la espalda alta, como en la sentadilla.",
+          "Con las rodillas algo flexionadas, lleva la cadera atrás e inclina el torso.",
+          "Baja hasta notar los isquios (torso casi paralelo o antes) con la espalda neutra.",
+          "Sube empujando la cadera hacia delante."
+        ],
+        "mistakes": [
+          "Redondear la espalda.",
+          "Doblar mucho las rodillas y convertirlo en sentadilla.",
+          "Usar mucho peso: es un ejercicio de control."
+        ]
+      }
+    },
+    {
+      "id": "step_up",
+      "name": "Subida al cajón (step-up)",
+      "aliases": [
+        "step up",
+        "step-ups",
+        "subidas al banco",
+        "subida al banco",
+        "step ups con mancuernas"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["box", "bench", "dumbbell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sube empujando con la pierna de arriba; la de abajo apenas ayuda.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["hamstrings", "core"],
+      "technique": {
+        "steps": [
+          "Ponte frente a un cajón a la altura de la rodilla, con mancuernas si quieres.",
+          "Apoya un pie entero en el cajón.",
+          "Sube empujando con esa pierna hasta quedar de pie sobre el cajón.",
+          "Baja despacio con la misma pierna y repite antes de cambiar."
+        ],
+        "mistakes": [
+          "Impulsarse con la pierna de abajo.",
+          "Rodilla de la pierna de arriba hacia dentro.",
+          "Cajón demasiado alto para tu movilidad."
+        ]
+      }
+    },
+    {
+      "id": "reverse_lunge",
+      "name": "Zancada atrás",
+      "aliases": [
+        "reverse lunge",
+        "zancada inversa",
+        "zancadas hacia atrás",
+        "rear lunge",
+        "reverse lunges"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "barbell", "bodyweight"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Paso atrás y baja la rodilla trasera; más fácil para las rodillas que la zancada adelante.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors", "hamstrings", "core"],
+      "technique": {
+        "steps": [
+          "De pie con los pies a la anchura de la cadera, con mancuernas o sin peso.",
+          "Da un paso largo hacia atrás y baja la rodilla trasera cerca del suelo.",
+          "La rodilla delantera queda sobre el pie y el torso erguido.",
+          "Vuelve empujando con el talón delantero."
+        ],
+        "mistakes": [
+          "Paso demasiado corto: la rodilla delantera se adelanta mucho.",
+          "Inclinar el torso hacia delante.",
+          "Golpear la rodilla contra el suelo."
+        ]
+      }
+    },
+    {
+      "id": "walking_lunge",
+      "name": "Zancadas caminando",
+      "aliases": ["walking lunge", "walking lunges", "zancadas andando", "zancadas en movimiento"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "kettlebell", "bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Zancadas seguidas avanzando; cuenta las repeticiones totales.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors", "hamstrings", "core"],
+      "technique": {
+        "steps": [
+          "Da un paso largo adelante y baja hasta que la rodilla trasera casi toque el suelo.",
+          "Empuja con la pierna delantera y trae la trasera directamente a la siguiente zancada.",
+          "Mantén el torso erguido y el ritmo constante."
+        ],
+        "mistakes": [
+          "Pasos cortos con la rodilla muy por delante del pie.",
+          "Perder el equilibrio por poner los pies en línea (déjalos a la anchura de la cadera).",
+          "Inclinarse hacia delante."
+        ]
+      }
+    },
+    {
+      "id": "glute_bridge",
+      "name": "Puente de glúteo",
+      "aliases": [
+        "glute bridge",
+        "puente de glúteos",
+        "elevación de cadera",
+        "hip bridge",
+        "puente"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["bodyweight", "barbell", "mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Tumbado en el suelo, sube la cadera apretando glúteos hasta alinear rodilla y hombro.",
+      "primary": ["glutes"],
+      "secondary": ["hamstrings"],
+      "technique": {
+        "steps": [
+          "Túmbate boca arriba con las rodillas dobladas y los pies cerca de los glúteos.",
+          "Empuja con los talones y sube la cadera apretando los glúteos.",
+          "Arriba, rodillas, cadera y hombros quedan en línea; aguanta un segundo.",
+          "Baja despacio sin apoyar del todo."
+        ],
+        "mistakes": [
+          "Arquear la lumbar arriba en vez de apretar glúteos.",
+          "Pies demasiado lejos: trabajan más los isquios.",
+          "Rodillas que se abren o se cierran."
+        ]
+      }
+    },
+    {
+      "id": "single_leg_rdl",
+      "name": "Peso muerto rumano a una pierna",
+      "aliases": [
+        "single leg rdl",
+        "single-leg romanian deadlift",
+        "peso muerto a una pierna",
+        "rdl unilateral"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "kettlebell", "bodyweight"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sobre una pierna, inclina el torso y lleva la otra atrás en línea con la espalda.",
+      "primary": ["hamstrings", "glutes"],
+      "secondary": ["lower_back", "core"],
+      "technique": {
+        "steps": [
+          "Ponte sobre una pierna con la rodilla algo flexionada y el peso en la mano contraria.",
+          "Inclina el torso llevando la otra pierna atrás, en línea con la espalda.",
+          "Baja hasta notar el isquio con la cadera nivelada.",
+          "Sube apretando el glúteo de la pierna de apoyo."
+        ],
+        "mistakes": [
+          "Abrir la cadera hacia el lado de la pierna que sube.",
+          "Redondear la espalda para llegar más abajo.",
+          "Bloquear la rodilla de apoyo."
+        ]
+      }
+    },
+    {
+      "id": "nordic_curl",
+      "name": "Curl nórdico",
+      "aliases": [
+        "nordic curl",
+        "nordic hamstring curl",
+        "nórdicos",
+        "curl nordico",
+        "glute ham raise"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight", "mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 90,
+      "technique_notes": "De rodillas con los tobillos sujetos, deja caer el cuerpo recto lo más lento posible.",
+      "primary": ["hamstrings"],
+      "secondary": ["glutes"],
+      "technique": {
+        "steps": [
+          "Arrodíllate sobre una esterilla con los tobillos sujetos (compañero, banco o barra).",
+          "Con el cuerpo recto de rodillas a cabeza, déjate caer hacia delante muy despacio.",
+          "Frena con los isquios todo lo que puedas y amortigua con las manos.",
+          "Vuelve empujándote con las manos y repite."
+        ],
+        "mistakes": [
+          "Doblar la cadera para que sea más fácil.",
+          "Caer de golpe sin frenar.",
+          "Hacer muchas series el primer día: da muchas agujetas."
+        ]
+      }
+    },
+    {
+      "id": "db_bench_press",
+      "name": "Press banca con mancuernas",
+      "aliases": [
+        "dumbbell bench press",
+        "press con mancuernas",
+        "press plano con mancuernas",
+        "db bench"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "bench"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Omóplatos juntos, bajar las mancuernas a los lados del pecho y subir juntándolas.",
+      "primary": ["chest"],
+      "secondary": ["triceps", "delt_front"],
+      "technique": {
+        "steps": [
+          "Siéntate con las mancuernas en los muslos y túmbate llevándolas al pecho.",
+          "Junta los omóplatos y apoya bien los pies.",
+          "Baja las mancuernas a los lados del pecho con los codos a unos 45° del cuerpo.",
+          "Empuja hacia arriba hasta casi juntarlas sobre el pecho."
+        ],
+        "mistakes": [
+          "Codos abiertos a 90°: carga el hombro.",
+          "Soltar las mancuernas de golpe al acabar (bájalas a los muslos).",
+          "Recorrido corto."
+        ]
+      }
+    },
+    {
+      "id": "incline_bench_press",
+      "name": "Press inclinado con barra",
+      "aliases": [
+        "incline bench press",
+        "press inclinado",
+        "incline barbell press",
+        "banca inclinada"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "bench", "rack"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Banco a 30–45°, barra a la parte alta del pecho y omóplatos juntos.",
+      "primary": ["chest", "delt_front"],
+      "secondary": ["triceps"],
+      "technique": {
+        "steps": [
+          "Ajusta el banco a 30–45° y túmbate con los ojos bajo la barra.",
+          "Coge la barra algo más ancha que los hombros y junta los omóplatos.",
+          "Baja la barra a la parte alta del pecho controlando.",
+          "Empuja hacia arriba y algo atrás hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Banco demasiado inclinado: se convierte en press de hombro.",
+          "Rebotar la barra en el pecho.",
+          "Levantar los glúteos del banco."
+        ]
+      }
+    },
+    {
+      "id": "db_fly",
+      "name": "Aperturas con mancuernas",
+      "aliases": [
+        "dumbbell fly",
+        "dumbbell flyes",
+        "aperturas",
+        "flyes",
+        "aperturas en banco plano"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "bench"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 75,
+      "technique_notes": "Codos ligeramente doblados y fijos; abre en arco hasta notar el pecho.",
+      "primary": ["chest"],
+      "secondary": ["delt_front"],
+      "technique": {
+        "steps": [
+          "Túmbate con las mancuernas sobre el pecho y las palmas enfrentadas.",
+          "Dobla un poco los codos y mantén ese ángulo todo el ejercicio.",
+          "Abre los brazos en arco hasta que las manos queden a la altura del pecho.",
+          "Cierra el arco apretando el pecho hasta juntar las mancuernas."
+        ],
+        "mistakes": [
+          "Estirar del todo los codos: carga la articulación.",
+          "Bajar demasiado por detrás de la línea de los hombros.",
+          "Usar tanto peso que se convierte en un press."
+        ]
+      }
+    },
+    {
+      "id": "arnold_press",
+      "name": "Press Arnold",
+      "aliases": ["arnold press", "press arnold con mancuernas"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "bench"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Empieza con las palmas hacia ti y gíralas al empujar hacia arriba.",
+      "primary": ["delt_front", "delt_side"],
+      "secondary": ["triceps"],
+      "technique": {
+        "steps": [
+          "Siéntate con la espalda apoyada y las mancuernas delante de la cara, palmas hacia ti.",
+          "Empuja hacia arriba girando las palmas hacia delante a la vez.",
+          "Arriba, brazos casi estirados; baja deshaciendo el giro."
+        ],
+        "mistakes": [
+          "Arquear la lumbar al empujar.",
+          "Girar de golpe al final en vez de durante el recorrido.",
+          "Chocar las mancuernas arriba."
+        ]
+      }
+    },
+    {
+      "id": "db_shoulder_press",
+      "name": "Press de hombros con mancuernas",
+      "aliases": [
+        "dumbbell shoulder press",
+        "press militar con mancuernas",
+        "seated dumbbell press",
+        "press de hombro sentado"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "bench"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Sentado con la espalda apoyada, mancuernas a la altura de las orejas y empujar arriba.",
+      "primary": ["delt_front", "delt_side"],
+      "secondary": ["triceps", "core"],
+      "technique": {
+        "steps": [
+          "Siéntate en un banco a 80–90° con las mancuernas a la altura de los hombros.",
+          "Codos algo por delante del cuerpo y palmas hacia delante.",
+          "Empuja hacia arriba hasta casi estirar los brazos.",
+          "Baja controlando hasta la altura de las orejas."
+        ],
+        "mistakes": [
+          "Despegar la espalda y arquear la lumbar.",
+          "Bajar poco.",
+          "Codos muy hacia atrás."
+        ]
+      }
+    },
+    {
+      "id": "shrug",
+      "name": "Encogimientos de hombros",
+      "aliases": ["shrug", "shrugs", "encogimientos", "encogimiento de trapecio", "trapecios"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "barbell", "trap_bar"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Sube los hombros hacia las orejas sin girarlos ni doblar los codos.",
+      "primary": ["upper_back"],
+      "secondary": ["forearms"],
+      "technique": {
+        "steps": [
+          "De pie con el peso en las manos y los brazos estirados.",
+          "Sube los hombros hacia las orejas en línea recta.",
+          "Aguanta un segundo arriba y baja despacio."
+        ],
+        "mistakes": [
+          "Girar los hombros en círculos.",
+          "Doblar los codos para ayudarse.",
+          "Adelantar la cabeza."
+        ]
+      }
+    },
+    {
+      "id": "rear_delt_fly",
+      "name": "Pájaros con mancuernas",
+      "aliases": [
+        "rear delt fly",
+        "bent over reverse fly",
+        "pájaros",
+        "aperturas invertidas",
+        "reverse fly"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Torso inclinado, abre los brazos casi rectos hacia los lados con peso ligero.",
+      "primary": ["delt_rear"],
+      "secondary": ["upper_back"],
+      "technique": {
+        "steps": [
+          "Inclina el torso casi paralelo al suelo con la espalda recta y las rodillas algo flexionadas.",
+          "Deja colgar las mancuernas bajo el pecho con los codos ligeramente doblados.",
+          "Abre los brazos hacia los lados hasta la altura de los hombros.",
+          "Baja despacio."
+        ],
+        "mistakes": [
+          "Levantar el torso para subir el peso.",
+          "Encoger los hombros.",
+          "Juntar los omóplatos en exceso: trabaja más el trapecio."
+        ]
+      }
+    },
+    {
+      "id": "front_raise",
+      "name": "Elevaciones frontales",
+      "aliases": ["front raise", "front raises", "elevación frontal", "elevaciones al frente"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "plate", "cable"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Sube los brazos al frente hasta la altura de los hombros sin balancearte.",
+      "primary": ["delt_front"],
+      "secondary": ["delt_side"],
+      "technique": {
+        "steps": [
+          "De pie con las mancuernas delante de los muslos.",
+          "Sube los brazos casi estirados al frente hasta la altura de los hombros.",
+          "Baja despacio sin dejarlos caer."
+        ],
+        "mistakes": [
+          "Balancear el cuerpo para subir.",
+          "Subir por encima de la cabeza.",
+          "Encoger los hombros."
+        ]
+      }
+    },
+    {
+      "id": "upright_row",
+      "name": "Remo al mentón",
+      "aliases": ["upright row", "remo vertical", "remo al cuello", "jalón al mentón"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "dumbbell", "cable", "ez_bar"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 75,
+      "technique_notes": "Agarre a la anchura de los hombros y subir los codos solo hasta la altura de los hombros.",
+      "primary": ["delt_side", "upper_back"],
+      "secondary": ["biceps", "delt_front"],
+      "technique": {
+        "steps": [
+          "De pie, coge la barra con un agarre a la anchura de los hombros.",
+          "Sube la barra pegada al cuerpo llevando los codos hacia arriba y fuera.",
+          "Para cuando los codos lleguen a la altura de los hombros y baja despacio."
+        ],
+        "mistakes": [
+          "Agarre muy estrecho y subir hasta la barbilla: molesta al hombro.",
+          "Dar tirones con la espalda.",
+          "Muñecas por encima de los codos."
+        ]
+      }
+    },
+    {
+      "id": "chin_up",
+      "name": "Dominadas supinas (chin-up)",
+      "aliases": [
+        "chin up",
+        "chin-ups",
+        "dominadas supinas",
+        "dominadas con palmas hacia ti",
+        "chinups"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["pullup_bar", "bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Palmas hacia ti y agarre a la anchura de los hombros: más bíceps que la prona.",
+      "primary": ["lats", "biceps"],
+      "secondary": ["upper_back", "forearms"],
+      "technique": {
+        "steps": [
+          "Cuélgate con las palmas hacia ti, a la anchura de los hombros.",
+          "Activa los hombros llevándolos abajo antes de tirar.",
+          "Sube hasta que la barbilla pase la barra, con los codos hacia las costillas.",
+          "Baja despacio hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Balanceo o patadas para subir.",
+          "No estirar los brazos abajo.",
+          "Adelantar la barbilla sin subir el cuerpo."
+        ]
+      }
+    },
+    {
+      "id": "inverted_row",
+      "name": "Remo invertido",
+      "aliases": [
+        "inverted row",
+        "australian pull-up",
+        "remo australiano",
+        "dominada australiana",
+        "body row"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["barbell", "rack", "rings", "bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Bajo una barra baja, cuerpo recto, tira del pecho hacia la barra.",
+      "primary": ["upper_back", "lats"],
+      "secondary": ["biceps", "delt_rear", "core"],
+      "technique": {
+        "steps": [
+          "Coloca una barra a la altura de la cintura y cuélgate debajo con los brazos estirados.",
+          "Pon el cuerpo recto de talones a cabeza, con glúteos y abdomen apretados.",
+          "Tira llevando el pecho a la barra y juntando los omóplatos.",
+          "Baja despacio. Más fácil con las rodillas dobladas; más difícil con los pies elevados."
+        ],
+        "mistakes": [
+          "Dejar caer la cadera.",
+          "Llevar la barbilla a la barra en vez del pecho.",
+          "Recorrido corto."
+        ]
+      }
+    },
+    {
+      "id": "hammer_curl",
+      "name": "Curl martillo",
+      "aliases": ["hammer curl", "hammer curls", "curl neutro", "curl de martillo"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "cable"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Palmas enfrentadas todo el recorrido; trabaja bíceps y antebrazo.",
+      "primary": ["biceps", "forearms"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "De pie con las mancuernas a los lados y las palmas mirando al cuerpo.",
+          "Sube flexionando los codos sin girar las muñecas.",
+          "Baja despacio hasta estirar los brazos."
+        ],
+        "mistakes": ["Mover los codos hacia delante.", "Balancear el cuerpo.", "Bajar sin control."]
+      }
+    },
+    {
+      "id": "ez_bar_curl",
+      "name": "Curl con barra Z",
+      "aliases": ["ez bar curl", "curl barra z", "ez curl", "curl con barra ez"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["ez_bar"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 75,
+      "technique_notes": "Agarre en las curvas de la barra: menos tensión en las muñecas.",
+      "primary": ["biceps"],
+      "secondary": ["forearms"],
+      "technique": {
+        "steps": [
+          "De pie, coge la barra Z por las curvas con las palmas hacia arriba.",
+          "Codos pegados al cuerpo y hombros quietos.",
+          "Sube la barra flexionando los codos y baja despacio."
+        ],
+        "mistakes": [
+          "Echar el cuerpo atrás para subir.",
+          "Separar los codos del cuerpo.",
+          "Medio recorrido."
+        ]
+      }
+    },
+    {
+      "id": "concentration_curl",
+      "name": "Curl concentrado",
+      "aliases": ["concentration curl", "curl concentración", "curl sentado a una mano"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "bench"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Sentado, codo apoyado en la cara interna del muslo; solo se mueve el antebrazo.",
+      "primary": ["biceps"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Siéntate con las piernas abiertas y apoya el codo en la cara interna del muslo.",
+          "Sube la mancuerna hacia el hombro girando un poco la palma hacia ti.",
+          "Baja despacio hasta estirar el brazo."
+        ],
+        "mistakes": ["Mover el hombro o el tronco.", "Despegar el codo del muslo.", "Ir deprisa."]
+      }
+    },
+    {
+      "id": "skull_crusher",
+      "name": "Press francés",
+      "aliases": [
+        "skull crusher",
+        "skullcrusher",
+        "lying triceps extension",
+        "rompecráneos",
+        "press frances"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["ez_bar", "barbell", "dumbbell", "bench"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 75,
+      "technique_notes": "Tumbado, baja la barra hacia la frente doblando solo los codos.",
+      "primary": ["triceps"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Túmbate en el banco con la barra sobre el pecho y los brazos estirados.",
+          "Inclina un poco los brazos hacia la cabeza.",
+          "Baja la barra hacia la frente doblando solo los codos.",
+          "Estira los codos para volver arriba."
+        ],
+        "mistakes": [
+          "Abrir los codos hacia fuera.",
+          "Mover los hombros y convertirlo en un pullover.",
+          "Bajar sin control hacia la cara."
+        ]
+      }
+    },
+    {
+      "id": "overhead_triceps_extension",
+      "name": "Extensión de tríceps sobre la cabeza",
+      "aliases": [
+        "overhead triceps extension",
+        "extensión tras nuca",
+        "copa",
+        "tríceps tras nuca",
+        "extensión de tríceps con mancuerna"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "kettlebell", "ez_bar"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Mancuerna tras la cabeza con los codos apuntando al techo; estira los codos.",
+      "primary": ["triceps"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Sentado o de pie, sujeta una mancuerna con las dos manos por encima de la cabeza.",
+          "Baja la mancuerna detrás de la cabeza doblando los codos, que apuntan arriba.",
+          "Estira los codos para subir sin moverlos de sitio."
+        ],
+        "mistakes": ["Abrir los codos.", "Arquear la lumbar.", "Recorrido corto."]
+      }
+    },
+    {
+      "id": "triceps_kickback",
+      "name": "Patada de tríceps",
+      "aliases": ["triceps kickback", "kickback de tríceps", "patada trasera de tríceps"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "cable"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Torso inclinado y brazo pegado al cuerpo; estira el codo hacia atrás.",
+      "primary": ["triceps"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Apoya una mano y una rodilla en el banco con la espalda recta.",
+          "Sube el codo del otro brazo hasta la altura del torso.",
+          "Estira el codo llevando la mancuerna hacia atrás y vuelve despacio."
+        ],
+        "mistakes": [
+          "Dejar caer el codo durante el ejercicio.",
+          "Balancear la mancuerna.",
+          "Demasiado peso."
+        ]
+      }
+    },
+    {
+      "id": "close_grip_bench",
+      "name": "Press banca agarre estrecho",
+      "aliases": [
+        "close grip bench press",
+        "close-grip bench",
+        "press cerrado",
+        "banca agarre cerrado"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "bench", "rack"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Agarre a la anchura de los hombros y codos pegados: más tríceps.",
+      "primary": ["triceps", "chest"],
+      "secondary": ["delt_front"],
+      "technique": {
+        "steps": [
+          "Túmbate como en el press banca y coge la barra a la anchura de los hombros.",
+          "Junta los omóplatos y apoya bien los pies.",
+          "Baja la barra a la parte baja del pecho con los codos pegados al cuerpo.",
+          "Empuja hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Agarre tan estrecho que molesta a las muñecas.",
+          "Abrir los codos.",
+          "Rebotar en el pecho."
+        ]
+      }
+    },
+    {
+      "id": "landmine_press",
+      "name": "Press landmine",
+      "aliases": ["landmine press", "press en mina", "press a una mano con barra en punta"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["landmine", "barbell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Barra anclada en el suelo; empuja el extremo hacia delante y arriba.",
+      "primary": ["delt_front", "chest"],
+      "secondary": ["triceps", "core"],
+      "technique": {
+        "steps": [
+          "Ancla un extremo de la barra en un rincón o en un soporte landmine.",
+          "Sujeta el otro extremo a la altura del hombro, de pie o de rodillas.",
+          "Empuja la barra hacia delante y arriba hasta estirar el brazo.",
+          "Baja controlando hasta el hombro."
+        ],
+        "mistakes": [
+          "Arquear la lumbar al empujar.",
+          "Girar el tronco para ayudarse.",
+          "Dejar caer la barra al bajar."
+        ]
+      }
+    },
+    {
+      "id": "db_pullover",
+      "name": "Pullover con mancuerna",
+      "aliases": ["dumbbell pullover", "pullover", "pull over"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell", "bench"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 75,
+      "technique_notes": "Tumbado, baja la mancuerna detrás de la cabeza con los codos algo doblados.",
+      "primary": ["lats", "chest"],
+      "secondary": ["triceps", "core"],
+      "technique": {
+        "steps": [
+          "Túmbate en el banco y sujeta una mancuerna con las dos manos sobre el pecho.",
+          "Con los codos ligeramente doblados, bájala en arco detrás de la cabeza.",
+          "Baja hasta notar el estiramiento sin arquear la lumbar.",
+          "Vuelve en arco hasta encima del pecho."
+        ],
+        "mistakes": [
+          "Doblar y estirar los codos (se convierte en un tríceps).",
+          "Arquear la espalda para bajar más.",
+          "Demasiado peso."
+        ]
+      }
+    }
+  ]
+}

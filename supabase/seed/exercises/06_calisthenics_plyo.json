@@ -1,0 +1,950 @@
+{
+  "_comment": "Calistenia, pliometría y functional extra. Los isométricos (L-sit, pino, wall sit, front lever) se registran por tiempo. npm run seed:sql genera la migración.",
+  "migration": "0041_seed_exercises_calisthenics_plyo.sql",
+  "description": "Semilla: calistenia (muscle-up, pistol, L-sit…), pliometría (saltos) y functional (devil press, power clean…) con su técnica. Requiere 0026.",
+  "exercises": [
+    {
+      "id": "muscle_up",
+      "name": "Muscle-up",
+      "aliases": [
+        "muscle up",
+        "muscleup",
+        "muscle-up en barra",
+        "muscle up en anillas",
+        "subida a la barra"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["pullup_bar", "rings"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 180,
+      "technique_notes": "Dominada explosiva que pasa el pecho por encima de la barra y termina en fondo.",
+      "primary": ["lats", "triceps", "chest"],
+      "secondary": ["biceps", "upper_back", "core", "forearms"],
+      "technique": {
+        "steps": [
+          "Cuélgate con agarre algo más estrecho que en la dominada y los hombros activos.",
+          "Tira de forma explosiva llevando la barra hacia la cadera, no hacia la barbilla.",
+          "Al pasar la barra, adelanta el pecho y gira las muñecas por encima.",
+          "Termina empujando como en un fondo hasta estirar los brazos y baja controlando."
+        ],
+        "mistakes": [
+          "Intentarlo sin hacer al menos 8 dominadas y 10 fondos limpios.",
+          "Pasar primero un brazo y luego el otro (chicken wing).",
+          "Tirar hacia la barbilla en vez de hacia el pecho bajo."
+        ]
+      }
+    },
+    {
+      "id": "pistol_squat",
+      "name": "Sentadilla pistol",
+      "aliases": ["pistol squat", "pistol", "sentadilla a una pierna", "one leg squat"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sentadilla completa sobre una pierna con la otra estirada al frente.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["core", "adductors", "calves"],
+      "technique": {
+        "steps": [
+          "De pie sobre una pierna con la otra estirada al frente y los brazos delante.",
+          "Baja despacio llevando la cadera atrás y abajo, con el talón apoyado.",
+          "Llega abajo del todo sin que la pierna libre toque el suelo.",
+          "Sube empujando con todo el pie. Para aprender, baja a un banco o agárrate a un TRX."
+        ],
+        "mistakes": [
+          "Rodilla de apoyo hacia dentro.",
+          "Levantar el talón.",
+          "Caer abajo sin control y rebotar."
+        ]
+      }
+    },
+    {
+      "id": "l_sit",
+      "name": "L-sit",
+      "aliases": ["l sit", "lsit", "escuadra", "l-sit en paralelas", "l-sit hold"],
+      "category": "strength",
+      "tracking_type": "time",
+      "equipment": ["dip_bars", "parallettes"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Apoyado en las manos, piernas estiradas al frente en horizontal formando una L.",
+      "primary": ["core"],
+      "secondary": ["triceps", "delt_front", "quads"],
+      "technique": {
+        "steps": [
+          "Apóyate en paralelas, paralettes o el suelo con los brazos estirados.",
+          "Empuja hacia abajo para subir los hombros y alejarlos de las orejas.",
+          "Sube las piernas estiradas al frente hasta la horizontal y aguanta.",
+          "Si cuesta, empieza con las rodillas dobladas (tuck L-sit)."
+        ],
+        "mistakes": [
+          "Hundir los hombros.",
+          "Doblar los codos.",
+          "Dejar caer las piernas por debajo de la horizontal."
+        ]
+      }
+    },
+    {
+      "id": "handstand_hold",
+      "name": "Pino (handstand)",
+      "aliases": ["handstand", "handstand hold", "pino", "pino contra la pared", "vertical"],
+      "category": "strength",
+      "tracking_type": "time",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Boca abajo sobre las manos; empieza contra la pared con el pecho hacia ella.",
+      "primary": ["delt_front", "triceps"],
+      "secondary": ["core", "upper_back", "forearms"],
+      "technique": {
+        "steps": [
+          "Para aprender, sube caminando con los pies por la pared, con el pecho mirando a ella.",
+          "Manos a la anchura de los hombros y dedos abiertos.",
+          "Empuja el suelo con los brazos estirados y el cuerpo recto, abdomen y glúteos apretados.",
+          "Baja caminando con las manos hacia la pared."
+        ],
+        "mistakes": [
+          "Arquear la espalda en forma de plátano.",
+          "Doblar los codos.",
+          "Subir de patada sin saber salir (aprende antes a caer girando)."
+        ]
+      }
+    },
+    {
+      "id": "handstand_push_up",
+      "name": "Flexión en pino",
+      "aliases": [
+        "handstand push-up",
+        "hspu",
+        "flexiones en pino",
+        "flexión vertical",
+        "handstand pushup"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "En pino contra la pared, baja la cabeza al suelo y empuja: como un press militar.",
+      "primary": ["delt_front", "triceps"],
+      "secondary": ["delt_side", "upper_back", "core"],
+      "technique": {
+        "steps": [
+          "Colócate en pino de espaldas a la pared, con las manos a unos 20 cm de ella.",
+          "Baja controlando hasta que la cabeza toque una esterilla en el suelo.",
+          "Empuja hasta estirar los brazos con el cuerpo recto.",
+          "Si no sale, empieza con flexiones pica con los pies elevados."
+        ],
+        "mistakes": [
+          "Dejar caer la cabeza de golpe.",
+          "Manos muy abiertas.",
+          "Arquear mucho la espalda contra la pared."
+        ]
+      }
+    },
+    {
+      "id": "pike_push_up",
+      "name": "Flexión pica",
+      "aliases": ["pike push-up", "pike push up", "flexiones en pica", "flexión en v invertida"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Cadera arriba en V invertida; baja la cabeza entre las manos: trabaja hombro.",
+      "primary": ["delt_front", "triceps"],
+      "secondary": ["delt_side", "chest"],
+      "technique": {
+        "steps": [
+          "Ponte en V invertida: manos y pies en el suelo y la cadera arriba.",
+          "Baja la cabeza hacia el suelo entre las manos doblando los codos.",
+          "Empuja hasta estirar los brazos. Pies en un banco para hacerlo más difícil."
+        ],
+        "mistakes": [
+          "Bajar la cadera y convertirlo en una flexión normal.",
+          "Abrir los codos a los lados.",
+          "Recorrido corto."
+        ]
+      }
+    },
+    {
+      "id": "archer_push_up",
+      "name": "Flexión arquero",
+      "aliases": ["archer push-up", "archer pushup", "flexiones arquero", "flexión lateral"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Manos muy abiertas: baja hacia un lado con el otro brazo casi estirado.",
+      "primary": ["chest", "triceps"],
+      "secondary": ["delt_front", "core"],
+      "technique": {
+        "steps": [
+          "Ponte en plancha con las manos mucho más abiertas que los hombros.",
+          "Baja hacia una mano doblando ese codo mientras el otro brazo se queda casi estirado.",
+          "Empuja para volver al centro y alterna lados."
+        ],
+        "mistakes": ["Hundir la cadera.", "Doblar los dos brazos por igual.", "Girar el tronco."]
+      }
+    },
+    {
+      "id": "diamond_push_up",
+      "name": "Flexión diamante",
+      "aliases": [
+        "diamond push-up",
+        "flexiones diamante",
+        "flexión cerrada",
+        "close grip push-up",
+        "triangle push-up"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 75,
+      "technique_notes": "Manos juntas bajo el pecho formando un rombo: más tríceps.",
+      "primary": ["triceps", "chest"],
+      "secondary": ["delt_front", "core"],
+      "technique": {
+        "steps": [
+          "Ponte en plancha con las manos juntas bajo el pecho, pulgares e índices formando un rombo.",
+          "Baja con los codos pegados al cuerpo hasta rozar las manos con el pecho.",
+          "Empuja hasta estirar los brazos con el cuerpo recto."
+        ],
+        "mistakes": ["Abrir los codos hacia fuera.", "Hundir la cadera.", "Recorrido a medias."]
+      }
+    },
+    {
+      "id": "ring_dip",
+      "name": "Fondos en anillas",
+      "aliases": ["ring dips", "ring dip", "dips en anillas"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["rings"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Como los fondos, pero las anillas se mueven: hay que estabilizarlas pegadas al cuerpo.",
+      "primary": ["chest", "triceps"],
+      "secondary": ["delt_front", "core"],
+      "technique": {
+        "steps": [
+          "Sube a las anillas con los brazos estirados y las anillas pegadas al cuerpo.",
+          "Gira un poco las anillas hacia fuera arriba para estabilizarte.",
+          "Baja hasta que los hombros queden a la altura de los codos.",
+          "Empuja hasta estirar los brazos sin que las anillas se separen."
+        ],
+        "mistakes": [
+          "Dejar que las anillas se abran.",
+          "Bajar demasiado con los hombros adelantados.",
+          "Intentarlo sin dominar los fondos en paralelas."
+        ]
+      }
+    },
+    {
+      "id": "tuck_front_lever",
+      "name": "Front lever (tuck)",
+      "aliases": ["tuck front lever", "front lever", "palanca frontal", "front lever agrupado"],
+      "category": "strength",
+      "tracking_type": "time",
+      "equipment": ["pullup_bar", "rings"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Colgado con los brazos estirados y el cuerpo horizontal, rodillas al pecho.",
+      "primary": ["lats", "core"],
+      "secondary": ["upper_back", "delt_rear", "forearms"],
+      "technique": {
+        "steps": [
+          "Cuélgate con agarre prono a la anchura de los hombros.",
+          "Con los brazos estirados, lleva los hombros abajo y empuja la barra hacia la cadera.",
+          "Sube la cadera hasta que la espalda quede horizontal con las rodillas al pecho y aguanta."
+        ],
+        "mistakes": [
+          "Doblar los codos.",
+          "Dejar la cadera por debajo de los hombros.",
+          "Redondear la espalda sin tensión."
+        ]
+      }
+    },
+    {
+      "id": "dragon_flag",
+      "name": "Dragon flag",
+      "aliases": ["dragon flags", "bandera del dragón", "dragon flag en banco"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bench"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Tumbado en un banco, sujeto por detrás de la cabeza, bajas el cuerpo recto como una tabla.",
+      "primary": ["core"],
+      "secondary": ["lats", "glutes"],
+      "technique": {
+        "steps": [
+          "Túmbate en un banco y agárrate fuerte por detrás de la cabeza.",
+          "Sube el cuerpo recto hasta apoyarte solo en la parte alta de la espalda.",
+          "Baja despacio como una tabla, sin doblar la cadera, hasta casi tocar el banco.",
+          "Vuelve a subir o empieza solo con la bajada."
+        ],
+        "mistakes": [
+          "Doblar la cadera.",
+          "Apoyar el cuello en vez de los hombros.",
+          "Dejarse caer en vez de frenar."
+        ]
+      }
+    },
+    {
+      "id": "bench_dip",
+      "name": "Fondos en banco",
+      "aliases": ["bench dips", "bench dip", "fondos de tríceps en banco", "fondos en silla"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["bench"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Manos en el banco detrás de ti; baja doblando los codos hacia atrás.",
+      "primary": ["triceps"],
+      "secondary": ["chest", "delt_front"],
+      "technique": {
+        "steps": [
+          "Siéntate en el borde del banco con las manos junto a la cadera.",
+          "Adelanta la cadera fuera del banco con las piernas dobladas o estiradas.",
+          "Baja doblando los codos hacia atrás hasta unos 90°.",
+          "Empuja hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Bajar demasiado y forzar el hombro.",
+          "Abrir los codos hacia fuera.",
+          "Alejar la cadera del banco."
+        ]
+      }
+    },
+    {
+      "id": "wall_sit",
+      "name": "Sentadilla isométrica en pared",
+      "aliases": ["wall sit", "silla", "la silla", "sentadilla en pared", "wall squat"],
+      "category": "strength",
+      "tracking_type": "time",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Espalda contra la pared y rodillas a 90°: aguanta como si estuvieras sentado.",
+      "primary": ["quads"],
+      "secondary": ["glutes"],
+      "technique": {
+        "steps": [
+          "Apoya la espalda en la pared y adelanta los pies.",
+          "Baja hasta que rodillas y cadera formen 90°, con las rodillas sobre los tobillos.",
+          "Aguanta con la espalda pegada y respirando con normalidad."
+        ],
+        "mistakes": [
+          "Rodillas por delante de los pies.",
+          "Apoyar las manos en los muslos.",
+          "Quedarse muy alto."
+        ]
+      }
+    },
+    {
+      "id": "jump_squat",
+      "name": "Sentadilla con salto",
+      "aliases": [
+        "jump squat",
+        "jump squats",
+        "squat jump",
+        "sentadillas con salto",
+        "saltos de sentadilla"
+      ],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Sentadilla y salto explosivo; aterriza suave y vuelve a la sentadilla.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["calves", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Pies a la anchura de los hombros y brazos listos para ayudar.",
+          "Baja a media sentadilla y salta lo más alto que puedas extendiendo cadera y rodillas.",
+          "Aterriza con las puntas primero, rodillas flexionadas y en la dirección de los pies.",
+          "Encadena la siguiente o haz una pausa entre saltos."
+        ],
+        "mistakes": [
+          "Aterrizar con las piernas rígidas.",
+          "Rodillas hacia dentro al caer.",
+          "Hacer muchas seguidas perdiendo altura y técnica."
+        ]
+      }
+    },
+    {
+      "id": "broad_jump",
+      "name": "Salto horizontal",
+      "aliases": [
+        "broad jump",
+        "standing long jump",
+        "salto de longitud sin carrera",
+        "salto a pies juntos"
+      ],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Desde parado, salta lo más lejos posible con los dos pies y aterriza estable.",
+      "primary": ["glutes", "quads"],
+      "secondary": ["hamstrings", "calves"],
+      "technique": {
+        "steps": [
+          "De pie con los pies a la anchura de la cadera.",
+          "Lleva los brazos atrás y la cadera atrás como en una bisagra.",
+          "Lanza los brazos adelante y salta hacia delante extendiendo todo el cuerpo.",
+          "Aterriza con las rodillas flexionadas y aguanta la posición un segundo."
+        ],
+        "mistakes": [
+          "Caer con las piernas rígidas.",
+          "Saltar hacia arriba en vez de hacia delante.",
+          "Aterrizar con las rodillas hacia dentro."
+        ]
+      }
+    },
+    {
+      "id": "skater_jump",
+      "name": "Saltos de patinador",
+      "aliases": ["skater jumps", "skaters", "lateral bound", "saltos laterales", "patinador"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Salta de lado de una pierna a la otra y aterriza estable sobre una.",
+      "primary": ["glutes", "quads"],
+      "secondary": ["adductors", "calves", "core"],
+      "technique": {
+        "steps": [
+          "Ponte sobre una pierna con la rodilla algo flexionada.",
+          "Salta lateralmente hacia el otro lado empujando con esa pierna.",
+          "Aterriza sobre la otra pierna, cruzando la libre por detrás, y estabilízate.",
+          "Cuenta una repetición por salto."
+        ],
+        "mistakes": [
+          "Aterrizar con la rodilla hacia dentro.",
+          "No frenar el aterrizaje.",
+          "Saltos cortos sin empujar."
+        ]
+      }
+    },
+    {
+      "id": "depth_jump",
+      "name": "Salto en profundidad",
+      "aliases": ["depth jump", "drop jump", "salto desde cajón", "salto reactivo"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["box"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Cae de un cajón bajo y rebota hacia arriba al instante: pliometría avanzada.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["calves", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Súbete a un cajón bajo (30–45 cm).",
+          "Da un paso al vacío (no saltes) y cae con los dos pies a la vez.",
+          "En cuanto toques el suelo, salta lo más alto posible con el mínimo tiempo de contacto.",
+          "Pocas repeticiones y con descanso completo."
+        ],
+        "mistakes": [
+          "Cajón demasiado alto.",
+          "Quedarse en el suelo amortiguando antes de saltar.",
+          "Hacerlo cansado o sin base de fuerza."
+        ]
+      }
+    },
+    {
+      "id": "tuck_jump",
+      "name": "Salto con rodillas al pecho",
+      "aliases": ["tuck jump", "tuck jumps", "saltos agrupados", "rodillas al pecho saltando"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Salta alto y lleva las rodillas al pecho; aterriza suave.",
+      "primary": ["quads"],
+      "secondary": ["core", "calves", "glutes"],
+      "technique": {
+        "steps": [
+          "De pie con los pies a la anchura de la cadera.",
+          "Salta lo más alto posible y lleva las rodillas hacia el pecho.",
+          "Estira las piernas antes de caer y aterriza con las rodillas flexionadas."
+        ],
+        "mistakes": [
+          "Bajar el pecho a las rodillas en vez de subir las rodillas.",
+          "Aterrizar rígido.",
+          "Encadenar sin control."
+        ]
+      }
+    },
+    {
+      "id": "jumping_lunge",
+      "name": "Zancadas con salto",
+      "aliases": [
+        "jumping lunge",
+        "jumping lunges",
+        "split jump",
+        "zancada saltando",
+        "scissor jump"
+      ],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Desde zancada, salta y cambia de pierna en el aire.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["hamstrings", "calves", "core"],
+      "technique": {
+        "steps": [
+          "Colócate en zancada con las dos rodillas a 90°.",
+          "Salta hacia arriba y cambia la posición de las piernas en el aire.",
+          "Aterriza en zancada con la otra pierna delante, amortiguando.",
+          "Cuenta una repetición por cada aterrizaje."
+        ],
+        "mistakes": [
+          "Golpear la rodilla trasera contra el suelo.",
+          "Rodilla delantera hacia dentro.",
+          "Inclinar el torso."
+        ]
+      }
+    },
+    {
+      "id": "plyo_push_up",
+      "name": "Flexión pliométrica",
+      "aliases": [
+        "plyo push-up",
+        "clap push-up",
+        "flexión con palmada",
+        "flexiones explosivas",
+        "plyometric push up"
+      ],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Flexión explosiva en la que las manos despegan del suelo.",
+      "primary": ["chest", "triceps"],
+      "secondary": ["delt_front", "core"],
+      "technique": {
+        "steps": [
+          "Ponte en plancha alta con el cuerpo recto.",
+          "Baja como en una flexión y empuja con fuerza para despegar las manos.",
+          "Da una palmada si puedes y aterriza con los codos algo flexionados."
+        ],
+        "mistakes": [
+          "Aterrizar con los codos bloqueados.",
+          "Hundir la cadera.",
+          "Hacerlo sin dominar las flexiones normales."
+        ]
+      }
+    },
+    {
+      "id": "pogo_jumps",
+      "name": "Pogo jumps",
+      "aliases": ["pogo", "pogos", "saltos de tobillo", "saltos pogo", "ankle hops"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Saltos rápidos y pequeños con las rodillas casi rectas: el tobillo hace de muelle.",
+      "primary": ["calves"],
+      "secondary": ["quads"],
+      "technique": {
+        "steps": [
+          "De pie con los pies juntos o a la anchura de la cadera.",
+          "Salta rebotando sobre las puntas con las rodillas casi estiradas.",
+          "Busca el mínimo tiempo en el suelo y un ritmo constante."
+        ],
+        "mistakes": [
+          "Doblar mucho las rodillas.",
+          "Apoyar los talones en cada salto.",
+          "Saltar alto y lento en vez de corto y rápido."
+        ]
+      }
+    },
+    {
+      "id": "med_ball_slam",
+      "name": "Lanzamiento al suelo con balón (slam)",
+      "aliases": [
+        "medicine ball slam",
+        "ball slam",
+        "slam ball",
+        "slams",
+        "golpe al suelo con balón"
+      ],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["medball"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Balón arriba con los brazos estirados y lánzalo al suelo con todo el cuerpo.",
+      "primary": ["lats", "core"],
+      "secondary": ["delt_front", "triceps", "glutes"],
+      "technique": {
+        "steps": [
+          "Coge un balón de slam (que no bote) y súbelo por encima de la cabeza.",
+          "Ponte de puntillas estirando todo el cuerpo.",
+          "Lánzalo contra el suelo con fuerza doblando la cadera y las rodillas.",
+          "Recógelo con la espalda neutra y repite."
+        ],
+        "mistakes": [
+          "Usar un balón que bota y vuelve a la cara.",
+          "Redondear la espalda al recogerlo.",
+          "Lanzar solo con los brazos."
+        ]
+      }
+    },
+    {
+      "id": "med_ball_chest_pass",
+      "name": "Pase de pecho con balón",
+      "aliases": [
+        "medicine ball chest pass",
+        "chest pass",
+        "pase de pecho",
+        "lanzamiento de pecho"
+      ],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["medball"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Lanza el balón desde el pecho contra la pared con un empuje explosivo.",
+      "primary": ["chest", "triceps"],
+      "secondary": ["delt_front", "core"],
+      "technique": {
+        "steps": [
+          "Ponte frente a una pared con el balón sujeto contra el pecho.",
+          "Da un paso adelante y empuja el balón con fuerza estirando los brazos.",
+          "Recógelo al rebote con los brazos flexionados y repite."
+        ],
+        "mistakes": [
+          "Lanzar con los codos muy abiertos.",
+          "Ponerse tan cerca que no da tiempo a recoger.",
+          "Arquear la espalda."
+        ]
+      }
+    },
+    {
+      "id": "jumping_jacks",
+      "name": "Jumping jacks",
+      "aliases": ["jumping jack", "saltos de tijera", "tijeras de brazos", "star jumps"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 30,
+      "technique_notes": "Abre piernas y brazos a la vez con un salto y vuelve a cerrar.",
+      "primary": ["calves"],
+      "secondary": ["delt_side", "quads", "glutes"],
+      "technique": {
+        "steps": [
+          "De pie con los pies juntos y los brazos junto al cuerpo.",
+          "Salta abriendo las piernas y subiendo los brazos por encima de la cabeza.",
+          "Salta de nuevo para volver a la posición inicial; mantén un ritmo constante."
+        ],
+        "mistakes": ["Aterrizar sobre los talones.", "Brazos a medias.", "Encorvar la espalda."]
+      }
+    },
+    {
+      "id": "high_knees",
+      "name": "Skipping (rodillas altas)",
+      "aliases": ["high knees", "skipping", "rodillas arriba", "correr en el sitio"],
+      "category": "functional",
+      "tracking_type": "time",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 30,
+      "technique_notes": "Corre en el sitio subiendo las rodillas a la altura de la cadera.",
+      "primary": ["quads"],
+      "secondary": ["calves", "core", "glutes"],
+      "technique": {
+        "steps": [
+          "De pie con el torso erguido.",
+          "Corre en el sitio subiendo cada rodilla hasta la altura de la cadera.",
+          "Apoya sobre las puntas y acompaña con los brazos."
+        ],
+        "mistakes": ["Echar el torso hacia atrás.", "Rodillas bajas.", "Apoyar los talones."]
+      }
+    },
+    {
+      "id": "battle_ropes",
+      "name": "Cuerdas de batalla",
+      "aliases": ["battle ropes", "battling ropes", "cuerdas", "ondas con cuerdas", "battle rope"],
+      "category": "functional",
+      "tracking_type": "time",
+      "equipment": ["battle_rope"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Media sentadilla y ondas rápidas con los brazos, alternas o a la vez.",
+      "primary": ["delt_front", "core"],
+      "secondary": ["forearms", "biceps", "quads"],
+      "technique": {
+        "steps": [
+          "Coge un extremo de cuerda en cada mano y retrocede hasta que esté casi tensa.",
+          "Ponte en media sentadilla con el pecho alto y el abdomen firme.",
+          "Haz ondas rápidas subiendo y bajando los brazos, alternos o a la vez.",
+          "Mantén las ondas llegando hasta el anclaje."
+        ],
+        "mistakes": [
+          "Ponerse de pie recto y mover solo los brazos.",
+          "Ondas pequeñas que no llegan al final.",
+          "Encorvar la espalda."
+        ]
+      }
+    },
+    {
+      "id": "devil_press",
+      "name": "Devil press",
+      "aliases": ["devil's press", "devils press", "burpee con mancuernas y arrancada"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Burpee sobre dos mancuernas y llevarlas desde el suelo hasta encima de la cabeza.",
+      "primary": ["glutes", "hamstrings", "delt_front"],
+      "secondary": ["chest", "triceps", "core", "upper_back"],
+      "technique": {
+        "steps": [
+          "Con una mancuerna en cada mano en el suelo, baja el pecho al suelo como en un burpee.",
+          "Sube a plancha y salta con los pies hacia las manos.",
+          "Con la espalda neutra, balancea las mancuernas entre las piernas y extiende la cadera.",
+          "Llévalas en un solo movimiento por encima de la cabeza con los brazos estirados."
+        ],
+        "mistakes": [
+          "Redondear la espalda al levantar las mancuernas.",
+          "Subirlas con los brazos en vez de con la cadera.",
+          "Arquear la lumbar arriba."
+        ]
+      }
+    },
+    {
+      "id": "db_snatch",
+      "name": "Arrancada con mancuerna",
+      "aliases": ["dumbbell snatch", "db snatch", "snatch con mancuerna", "arrancada a una mano"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["dumbbell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Del suelo a encima de la cabeza en un solo movimiento, con la fuerza de la cadera.",
+      "primary": ["glutes", "hamstrings", "delt_front"],
+      "secondary": ["quads", "upper_back", "core", "triceps"],
+      "technique": {
+        "steps": [
+          "Mancuerna en el suelo entre los pies; cógela con una mano y la espalda neutra.",
+          "Extiende la cadera y las rodillas con fuerza manteniendo la mancuerna cerca del cuerpo.",
+          "Tira con el codo alto y mete el cuerpo debajo para recibirla con el brazo estirado.",
+          "Bájala con control al hombro y luego al suelo."
+        ],
+        "mistakes": [
+          "Tirar con el brazo sin usar la cadera.",
+          "Alejar la mancuerna del cuerpo.",
+          "Recibir con el codo doblado."
+        ]
+      }
+    },
+    {
+      "id": "power_clean",
+      "name": "Cargada de potencia (power clean)",
+      "aliases": ["power clean", "cargada", "clean", "cargada de fuerza", "cargada al pecho"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Barra del suelo a los hombros con un tirón explosivo y recepción en media sentadilla.",
+      "primary": ["glutes", "hamstrings", "quads"],
+      "secondary": ["upper_back", "lower_back", "forearms", "delt_front"],
+      "technique": {
+        "steps": [
+          "Barra sobre la mitad del pie, agarre algo más ancho que los hombros y espalda tensa.",
+          "Sube la barra pegada a las piernas hasta medio muslo.",
+          "Extiende cadera, rodillas y tobillos de forma explosiva y encoge los hombros.",
+          "Mete los codos rápido por delante y recibe la barra en los hombros en media sentadilla."
+        ],
+        "mistakes": [
+          "Tirar con los brazos antes de extender la cadera.",
+          "Barra separada del cuerpo.",
+          "Recibir con los codos bajos."
+        ]
+      }
+    },
+    {
+      "id": "hang_power_clean",
+      "name": "Cargada colgante (hang power clean)",
+      "aliases": [
+        "hang power clean",
+        "hang clean",
+        "cargada desde colgado",
+        "cargada desde rodillas"
+      ],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Como la power clean, empezando con la barra a la altura de los muslos.",
+      "primary": ["glutes", "hamstrings"],
+      "secondary": ["quads", "upper_back", "forearms", "delt_front"],
+      "technique": {
+        "steps": [
+          "De pie con la barra en las manos, bájala a medio muslo haciendo bisagra de cadera.",
+          "Extiende la cadera de forma explosiva y encoge los hombros.",
+          "Tira con los codos altos y mete los codos por delante.",
+          "Recibe la barra en los hombros en media sentadilla y ponte de pie."
+        ],
+        "mistakes": [
+          "Doblar los codos antes de tiempo.",
+          "Echar la barra hacia delante con la cadera.",
+          "Recibir con las piernas rígidas."
+        ]
+      }
+    },
+    {
+      "id": "push_press",
+      "name": "Push press",
+      "aliases": ["press con impulso", "press de empuje"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["barbell", "dumbbell", "kettlebell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 150,
+      "technique_notes": "Pequeña flexión de rodillas y empuje de piernas que ayuda a subir la barra.",
+      "primary": ["delt_front", "triceps"],
+      "secondary": ["quads", "glutes", "core", "delt_side"],
+      "technique": {
+        "steps": [
+          "Barra apoyada en los hombros con los codos algo adelantados.",
+          "Flexiona un poco las rodillas con el torso vertical (dip).",
+          "Extiende las piernas con fuerza y aprovecha el impulso para empujar la barra arriba.",
+          "Bloquea los brazos con la barra sobre la cabeza y baja a los hombros."
+        ],
+        "mistakes": [
+          "Dip demasiado profundo, como una sentadilla.",
+          "Inclinar el torso hacia delante en el dip.",
+          "Arquear la lumbar arriba."
+        ]
+      }
+    },
+    {
+      "id": "bear_crawl",
+      "name": "Paso de oso",
+      "aliases": ["bear crawl", "gateo de oso", "caminata de oso", "cuadrupedia"],
+      "category": "functional",
+      "tracking_type": "distance_time",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "A cuatro patas con las rodillas a un palmo del suelo, avanza mano y pie contrarios.",
+      "primary": ["core", "delt_front"],
+      "secondary": ["quads", "triceps"],
+      "technique": {
+        "steps": [
+          "Ponte a cuatro patas y levanta las rodillas a un palmo del suelo.",
+          "Avanza a la vez mano y pie contrarios con pasos cortos.",
+          "Mantén la espalda plana y la cadera a la altura de los hombros."
+        ],
+        "mistakes": [
+          "Subir la cadera muy alto.",
+          "Mover mano y pie del mismo lado.",
+          "Pasos largos que hacen balancear la cadera."
+        ]
+      }
+    },
+    {
+      "id": "rope_climb",
+      "name": "Subida a la cuerda",
+      "aliases": ["rope climb", "trepa de cuerda", "subir la cuerda", "cuerda lisa"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["climbing_rope"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Usa las piernas para pinzar la cuerda y sube con los brazos por tramos.",
+      "primary": ["lats", "forearms"],
+      "secondary": ["biceps", "core", "upper_back"],
+      "technique": {
+        "steps": [
+          "Coge la cuerda en alto y sube las rodillas al pecho.",
+          "Pinza la cuerda entre los pies (empeine de uno y planta del otro).",
+          "Ponte de pie sobre los pies y sube las manos; repite por tramos.",
+          "Baja mano a mano, frenando con los pies; nunca te dejes caer."
+        ],
+        "mistakes": [
+          "Subir solo con los brazos.",
+          "Bajar deslizándose: quema las manos.",
+          "Intentarlo sin colchoneta debajo."
+        ]
+      }
+    },
+    {
+      "id": "wall_walk",
+      "name": "Wall walk",
+      "aliases": ["wall walks", "subida a la pared", "caminar por la pared", "wall climb"],
+      "category": "functional",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Desde tumbado boca abajo, sube los pies por la pared mientras las manos se acercan.",
+      "primary": ["delt_front", "triceps"],
+      "secondary": ["core", "upper_back"],
+      "technique": {
+        "steps": [
+          "Túmbate boca abajo con los pies tocando la pared.",
+          "Sube a plancha y camina con los pies por la pared mientras acercas las manos.",
+          "Llega hasta casi tocar la pared con el pecho, con el cuerpo recto.",
+          "Baja deshaciendo los pasos con control."
+        ],
+        "mistakes": ["Arquear la espalda arriba.", "Bajar de golpe.", "Manos muy abiertas."]
+      }
+    }
+  ]
+}

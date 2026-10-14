@@ -2,6 +2,7 @@
 // Las columnas jsonb se validan con Zod al leerlas; lo que no valide se ignora (valores por defecto).
 import { z } from 'zod'
 import type { Json, TrainingLevel, TrainingProfile } from '@/types/database'
+import { parseDuration } from '@/lib/input/quantity'
 
 export const GOALS = [
   'strength',
@@ -162,16 +163,10 @@ export function toRow(data: TrainingProfileData) {
   }
 }
 
-// Tiempos de marcas en minutos: «25:30» → 1530 s; «28» → 28 min (a diferencia de parseClock
-// del registro, donde «90» son segundos).
+// Tiempos de marcas con el parser único: número suelto = minutos («28»), «25:30», «1h05»…
 export function parseMinSec(input: string) {
-  const m = /^\s*(\d{1,3})(?::(\d{1,2}))?\s*$/.exec(input)
-  if (!m) return null
-  const minutes = Number(m[1])
-  const seconds = m[2] === undefined ? 0 : Number(m[2])
-  if (seconds >= 60) return null
-  const total = minutes * 60 + seconds
-  return total > 0 ? total : null
+  const total = parseDuration(input, 'min')
+  return total !== null && total > 0 ? total : null
 }
 
 export function formatClockShort(seconds: number | null) {

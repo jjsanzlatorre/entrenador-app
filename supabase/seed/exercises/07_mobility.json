@@ -1,0 +1,617 @@
+{
+  "_comment": "Movilidad y estiramientos. Llevan los músculos que trabajan para poder buscarlos y filtrarlos, pero no suman series efectivas en el mapa muscular (src/lib/progress/muscle-volume.ts). npm run seed:sql genera la migración.",
+  "migration": "0042_seed_exercises_mobility.sql",
+  "description": "Semilla: movilidad y estiramientos (90/90, gato-camello, world's greatest stretch, couch stretch…) con su técnica. Requiere 0026.",
+  "exercises": [
+    {
+      "id": "hip_90_90",
+      "name": "90/90 de cadera",
+      "aliases": [
+        "90 90",
+        "90-90",
+        "90/90 hip switch",
+        "hip 90 90",
+        "cambios 90/90",
+        "movilidad de cadera 90/90"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Sentado con las dos rodillas a 90°, gira las piernas de un lado a otro.",
+      "primary": ["glutes"],
+      "secondary": ["adductors"],
+      "technique": {
+        "steps": [
+          "Siéntate con una pierna delante y otra al lado, las dos rodillas dobladas a 90°.",
+          "Mantén el torso erguido; apoya las manos detrás si lo necesitas.",
+          "Gira las dos rodillas a la vez hacia el otro lado sin despegar los talones.",
+          "Cuenta una repetición por cada cambio."
+        ],
+        "mistakes": [
+          "Encorvar la espalda.",
+          "Forzar con dolor en la rodilla.",
+          "Ir deprisa sin control."
+        ]
+      }
+    },
+    {
+      "id": "cat_cow",
+      "name": "Gato-camello",
+      "aliases": ["cat cow", "cat-cow", "gato vaca", "cat camel", "gato y vaca"],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "A cuatro patas, alterna redondear y arquear la espalda despacio con la respiración.",
+      "primary": ["lower_back"],
+      "secondary": ["upper_back", "core"],
+      "technique": {
+        "steps": [
+          "Ponte a cuatro patas con manos bajo hombros y rodillas bajo la cadera.",
+          "Al soltar el aire, redondea la espalda hacia el techo y mete la barbilla.",
+          "Al coger aire, arquea la espalda llevando el pecho adelante y la mirada al frente.",
+          "Mueve vértebra a vértebra, despacio."
+        ],
+        "mistakes": [
+          "Mover solo el cuello.",
+          "Ir rápido sin acompañar la respiración.",
+          "Forzar el arco lumbar."
+        ]
+      }
+    },
+    {
+      "id": "worlds_greatest_stretch",
+      "name": "World's greatest stretch",
+      "aliases": [
+        "worlds greatest stretch",
+        "el mejor estiramiento del mundo",
+        "spiderman con rotación",
+        "zancada con rotación"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 30,
+      "technique_notes": "Zancada profunda, codo al suelo y rotación del tronco con el brazo hacia el techo.",
+      "primary": ["glutes", "hamstrings"],
+      "secondary": ["adductors", "upper_back", "quads"],
+      "technique": {
+        "steps": [
+          "Da una zancada larga y apoya las manos en el suelo por dentro del pie delantero.",
+          "Baja el codo del mismo lado hacia el empeine.",
+          "Gira el tronco y lleva ese brazo hacia el techo siguiéndolo con la mirada.",
+          "Vuelve, estira la pierna delantera llevando la cadera atrás y cambia de lado."
+        ],
+        "mistakes": [
+          "Apoyar la rodilla trasera y perder la tensión.",
+          "Girar solo el brazo sin rotar el pecho.",
+          "Ir con rebote."
+        ]
+      }
+    },
+    {
+      "id": "couch_stretch",
+      "name": "Estiramiento de flexores de cadera (couch stretch)",
+      "aliases": [
+        "couch stretch",
+        "hip flexor stretch",
+        "estiramiento de psoas",
+        "flexores de cadera",
+        "estiramiento de cuádriceps de rodillas"
+      ],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Rodilla trasera en el suelo cerca de la pared y empeine en ella; aprieta el glúteo.",
+      "primary": ["quads"],
+      "secondary": ["core"],
+      "technique": {
+        "steps": [
+          "Arrodíllate de espaldas a una pared (o a un sofá) con la rodilla trasera cerca y el empeine apoyado arriba.",
+          "Adelanta la otra pierna con el pie en el suelo.",
+          "Sube el torso hasta quedar erguido y aprieta el glúteo de la pierna trasera.",
+          "Aguanta respirando y cambia de lado."
+        ],
+        "mistakes": [
+          "Arquear la lumbar en vez de meter la cadera.",
+          "Empezar demasiado cerca de la pared.",
+          "Rodilla sin protección sobre suelo duro."
+        ]
+      }
+    },
+    {
+      "id": "pigeon_stretch",
+      "name": "Postura de la paloma",
+      "aliases": [
+        "pigeon stretch",
+        "pigeon pose",
+        "paloma",
+        "estiramiento de glúteo en paloma",
+        "piriforme"
+      ],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Una pierna doblada delante y la otra estirada atrás; estira glúteo y cadera.",
+      "primary": ["glutes"],
+      "secondary": ["quads"],
+      "technique": {
+        "steps": [
+          "Desde cuatro patas, lleva una rodilla delante entre las manos con la pierna doblada.",
+          "Estira la otra pierna hacia atrás con el empeine en el suelo.",
+          "Mantén la cadera recta y, si puedes, inclina el torso hacia delante.",
+          "Aguanta respirando y cambia de lado."
+        ],
+        "mistakes": [
+          "Dejar caer la cadera hacia un lado.",
+          "Forzar con dolor en la rodilla delantera (pon un cojín bajo la cadera).",
+          "Contener la respiración."
+        ]
+      }
+    },
+    {
+      "id": "open_book",
+      "name": "Rotación torácica (libro abierto)",
+      "aliases": [
+        "open book",
+        "thoracic rotation",
+        "rotación torácica",
+        "libro abierto",
+        "t-spine rotation"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["mat"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Tumbado de lado con las rodillas dobladas, abre el brazo de arriba como un libro.",
+      "primary": ["upper_back"],
+      "secondary": ["chest"],
+      "technique": {
+        "steps": [
+          "Túmbate de lado con las rodillas dobladas a 90° y los brazos estirados al frente.",
+          "Abre el brazo de arriba hacia el otro lado siguiéndolo con la mirada.",
+          "Las rodillas siguen juntas y en el suelo; vuelve despacio.",
+          "Haz todas las repeticiones y cambia de lado."
+        ],
+        "mistakes": [
+          "Separar las rodillas al girar.",
+          "Forzar el hombro para tocar el suelo.",
+          "Ir deprisa."
+        ]
+      }
+    },
+    {
+      "id": "downward_dog",
+      "name": "Perro boca abajo",
+      "aliases": ["downward dog", "down dog", "perro mirando abajo", "v invertida", "adho mukha"],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Cadera arriba y atrás, espalda larga y talones hacia el suelo.",
+      "primary": ["hamstrings", "calves"],
+      "secondary": ["delt_front", "lats"],
+      "technique": {
+        "steps": [
+          "Desde cuatro patas, apoya los dedos de los pies y sube la cadera.",
+          "Empuja el suelo con las manos y lleva el pecho hacia los muslos.",
+          "Estira la espalda; dobla las rodillas si es necesario y lleva los talones hacia el suelo."
+        ],
+        "mistakes": [
+          "Redondear la espalda por estirar las piernas a la fuerza.",
+          "Encoger los hombros hacia las orejas.",
+          "Bloquear los codos hacia dentro."
+        ]
+      }
+    },
+    {
+      "id": "childs_pose",
+      "name": "Postura del niño",
+      "aliases": ["child's pose", "childs pose", "balasana", "estiramiento de espalda de rodillas"],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "De rodillas, glúteos a los talones y brazos estirados al frente; relaja la espalda.",
+      "primary": ["lower_back", "lats"],
+      "secondary": ["glutes"],
+      "technique": {
+        "steps": [
+          "Arrodíllate con las rodillas algo separadas y los pies juntos.",
+          "Lleva los glúteos hacia los talones y estira los brazos al frente.",
+          "Apoya la frente y respira profundo notando cómo se abre la espalda."
+        ],
+        "mistakes": [
+          "Forzar las rodillas si molestan (pon un cojín).",
+          "Tensar los hombros.",
+          "Contener la respiración."
+        ]
+      }
+    },
+    {
+      "id": "deep_squat_hold",
+      "name": "Sentadilla profunda mantenida",
+      "aliases": [
+        "deep squat hold",
+        "squat hold",
+        "sentadilla asiática",
+        "asian squat",
+        "cuclillas"
+      ],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Abajo del todo con los talones apoyados; codos empujando las rodillas hacia fuera.",
+      "primary": ["adductors", "glutes"],
+      "secondary": ["calves", "lower_back"],
+      "technique": {
+        "steps": [
+          "Pies algo más abiertos que los hombros y puntas hacia fuera.",
+          "Baja a la sentadilla más profunda que puedas con los talones en el suelo.",
+          "Junta las manos delante del pecho y empuja las rodillas hacia fuera con los codos.",
+          "Si se levantan los talones, agárrate a algo o pon un disco bajo ellos."
+        ],
+        "mistakes": [
+          "Levantar los talones.",
+          "Redondear mucho la espalda.",
+          "Rodillas hacia dentro."
+        ]
+      }
+    },
+    {
+      "id": "knee_to_wall",
+      "name": "Rodilla a la pared (movilidad de tobillo)",
+      "aliases": [
+        "knee to wall",
+        "ankle dorsiflexion",
+        "movilidad de tobillo",
+        "dorsiflexión",
+        "ankle mobility"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Pie a un palmo de la pared, lleva la rodilla a tocarla sin levantar el talón.",
+      "primary": ["calves"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Ponte frente a una pared con un pie adelantado a unos centímetros de ella.",
+          "Lleva la rodilla hacia la pared sin despegar el talón.",
+          "Si toca fácil, aleja un poco el pie; si no, acércalo.",
+          "Haz las repeticiones y cambia de pierna."
+        ],
+        "mistakes": [
+          "Levantar el talón.",
+          "Llevar la rodilla hacia dentro.",
+          "Rebotar contra la pared."
+        ]
+      }
+    },
+    {
+      "id": "shoulder_cars",
+      "name": "CARs de hombro",
+      "aliases": [
+        "shoulder cars",
+        "círculos de hombro",
+        "rotaciones controladas de hombro",
+        "controlled articular rotations"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Círculos lentos y lo más amplios posible con el brazo estirado; el tronco no se mueve.",
+      "primary": ["delt_front", "delt_rear"],
+      "secondary": ["delt_side", "upper_back"],
+      "technique": {
+        "steps": [
+          "De pie, aprieta glúteos y abdomen para que el tronco no se mueva.",
+          "Con el brazo estirado, dibuja el círculo más grande que puedas, muy despacio.",
+          "Haz las repeticiones en un sentido y luego en el otro; cambia de brazo."
+        ],
+        "mistakes": [
+          "Arquear la espalda para llegar más lejos.",
+          "Ir rápido y sin control.",
+          "Doblar el codo."
+        ]
+      }
+    },
+    {
+      "id": "hip_cars",
+      "name": "CARs de cadera",
+      "aliases": [
+        "hip cars",
+        "círculos de cadera",
+        "rotaciones controladas de cadera",
+        "hip circles"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "A cuatro patas o de pie, rodilla dibujando el círculo más amplio sin mover el tronco.",
+      "primary": ["glutes"],
+      "secondary": ["adductors", "core"],
+      "technique": {
+        "steps": [
+          "Ponte a cuatro patas (o de pie agarrado a algo) con el tronco firme.",
+          "Lleva una rodilla al pecho, ábrela al lado, gírala hacia atrás y vuelve.",
+          "Hazlo despacio y lo más amplio posible sin girar el tronco.",
+          "Repite en los dos sentidos y con las dos piernas."
+        ],
+        "mistakes": [
+          "Mover la espalda para compensar.",
+          "Círculos pequeños y rápidos.",
+          "Perder el equilibrio por no apoyarse."
+        ]
+      }
+    },
+    {
+      "id": "hamstring_stretch",
+      "name": "Estiramiento de isquiotibiales",
+      "aliases": [
+        "hamstring stretch",
+        "estiramiento de isquios",
+        "isquios",
+        "estiramiento de femoral"
+      ],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat", "band"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Pierna estirada y espalda recta; inclínate desde la cadera, no doblando la espalda.",
+      "primary": ["hamstrings"],
+      "secondary": ["calves"],
+      "technique": {
+        "steps": [
+          "Túmbate boca arriba con una goma o toalla en la planta de un pie.",
+          "Sube esa pierna estirada hasta notar un estiramiento suave detrás del muslo.",
+          "Mantén la otra pierna en el suelo y aguanta respirando.",
+          "Cambia de pierna."
+        ],
+        "mistakes": [
+          "Tirar hasta notar dolor.",
+          "Doblar la rodilla de la pierna estirada.",
+          "Levantar la cadera del suelo."
+        ]
+      }
+    },
+    {
+      "id": "cossack_squat",
+      "name": "Sentadilla cosaca",
+      "aliases": ["cossack squat", "cossack", "sentadilla lateral profunda", "sentadilla cossack"],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight", "kettlebell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 45,
+      "technique_notes": "Pies muy abiertos: baja sobre una pierna con la otra estirada y la punta arriba.",
+      "primary": ["adductors", "quads"],
+      "secondary": ["glutes", "hamstrings"],
+      "technique": {
+        "steps": [
+          "Abre mucho los pies con las puntas algo hacia fuera.",
+          "Baja hacia un lado doblando esa rodilla mientras la otra pierna se queda estirada con la punta arriba.",
+          "Mantén el talón de la pierna doblada en el suelo y el pecho alto.",
+          "Pasa al otro lado; cuenta una repetición por lado."
+        ],
+        "mistakes": [
+          "Levantar el talón de la pierna que baja.",
+          "Inclinar mucho el torso.",
+          "Forzar la profundidad con dolor en la ingle."
+        ]
+      }
+    },
+    {
+      "id": "foam_rolling",
+      "name": "Rodillo de espuma",
+      "aliases": [
+        "foam roller",
+        "foam rolling",
+        "rodillo",
+        "automasaje",
+        "liberación miofascial",
+        "smr"
+      ],
+      "category": "mobility",
+      "tracking_type": "duration_only",
+      "equipment": ["foam_roller"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Rueda despacio sobre el músculo y para en los puntos más cargados.",
+      "primary": ["quads", "hamstrings"],
+      "secondary": ["glutes", "calves", "lats"],
+      "technique": {
+        "steps": [
+          "Coloca el rodillo bajo el músculo (cuádriceps, isquios, gemelos, dorsal…).",
+          "Apoya manos o pies para controlar cuánto peso cargas.",
+          "Rueda despacio de un extremo a otro y para unos segundos en los puntos cargados.",
+          "Dedica 30–60 s a cada zona."
+        ],
+        "mistakes": [
+          "Rodar sobre la zona lumbar o articulaciones.",
+          "Ir muy rápido.",
+          "Apretar hasta que duele mucho."
+        ]
+      }
+    },
+    {
+      "id": "cobra_stretch",
+      "name": "Postura de la cobra",
+      "aliases": [
+        "cobra",
+        "cobra stretch",
+        "cobra pose",
+        "extensión de espalda tumbado",
+        "bhujangasana"
+      ],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Boca abajo, empuja con las manos para levantar el pecho con la cadera en el suelo.",
+      "primary": ["core"],
+      "secondary": ["lower_back"],
+      "technique": {
+        "steps": [
+          "Túmbate boca abajo con las manos bajo los hombros.",
+          "Empuja el suelo y levanta el pecho mientras la cadera sigue apoyada.",
+          "Hombros abajo y lejos de las orejas; aguanta respirando."
+        ],
+        "mistakes": [
+          "Levantar la cadera del suelo.",
+          "Encoger los hombros.",
+          "Forzar si molesta la zona lumbar."
+        ]
+      }
+    },
+    {
+      "id": "frog_stretch",
+      "name": "Estiramiento de la rana",
+      "aliases": ["frog stretch", "rana", "estiramiento de aductores", "frog pose"],
+      "category": "mobility",
+      "tracking_type": "time",
+      "equipment": ["mat"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "A cuatro patas con las rodillas muy abiertas; lleva la cadera atrás despacio.",
+      "primary": ["adductors"],
+      "secondary": ["glutes"],
+      "technique": {
+        "steps": [
+          "A cuatro patas, separa las rodillas todo lo que puedas con los tobillos en línea con ellas.",
+          "Apoya los antebrazos en el suelo.",
+          "Lleva la cadera hacia atrás despacio hasta notar el estiramiento en la ingle y aguanta."
+        ],
+        "mistakes": [
+          "Rodillas sin protección en suelo duro.",
+          "Forzar con rebotes.",
+          "Arquear la lumbar."
+        ]
+      }
+    },
+    {
+      "id": "wall_slide",
+      "name": "Deslizamientos en pared",
+      "aliases": [
+        "wall slides",
+        "wall angels",
+        "ángeles en la pared",
+        "deslizamiento de brazos en pared"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["bodyweight"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Espalda y brazos contra la pared; sube y baja los brazos sin despegarlos.",
+      "primary": ["upper_back"],
+      "secondary": ["delt_side", "delt_rear"],
+      "technique": {
+        "steps": [
+          "Apoya en la pared glúteos, espalda y cabeza, con los pies algo adelantados.",
+          "Pon los brazos en W contra la pared, con codos y dorso de las manos apoyados.",
+          "Desliza los brazos hacia arriba sin despegarlos y vuelve a bajar."
+        ],
+        "mistakes": [
+          "Arquear la lumbar para mantener los brazos pegados.",
+          "Despegar las manos de la pared.",
+          "Encoger los hombros al subir."
+        ]
+      }
+    },
+    {
+      "id": "band_dislocates",
+      "name": "Dislocaciones con goma o palo",
+      "aliases": [
+        "band dislocates",
+        "shoulder dislocates",
+        "pass through",
+        "pase de palo",
+        "dislocaciones de hombro"
+      ],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["band"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "Agarre ancho y brazos estirados: pasa la goma de delante a detrás por encima de la cabeza.",
+      "primary": ["delt_front", "chest"],
+      "secondary": ["delt_rear", "upper_back"],
+      "technique": {
+        "steps": [
+          "Coge una goma o un palo con agarre muy ancho y los brazos estirados delante.",
+          "Súbelos por encima de la cabeza y llévalos hasta detrás del cuerpo.",
+          "Vuelve por el mismo camino; estrecha el agarre poco a poco con los días."
+        ],
+        "mistakes": [
+          "Doblar los codos para pasar.",
+          "Agarre demasiado estrecho al empezar.",
+          "Arquear la lumbar."
+        ]
+      }
+    },
+    {
+      "id": "thread_the_needle",
+      "name": "Enhebrar la aguja",
+      "aliases": ["thread the needle", "enhebrar aguja", "rotación torácica a cuatro patas"],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["mat"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 30,
+      "technique_notes": "A cuatro patas, pasa un brazo por debajo del otro girando la espalda alta.",
+      "primary": ["upper_back"],
+      "secondary": ["delt_rear"],
+      "technique": {
+        "steps": [
+          "Ponte a cuatro patas con las manos bajo los hombros.",
+          "Pasa un brazo por debajo del otro hasta apoyar el hombro y la sien.",
+          "Vuelve y abre ese brazo hacia el techo girando el pecho.",
+          "Haz las repeticiones y cambia de lado."
+        ],
+        "mistakes": ["Mover la cadera hacia los lados.", "Girar solo el brazo.", "Ir deprisa."]
+      }
+    }
+  ]
+}

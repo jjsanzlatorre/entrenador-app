@@ -3,6 +3,7 @@ import {
   ArrowDown,
   ArrowUp,
   Flag,
+  Maximize2,
   Minus,
   Pause,
   Play,
@@ -13,6 +14,12 @@ import {
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { fieldSpecs } from '@/lib/workout/fields'
+import {
+  getFullscreenAuto,
+  setFullscreenAuto,
+  useFullscreenAuto,
+} from '@/lib/workout/fullscreen-pref'
+import { timerDisplay } from '@/lib/workout/timer-display'
 import { formatClock } from '@/lib/workout/format'
 import { useNow } from '@/lib/workout/hooks'
 import { formatDistance, formatPace, paceKindForExercise } from '@/lib/workout/pace'
@@ -32,6 +39,7 @@ import { cn } from '@/lib/utils'
 import { ExerciseTechniqueSheet } from './exercise-technique'
 import { SetRow } from './set-row'
 import { BigButton, useCountdownAlerts, usePhaseChangeAlert } from './timer-controls'
+import { TimerFullscreen, type FullscreenControl } from './timer-fullscreen'
 
 export const BLOCK_LABELS: Record<string, string> = {
   straight: 'Series',
@@ -104,6 +112,8 @@ export function TimedBlockCard({
   const view = timerView(schedule, timer, now)
   const [selectedSet, setSelectedSet] = useState<string | null>(null)
   const [techniqueFor, setTechniqueFor] = useState<string | null>(null)
+  const [fullscreen, setFullscreen] = useState(false)
+  const autoFullscreen = useFullscreenAuto('blocks')
 
   const secondsLeft = view.status === 'running' ? secondsLeftInPhase(view) : null
   const phaseKey = `${block.id}:${view.phaseIndex}`
@@ -119,6 +129,12 @@ export function TimedBlockCard({
   if (!config) return null
   const exerciseName = (id: string) => exercisesById.get(id)?.name ?? id
   const act = (a: TimerAction) => actions.onTimer(block.id, a)
+  // Al empezar, a pantalla completa si está activado (se puede cambiar en la propia pantalla).
+  const start = (a: 'start' | 'start-now') => {
+    act(a)
+    if (getFullscreenAuto('blocks')) setFullscreen(true)
+  }
+  const showFullscreen = fullscreen && (view.status === 'running' || view.status === 'paused')
 
   return (
     <section
@@ -189,15 +205,24 @@ export function TimedBlockCard({
             label="Empezar con cuenta atrás de 10 segundos"
             className="flex-none"
             disabled={anotherRunning}
-            onClick={() => act(config.kind === 'free' ? 'start-now' : 'start')}
+            onClick={() => start(config.kind === 'free' ? 'start-now' : 'start')}
           >
             <Play className="size-6" /> Empezar
           </BigButton>
           {config.kind !== 'free' && (
-            <Button variant="ghost" disabled={anotherRunning} onClick={() => act('start-now')}>
+            <Button variant="ghost" disabled={anotherRunning} onClick={() => start('start-now')}>
               Empezar sin cuenta atrás
             </Button>
           )}
+          <label className="text-muted-foreground flex items-center justify-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              className="size-4"
+              checked={autoFullscreen}
+              onChange={(e) => setFullscreenAuto('blocks', e.target.checked)}
+            />
+            Abrir a pantalla completa al empezar
+          </label>
           {anotherRunning && (
             <p className="text-muted-foreground text-center text-xs">
               Termina antes el bloque que está en marcha.
@@ -215,6 +240,9 @@ export function TimedBlockCard({
           exerciseName={exerciseName}
           onAction={act}
           onAmrap={(field, delta) => actions.onAmrap(block.id, field, delta)}
+          onFullscreen={() => setFullscreen(true)}
+          fullscreen={showFullscreen}
+          onCloseFullscreen={() => setFullscreen(false)}
         />
       )}
 
@@ -304,6 +332,9 @@ function RunningView({
   exerciseName,
   onAction,
   onAmrap,
+  onFullscreen,
+  fullscreen,
+  onCloseFullscreen,
 }: {
   block: LocalBlock
   config: TimerConfig
@@ -312,106 +343,106 @@ function RunningView({
   exerciseName: (id: string) => string
   onAction: (a: TimerAction) => void
   onAmrap: (field: 'rounds' | 'extraReps', delta: number) => void
+  onFullscreen: () => void
+  fullscreen: boolean
+  onCloseFullscreen: () => void
 }) {
   const phase = view.phase
   const paused = view.status === 'paused'
   const prep = phase?.kind === 'prep'
   const rest = phase?.kind === 'rest'
-  const open = !Number.isFinite(view.phaseRemainingMs)
   const schedule = buildSchedule(config)
-  const workS = workElapsedMs(schedule, block.timer ?? createTimerState(), now) / 1000
-
-  // Reloj principal: cuenta atrás de la fase, o ascendente si es abierta.
-  let clock = open
-    ? formatClock(view.phaseElapsedMs / 1000)
-    : formatClock(Math.ceil(view.phaseRemainingMs / 1000))
-  let title = prep
-    ? 'Prepárate'
-    : rest
-      ? config.kind === 'intervals'
-        ? 'Recuperación'
-        : 'Descanso'
-      : 'Trabajo'
-  let detail: string | null = null
-
-  switch (config.kind) {
-    case 'emom': {
-      const ex =
-        block.exercises[(Math.max(1, phase?.round ?? 1) - 1) % Math.max(1, block.exercises.length)]
-      title = prep ? 'Prepárate' : `Minuto ${phase?.round} de ${config.minutes}`
-      detail = ex
-        ? `${ex.targetReps ? `${ex.targetReps} × ` : ''}${exerciseName(ex.exerciseId)}`
-        : null
-      break
-    }
-    case 'amrap':
-      if (!prep) {
-        title = 'Tiempo restante'
-        clock = formatClock(Math.ceil(view.totalRemainingMs / 1000))
-      }
-      break
-    case 'tabata': {
-      const ex =
-        block.exercises[(Math.max(1, phase?.round ?? 1) - 1) % Math.max(1, block.exercises.length)]
-      if (!prep)
-        title = `${rest ? 'Descanso' : 'Trabajo'} · ronda ${phase?.round} de ${config.rounds}`
-      detail = ex && !rest ? exerciseName(ex.exerciseId) : null
-      break
-    }
-    case 'for_time':
-      if (!prep) {
-        title = config.capS ? `Tiempo (cap ${formatClock(config.capS)})` : 'Tiempo'
-        clock = formatClock(workS)
-      }
-      break
-    case 'intervals': {
-      const target = config.workDistanceM
-        ? formatDistance(config.workDistanceM)
-        : formatClock(config.workS ?? 0)
-      if (!prep)
-        title = `${rest ? 'Recuperación' : 'Serie'} ${phase?.round} de ${config.reps}${rest ? '' : ` · ${target}`}`
-      break
-    }
-    case 'free':
-      title = 'Cronómetro'
-      clock = formatClock(workS)
-      break
-  }
+  const display = timerDisplay({
+    config,
+    schedule,
+    view,
+    workElapsedMs: workElapsedMs(schedule, block.timer ?? createTimerState(), now),
+    exercises: block.exercises.map((e) => ({
+      name: exerciseName(e.exerciseId),
+      targetReps: e.targetReps,
+    })),
+  })
+  const open = display.open
+  // En la tarjeta: el ejercicio del minuto o la ronda (EMOM y Tabata), como siempre.
+  const detail = config.kind === 'emom' || config.kind === 'tabata' ? display.current : null
 
   const splits = block.result?.kind === 'intervals' ? block.result.splits : []
   const pace = block.exercises[0] ? paceKindForExercise(block.exercises[0].exerciseId) : null
   const lapMode = config.kind === 'intervals' && config.workDistanceM && phase?.kind === 'work'
+  const amrap = config.kind === 'amrap' && block.result?.kind === 'amrap' ? block.result : null
+
+  const finish = () => {
+    if (config.kind === 'for_time' || config.kind === 'free' || confirm('¿Terminar el bloque ya?'))
+      onAction('finish')
+  }
+  const controls: FullscreenControl[] = [
+    {
+      label: 'Sumar 15 segundos',
+      content: '+15 s',
+      disabled: open,
+      onClick: () => onAction('add-15'),
+    },
+    ...(lapMode
+      ? []
+      : [
+          {
+            label: 'Saltar fase',
+            content: (
+              <>
+                <SkipForward className="size-6" /> Saltar
+              </>
+            ),
+            disabled: config.kind === 'free' || config.kind === 'for_time',
+            onClick: () => onAction('skip'),
+          },
+        ]),
+    {
+      label: 'Terminar bloque',
+      content: (
+        <>
+          <Flag className="size-6" /> Terminar
+        </>
+      ),
+      onClick: finish,
+    },
+  ]
 
   return (
     <div className="flex flex-col gap-3">
       <div
         className={cn(
-          'rounded-2xl p-4 text-center',
+          'relative rounded-2xl p-4 text-center',
           prep && 'bg-amber-500/15',
           rest && 'bg-emerald-500/15',
           !prep && !rest && 'bg-primary/10',
         )}
         role="timer"
       >
-        <p className="text-sm font-semibold uppercase">{paused ? `${title} · en pausa` : title}</p>
+        <p className="text-sm font-semibold uppercase">
+          {paused ? `${display.title} · en pausa` : display.title}
+        </p>
         <p
           className={cn(
             'text-7xl leading-none font-bold tabular-nums',
-            !open && view.phaseRemainingMs <= 3000 && !paused && 'text-destructive',
+            display.warn && !paused && 'text-destructive',
           )}
         >
-          {clock}
+          {display.clock}
         </p>
         {detail && <p className="mt-2 text-2xl font-semibold">{detail}</p>}
-        {config.kind === 'amrap' && block.result?.kind === 'amrap' && (
+        {amrap && (
           <p className="mt-2 text-lg">
-            <span className="text-3xl font-bold tabular-nums">{block.result.rounds}</span> rondas
-            {block.result.extraReps > 0 && ` + ${block.result.extraReps} reps`}
+            <span className="text-3xl font-bold tabular-nums">{amrap.rounds}</span> rondas
+            {amrap.extraReps > 0 && ` + ${amrap.extraReps} reps`}
           </p>
         )}
       </div>
 
-      {config.kind === 'amrap' && block.result?.kind === 'amrap' && !prep && (
+      <Button variant="outline" size="lg" onClick={onFullscreen}>
+        <Maximize2 /> Pantalla completa
+      </Button>
+
+      {amrap && !prep && (
         <div className="flex flex-col gap-2">
           <BigButton
             variant="primary"
@@ -465,18 +496,7 @@ function RunningView({
             <SkipForward className="size-6" />
           </BigButton>
         )}
-        <BigButton
-          variant="danger"
-          label="Terminar bloque"
-          onClick={() => {
-            if (
-              config.kind === 'for_time' ||
-              config.kind === 'free' ||
-              confirm('¿Terminar el bloque ya?')
-            )
-              onAction('finish')
-          }}
-        >
+        <BigButton variant="danger" label="Terminar bloque" onClick={finish}>
           <Flag className="size-6" />
         </BigButton>
       </div>
@@ -493,6 +513,58 @@ function RunningView({
             </li>
           ))}
         </ol>
+      )}
+
+      {fullscreen && (
+        <TimerFullscreen
+          display={display}
+          paused={paused}
+          label={BLOCK_LABELS[config.kind] ?? 'Temporizador'}
+          onTogglePause={() => onAction('toggle-pause')}
+          controls={controls}
+          big={
+            amrap && !prep
+              ? {
+                  label: 'Sumar una ronda',
+                  content: (
+                    <>
+                      <Plus className="size-8" /> 1 ronda
+                    </>
+                  ),
+                  onClick: () => onAmrap('rounds', 1),
+                }
+              : lapMode
+                ? {
+                    label: 'Vuelta hecha',
+                    content: (
+                      <>
+                        <Flag className="size-8" /> Serie hecha
+                      </>
+                    ),
+                    onClick: () => onAction('skip'),
+                  }
+                : null
+          }
+          extra={
+            amrap ? (
+              <div className="flex items-center gap-3" onClick={(e) => e.stopPropagation()}>
+                <button
+                  type="button"
+                  aria-label="Restar una ronda"
+                  onClick={() => onAmrap('rounds', -1)}
+                  className="h-12 rounded-xl bg-white/20 px-3 text-lg font-bold"
+                >
+                  −1
+                </button>
+                <p className="text-2xl font-bold">
+                  <span className="text-5xl font-black tabular-nums">{amrap.rounds}</span> rondas
+                  {amrap.extraReps > 0 && ` + ${amrap.extraReps}`}
+                </p>
+              </div>
+            ) : null
+          }
+          onClose={onCloseFullscreen}
+        />
       )}
     </div>
   )

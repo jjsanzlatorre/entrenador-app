@@ -1,11 +1,18 @@
-import { useEffect, useRef } from 'react'
-import { Pause, Play, SkipForward } from 'lucide-react'
+import { useEffect, useRef, useState } from 'react'
+import { Maximize2, Pause, Play, SkipForward } from 'lucide-react'
 import { beep, vibrate } from '@/lib/workout/alerts'
 import { formatClock } from '@/lib/workout/format'
+import {
+  getFullscreenAuto,
+  setFullscreenAuto,
+  useFullscreenAuto,
+} from '@/lib/workout/fullscreen-pref'
+import type { TimerDisplay } from '@/lib/workout/timer-display'
 import { useNow } from '@/lib/workout/hooks'
 import { restRemainingMs } from '@/lib/workout/session-ops'
 import type { RestTimer } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
+import { TimerFullscreen } from './timer-fullscreen'
 
 // Descanso basado en timestamps (endsAt): al volver de segundo plano muestra el tiempo real.
 export function RestTimerBar({
@@ -27,6 +34,17 @@ export function RestTimerBar({
   const seconds = Math.ceil(remaining / 1000)
   const finished = remaining <= 0
   const paused = rest.pausedRemainingMs !== null
+  // Pantalla completa: a mano (tocando el reloj) o sola con cada descanso si está activado.
+  const [fullscreenFor, setFullscreenFor] = useState<number | null>(() =>
+    getFullscreenAuto('rest') ? rest.startedAt : null,
+  )
+  const autoRest = useFullscreenAuto('rest')
+  const [seenRest, setSeenRest] = useState(rest.startedAt)
+  if (seenRest !== rest.startedAt) {
+    setSeenRest(rest.startedAt)
+    setFullscreenFor(getFullscreenAuto('rest') ? rest.startedAt : null)
+  }
+  const fullscreen = fullscreenFor === rest.startedAt
 
   // Pitido en los últimos 3 s y al final (solo si se cruza el segundo ahora, no al volver tarde).
   const lastAlert = useRef<{ key: number; second: number } | null>(null)
@@ -52,6 +70,18 @@ export function RestTimerBar({
   }, [finished, paused, now, rest.endsAt, onSkip])
 
   const progress = Math.min(1, Math.max(0, 1 - remaining / total))
+  const display: TimerDisplay = {
+    phase: finished ? 'done' : 'rest',
+    title: 'Descanso',
+    counter: null,
+    clock: formatClock(seconds),
+    open: false,
+    warn: !finished && seconds <= 3,
+    current: finished ? '¡A por la siguiente serie!' : exerciseName || null,
+    next: null,
+    progress,
+    totalProgress: null,
+  }
 
   return (
     <div
@@ -69,8 +99,14 @@ export function RestTimerBar({
         />
       </div>
       <div className="mx-auto flex max-w-lg items-center gap-2 px-3 py-2">
-        <div className="min-w-0 flex-1">
-          <p className="text-muted-foreground truncate text-xs">
+        <button
+          type="button"
+          onClick={() => setFullscreenFor(rest.startedAt)}
+          aria-label="Ver el descanso a pantalla completa"
+          className="min-w-0 flex-1 text-left"
+        >
+          <p className="text-muted-foreground flex items-center gap-1 truncate text-xs">
+            <Maximize2 className="size-3 shrink-0" />
             {finished
               ? '¡A por la siguiente serie!'
               : paused
@@ -86,7 +122,7 @@ export function RestTimerBar({
           >
             {formatClock(seconds)}
           </p>
-        </div>
+        </button>
         <button
           type="button"
           onClick={() => onAdjust(-15)}
@@ -120,6 +156,42 @@ export function RestTimerBar({
           <SkipForward className="size-6" />
         </button>
       </div>
+      {fullscreen && (
+        <TimerFullscreen
+          display={display}
+          paused={paused}
+          label={`Descanso${exerciseName ? ` · ${exerciseName}` : ''}`}
+          onTogglePause={onTogglePause}
+          controls={[
+            { label: 'Restar 15 segundos', content: '−15 s', onClick: () => onAdjust(-15) },
+            { label: 'Sumar 15 segundos', content: '+15 s', onClick: () => onAdjust(15) },
+            {
+              label: 'Saltar descanso',
+              content: (
+                <>
+                  <SkipForward className="size-6" /> Saltar
+                </>
+              ),
+              onClick: onSkip,
+            },
+          ]}
+          extra={
+            <label
+              className="flex items-center gap-2 text-sm font-semibold opacity-90"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={autoRest}
+                onChange={(e) => setFullscreenAuto('rest', e.target.checked)}
+              />
+              Abrir sola en cada descanso
+            </label>
+          }
+          onClose={() => setFullscreenFor(null)}
+        />
+      )}
     </div>
   )
 }

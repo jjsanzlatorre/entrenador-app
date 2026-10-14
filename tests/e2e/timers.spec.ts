@@ -84,6 +84,9 @@ test.beforeEach(async ({ page, context, request }) => {
     { name: 'sb-localhost-auth-token', value: authCookie(), url: 'http://localhost:3100' },
   ])
   await page.clock.install()
+  // Estos tests miran la tarjeta del bloque: sin abrir la pantalla completa al empezar
+  // (la pantalla completa tiene su propio test en fullscreen-timer.spec.ts).
+  await page.addInitScript(() => localStorage.setItem('entrenador:timer-fullscreen-auto', '0'))
 })
 
 test('EMOM de 12 minutos con la pantalla bloqueada a ratos', async ({ page }) => {

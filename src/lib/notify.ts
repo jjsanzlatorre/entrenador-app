@@ -33,3 +33,12 @@ export function notifySaved(message = 'Guardado') {
 export function notifyWarning(message: string) {
   toast.warning(message)
 }
+
+// Cambio hecho con «Deshacer» en el propio aviso (mover sesiones, cambios del plan).
+export function notifyUndoable(message: string, onUndo: () => void, description?: string) {
+  toast.success(message, {
+    description,
+    duration: 8000,
+    action: { label: 'Deshacer', onClick: onUndo },
+  })
+}

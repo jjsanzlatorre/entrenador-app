@@ -1,9 +1,10 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Check, Play, SkipForward } from 'lucide-react'
+import { CalendarDays, Check, MoveRight, Play, SkipForward } from 'lucide-react'
 import { AdjustedNotice, AiAdjust } from '@/components/ai/ai-adjust'
 import { PlannedPairButton } from '@/components/partners/pair'
+import { MoveSheet } from '@/components/plan/move-sheet'
 import { PlannedBlocks } from '@/components/plan/planned-blocks'
 import { Button } from '@/components/ui/button'
 import { notifyError, notifySaved } from '@/lib/notify'
@@ -41,6 +42,7 @@ export function TodayPlan({
   const catalog = useCatalog(userId)
   const [open, setOpen] = useState<string | null>(null)
   const [skipping, setSkipping] = useState<string | null>(null)
+  const [moving, setMoving] = useState<string | null>(null)
 
   if (!plan.data) {
     if (plan.isSuccess && training.data)
@@ -135,13 +137,18 @@ export function TodayPlan({
                 {canStart && (
                   <PlannedPairButton userId={userId} planned={p} disabled={starter.busy} />
                 )}
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setOpen((o) => (o === p.id ? null : p.id))}
-                >
-                  {open === p.id ? 'Ocultar detalle' : 'Ver qué toca'}
-                </Button>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setOpen((o) => (o === p.id ? null : p.id))}
+                  >
+                    {open === p.id ? 'Ocultar detalle' : 'Ver qué toca'}
+                  </Button>
+                  <Button variant="ghost" size="sm" onClick={() => setMoving(p.id)}>
+                    <MoveRight /> Mover
+                  </Button>
+                </div>
                 {!p.adjusted && (
                   <AiAdjust userId={userId} today={today} plannedId={p.id} sex={sex} name={name} />
                 )}
@@ -178,6 +185,9 @@ export function TodayPlan({
                     <Play /> Hacer ahora
                   </Button>
                 )}
+                <Button size="sm" variant="ghost" onClick={() => setMoving(p.id)}>
+                  <MoveRight /> Mover
+                </Button>
                 <Button
                   size="sm"
                   variant="ghost"
@@ -191,6 +201,15 @@ export function TodayPlan({
           ))}
         </div>
       )}
+      <MoveSheet
+        session={plan.data.sessions.find((s) => s.id === moving) ?? null}
+        planId={plan.data.id}
+        sessions={plan.data.sessions}
+        fixed={training.data?.fixedActivities ?? []}
+        today={today}
+        userId={userId}
+        onClose={() => setMoving(null)}
+      />
     </section>
   )
 }

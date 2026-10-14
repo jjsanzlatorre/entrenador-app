@@ -174,6 +174,20 @@ type PlannedRow = Record<string, unknown> & {
 }
 let userPlans: PlanRow[] = []
 let plannedSessions: PlannedRow[] = []
+// 0043: cambios de fechas del plan (mover, intercambiar, desplazar, pausar, repetir).
+type PlanChangeRow = {
+  id: string
+  user_id: string
+  user_plan_id: string
+  kind: string
+  params: Record<string, unknown>
+  before: { id: string; date: unknown; original_date: unknown; status: string }[]
+  inserted: string[]
+  previous_start: unknown
+  created_at: string
+  undone_at: string | null
+}
+let planChanges: PlanChangeRow[] = []
 let dailyCheckins: Record<string, unknown>[] = []
 // Fase 6A: consultas a la IA y simulador de Gemini (respuestas en cola con POST /__seed).
 type AiRow = Record<string, unknown> & { id: string; status: string; accepted: boolean | null }
@@ -373,6 +387,7 @@ export function startMockSupabase(port: number) {
         trainingProfile,
         userPlans,
         plannedSessions,
+        planChanges,
         dailyCheckins,
         commitments: progressSeed.commitments,
         aiInteractions,
@@ -452,6 +467,7 @@ export function startMockSupabase(port: number) {
       trainingProfile = { ...baseTrainingProfile }
       userPlans = []
       plannedSessions = []
+      planChanges = []
       dailyCheckins = []
       aiInteractions = []
       chatMessages = []
@@ -1254,6 +1270,97 @@ export function startMockSupabase(port: number) {
     if (path === '/rest/v1/rpc/create_user_plan') {
       return send(res, 200, createUserPlan((await readBody(req)) as CreatePlanArgs))
     }
+    // Como apply_plan_change / undo_plan_change (0043).
+    if (path === '/rest/v1/rpc/apply_plan_change') {
+      const b = (await readBody(req)) as {
+        p_plan: string
+        p_kind: string
+        p_moves: { id: string; date: string }[]
+        p_copies?: { source_id: string; date: string }[]
+        p_new_start?: string | null
+        p_params?: Record<string, unknown>
+      }
+      const plan = userPlans.find((p) => p.id === b.p_plan && p.status === 'active')
+      if (!plan) return send(res, 400, { message: 'plan no encontrado' })
+      const pending = (ps: PlannedRow) => ps.status === 'planned' || ps.status === 'moved'
+      const targets = b.p_moves.map((m) =>
+        plannedSessions.find((ps) => ps.id === m.id && ps.user_plan_id === plan.id && pending(ps)),
+      )
+      if (targets.some((t) => !t))
+        return send(res, 400, {
+          message: 'sesión no válida (solo se mueven sesiones pendientes del plan)',
+        })
+      const before = targets.map((t) => ({
+        id: t!.id,
+        date: t!.date,
+        original_date: t!.original_date,
+        status: t!.status,
+      }))
+      b.p_moves.forEach((m, i) => {
+        const ps = targets[i]!
+        if (b.p_kind === 'move' || b.p_kind === 'swap') {
+          const original = (ps.original_date ?? ps.date) as string
+          ps.original_date = original === m.date ? null : original
+          ps.status = original === m.date ? 'planned' : 'moved'
+        }
+        ps.date = m.date
+      })
+      const inserted: string[] = []
+      for (const c of b.p_copies ?? []) {
+        const src = plannedSessions.find((ps) => ps.id === c.source_id)
+        if (!src) return send(res, 400, { message: 'sesión no válida' })
+        const id = crypto.randomUUID()
+        plannedSessions.push({
+          ...src,
+          id,
+          date: c.date,
+          original_date: null,
+          status: 'planned',
+          workout_session_id: null,
+          adjusted_from: null,
+        })
+        inserted.push(id)
+      }
+      const previous = b.p_new_start && b.p_new_start !== plan.start_date ? plan.start_date : null
+      if (previous) plan.start_date = b.p_new_start
+      const change: PlanChangeRow = {
+        id: crypto.randomUUID(),
+        user_id: MOCK_USER_ID,
+        user_plan_id: plan.id,
+        kind: b.p_kind,
+        params: b.p_params ?? {},
+        before,
+        inserted,
+        previous_start: previous,
+        created_at: new Date(Date.now() + planChanges.length).toISOString(),
+        undone_at: null,
+      }
+      planChanges.push(change)
+      return send(res, 200, {
+        change_id: change.id,
+        moved: before.length,
+        inserted: inserted.length,
+      })
+    }
+    if (path === '/rest/v1/rpc/undo_plan_change') {
+      const { p_change } = (await readBody(req)) as { p_change: string }
+      const ch = planChanges.find((c) => c.id === p_change && !c.undone_at)
+      if (!ch) return send(res, 400, { message: 'cambio no encontrado' })
+      let restored = 0
+      for (const b of ch.before) {
+        const ps = plannedSessions.find((x) => x.id === b.id)
+        if (ps && (ps.status === 'planned' || ps.status === 'moved')) {
+          Object.assign(ps, { date: b.date, original_date: b.original_date, status: b.status })
+          restored++
+        }
+      }
+      const before = plannedSessions.length
+      plannedSessions = plannedSessions.filter((x) => !ch.inserted.includes(x.id))
+      const plan = userPlans.find((p) => p.id === ch.user_plan_id)
+      if (plan && ch.previous_start) plan.start_date = ch.previous_start
+      ch.undone_at = new Date().toISOString()
+      return send(res, 200, { restored, removed: before - plannedSessions.length })
+    }
     if (path === '/rest/v1/rpc/set_planned_session_done') {
       const b = (await readBody(req)) as { p_planned: string; p_done: boolean; p_workout?: string }
       for (const ps of plannedSessions.filter((x) => x.id === b.p_planned)) {
@@ -1265,6 +1372,16 @@ export function startMockSupabase(port: number) {
 
     const table = path.replace('/rest/v1/', '')
     if (table === 'plan_templates') return send(res, 200, planTemplates)
+    if (table === 'plan_changes') {
+      const plan = eqParam(url, 'user_plan_id')
+      return send(
+        res,
+        200,
+        planChanges
+          .filter((c) => (!plan || c.user_plan_id === plan) && !c.undone_at)
+          .sort((a, b) => b.created_at.localeCompare(a.created_at)),
+      )
+    }
     if (table === 'user_plans') {
       const status = eqParam(url, 'status')
       if (req.method === 'PATCH') {

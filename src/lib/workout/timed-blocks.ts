@@ -231,7 +231,8 @@ export function applyTimerAction(
         case 'start':
           return { ...block, timer: startTimer(timer, now) }
         case 'start-now':
-          return { ...block, timer: startTimer(timer, now, true) }
+          // El cronómetro libre no tiene cuenta atrás: no hay nada que saltar.
+          return { ...block, timer: startTimer(timer, now, schedule[0]?.kind === 'prep') }
         case 'toggle-pause':
           return { ...block, timer: togglePause(timer, now) }
         case 'add-15':

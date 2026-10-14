@@ -6,8 +6,11 @@ import {
   ChevronLeft,
   ChevronRight,
   CloudOff,
+  GripVertical,
   MessageCircle,
+  MoreHorizontal,
   MoveRight,
+  PauseCircle,
   Play,
   RotateCcw,
   SkipForward,
@@ -15,25 +18,17 @@ import {
 } from 'lucide-react'
 import { useAiStatus } from '@/lib/ai/client'
 import { z } from 'zod'
-import { Chip } from '@/components/plan/chip'
+import { MoveSheet } from '@/components/plan/move-sheet'
+import { PlanMenu } from '@/components/plan/plan-menu'
 import { PlanAdherenceBar } from '@/components/plan/plan-adherence'
 import { PlannedBlocks } from '@/components/plan/planned-blocks'
 import { Page } from '@/components/page'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Input } from '@/components/ui/input'
 import { Sheet } from '@/components/ui/sheet'
-import { notifyError, notifySaved, notifyWarning } from '@/lib/notify'
-import {
-  archivePlan,
-  movePlanned,
-  restorePlanned,
-  setPlannedDone,
-  skipPlanned,
-  type ActivePlan,
-  type PlannedSession,
-} from '@/lib/plan/api'
+import { notifyError, notifySaved } from '@/lib/notify'
+import { restorePlanned, setPlannedDone, skipPlanned } from '@/lib/plan/api'
 import {
   planAdherence,
   planWeekNumber,
@@ -44,13 +39,17 @@ import {
 import { INTENSITY_LABELS } from '@/lib/plan/describe'
 import { refreshPlan, useActivePlan, useTrainingProfile } from '@/lib/plan/hooks'
 import { moveWarnings } from '@/lib/plan/move-rules'
-import { WEEKDAY_LONG, WEEKDAY_SHORT, type FixedActivity } from '@/lib/plan/profile'
+import { WEEKDAY_LONG } from '@/lib/plan/profile'
+import { isPendingPlanned, moveSession, pauseOn, planWeekForRange } from '@/lib/plan/reschedule'
+import { useLongPressDrag } from '@/lib/plan/use-long-press-drag'
+import { usePlanChange } from '@/lib/plan/use-plan-change'
 import { useStartPlanned } from '@/lib/plan/start'
 import { PlannedPairButton } from '@/components/partners/pair'
 import {
   addDays,
   formatDayMonth,
   formatWeekRange,
+  isoWeekday,
   localDateKey,
   weekStartOf,
 } from '@/lib/progress/dates'
@@ -99,7 +98,24 @@ function PlanPage() {
   const today = localDateKey(new Date())
   const weekStart = weekStartOf(semana ?? today)
   const [open, setOpen] = useState<string | null>(null)
+  const [moving, setMoving] = useState<string | null>(null)
+  const [menuOpen, setMenuOpen] = useState(false)
   const ai = useAiStatus()
+  const changer = usePlanChange(auth.userId)
+  const fixedActivities = training.data?.fixedActivities ?? []
+
+  // Mantener pulsada una sesión pendiente y soltarla en otro día.
+  const { drag, bind } = useLongPressDrag((id, date) => {
+    const active = plan.data
+    const session = active?.sessions.find((s) => s.id === id)
+    if (!active || !session || session.date === date || changer.busy) return
+    void changer.apply(
+      active.id,
+      moveSession(session, date),
+      `«${session.title}» movida al ${WEEKDAY_LONG[isoWeekday(date) - 1]} ${formatDayMonth(date)}`,
+      moveWarnings(session, date, active.sessions, fixedActivities),
+    )
+  })
 
   const setWeek = (w: string) =>
     void navigate({
@@ -157,10 +173,15 @@ function PlanPage() {
     training.data?.fixedActivities ?? [],
   )
   const summary = weekSummary(days)
-  const planWeek = planWeekNumber(plan.data.startDate, weekStart)
+  const pauses = plan.data.pauses ?? []
+  const planWeek =
+    planWeekForRange(plan.data.sessions, weekStart) ??
+    (pauses.length === 0 ? planWeekNumber(plan.data.startDate, weekStart) : null)
+  const weekPaused = days.some((d) => pauseOn(pauses, d.date))
   const adherence = planAdherence(plan.data.sessions, log.data?.sessions ?? [], today)
   const selected = days.flatMap((d) => d.planned).find((p) => p.id === open) ?? null
   const extraSameDay = selected ? (days.find((d) => d.date === selected.date)?.extra ?? []) : []
+  const movingSession = plan.data.sessions.find((p) => p.id === moving) ?? null
 
   return (
     <Page title="Plan">
@@ -171,17 +192,21 @@ function PlanPage() {
             Desde el {formatDayMonth(plan.data.startDate)} ·{' '}
             {planWeek
               ? `semana ${planWeek} de 4${planWeek === 4 ? ' (descarga)' : ''}`
-              : 'fuera del plan'}
+              : weekPaused
+                ? 'en pausa'
+                : 'fuera del plan'}
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-3">
           <PlanAdherenceBar adherence={adherence} />
           <div className="flex flex-wrap gap-2">
-            <Button asChild variant="outline" size="sm">
-              <Link to="/plan/elegir">Cambiar plan</Link>
+            <Button variant="outline" size="sm" onClick={() => setMenuOpen(true)}>
+              <MoreHorizontal /> Opciones del plan
             </Button>
-            <ArchiveButton plan={plan.data} userId={auth.userId} />
           </div>
+          <p className="text-muted-foreground text-xs">
+            Mantén pulsada una sesión y arrástrala a otro día, o tócala y pulsa «Mover».
+          </p>
           {ai.data?.configured && (
             <div className="grid grid-cols-2 gap-2">
               <Button asChild variant="secondary" size="sm">
@@ -230,10 +255,14 @@ function PlanPage() {
         {days.map((day) => (
           <li
             key={day.date}
+            data-drop-date={day.date}
+            aria-label={`${WEEKDAY_LONG[day.weekday - 1]} ${formatDayMonth(day.date)}`}
             className={cn(
-              'rounded-xl border p-3',
+              'rounded-xl border p-3 transition-colors',
               day.date === today && 'border-primary',
               day.date < today && 'opacity-90',
+              drag && 'border-dashed',
+              drag?.overDate === day.date && 'border-primary bg-primary/10 border-2 border-solid',
             )}
           >
             <div className="flex items-baseline justify-between gap-2">
@@ -254,49 +283,68 @@ function PlanPage() {
                 ))}
               </span>
             </div>
-            {day.planned.length === 0 && day.extra.length === 0 && (
-              <p className="text-muted-foreground mt-1 text-sm">Descanso</p>
+            {pauseOn(pauses, day.date) ? (
+              <p className="text-muted-foreground mt-1 flex items-center gap-1 text-sm">
+                <PauseCircle className="size-4" /> Plan en pausa
+              </p>
+            ) : (
+              day.planned.length === 0 &&
+              day.extra.length === 0 && (
+                <p className="text-muted-foreground mt-1 text-sm">Descanso</p>
+              )
             )}
             <ul className="mt-2 flex flex-col gap-2">
-              {day.planned.map((p) => (
-                <li key={p.id}>
-                  <button
-                    type="button"
-                    onClick={() => setOpen(p.id)}
-                    className="bg-card hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-3 text-left"
-                  >
-                    <span aria-hidden className="text-xl">
-                      {sessionTypeEmoji(p.sessionType)}
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span
-                        className={cn(
-                          'block truncate font-medium',
-                          p.effectiveStatus === 'skipped' && 'text-muted-foreground line-through',
-                        )}
-                      >
-                        {p.title}
-                      </span>
-                      <span className="text-muted-foreground block text-xs">
-                        {p.durationMin ? `${p.durationMin} min · ` : ''}
-                        {INTENSITY_LABELS[p.intensity]}
-                        {p.effectiveStatus === 'moved' && p.originalDate
-                          ? ` · era el ${formatDayMonth(p.originalDate)}`
-                          : ''}
-                      </span>
-                    </span>
-                    <span
+              {day.planned.map((p) => {
+                const draggable =
+                  isPendingPlanned(p) && p.effectiveStatus !== 'done' && !changer.busy
+                return (
+                  <li key={p.id}>
+                    <button
+                      type="button"
+                      onClick={() => setOpen(p.id)}
+                      {...(draggable ? bind(p.id, p.title) : {})}
+                      data-planned-id={p.id}
                       className={cn(
-                        'rounded-full px-2 py-0.5 text-xs font-medium',
-                        STATUS[p.effectiveStatus].className,
+                        'bg-card hover:bg-accent flex w-full items-center gap-3 rounded-lg border p-3 text-left select-none [-webkit-touch-callout:none]',
+                        drag?.id === p.id && 'opacity-40',
                       )}
                     >
-                      {p.effectiveStatus === 'done' && <Check className="mr-0.5 inline size-3" />}
-                      {STATUS[p.effectiveStatus].label}
-                    </span>
-                  </button>
-                </li>
-              ))}
+                      <span aria-hidden className="text-xl">
+                        {sessionTypeEmoji(p.sessionType)}
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span
+                          className={cn(
+                            'block truncate font-medium',
+                            p.effectiveStatus === 'skipped' && 'text-muted-foreground line-through',
+                          )}
+                        >
+                          {p.title}
+                        </span>
+                        <span className="text-muted-foreground block text-xs">
+                          {p.durationMin ? `${p.durationMin} min · ` : ''}
+                          {INTENSITY_LABELS[p.intensity]}
+                          {p.effectiveStatus === 'moved' && p.originalDate
+                            ? ` · era el ${formatDayMonth(p.originalDate)}`
+                            : ''}
+                        </span>
+                      </span>
+                      <span
+                        className={cn(
+                          'rounded-full px-2 py-0.5 text-xs font-medium',
+                          STATUS[p.effectiveStatus].className,
+                        )}
+                      >
+                        {p.effectiveStatus === 'done' && <Check className="mr-0.5 inline size-3" />}
+                        {STATUS[p.effectiveStatus].label}
+                      </span>
+                      {draggable && (
+                        <GripVertical aria-hidden className="text-muted-foreground -mr-1 size-4" />
+                      )}
+                    </button>
+                  </li>
+                )
+              })}
               {day.extra.map((s) => (
                 <li key={s.id}>
                   <Link
@@ -323,61 +371,66 @@ function PlanPage() {
         ))}
       </ol>
 
+      {drag && (
+        <div
+          aria-hidden
+          className="bg-card border-primary pointer-events-none fixed z-50 max-w-[70vw] -translate-x-1/2 -translate-y-1/2 truncate rounded-lg border-2 px-3 py-2 text-sm font-semibold shadow-xl"
+          style={{ left: drag.x, top: drag.y }}
+        >
+          {drag.label}
+          {drag.overDate && (
+            <span className="text-primary block text-xs font-normal">
+              → {WEEKDAY_LONG[isoWeekday(drag.overDate) - 1]} {formatDayMonth(drag.overDate)}
+            </span>
+          )}
+        </div>
+      )}
+
       <PlannedSheet
         planned={selected}
         userId={auth.userId}
-        today={today}
         candidates={extraSameDay}
-        allPlanned={plan.data.sessions}
-        fixed={training.data?.fixedActivities ?? []}
         sex={auth.profile.sex}
+        onMove={(id) => {
+          setOpen(null)
+          setMoving(id)
+        }}
         onClose={() => setOpen(null)}
       />
+      <MoveSheet
+        session={movingSession}
+        planId={plan.data.id}
+        sessions={plan.data.sessions}
+        fixed={fixedActivities}
+        today={today}
+        userId={auth.userId}
+        onClose={() => setMoving(null)}
+      />
+      <PlanMenu
+        open={menuOpen}
+        plan={plan.data}
+        userId={auth.userId}
+        weekStart={weekStart}
+        today={today}
+        onClose={() => setMenuOpen(false)}
+      />
     </Page>
-  )
-}
-
-function ArchiveButton({ plan, userId }: { plan: ActivePlan; userId: string }) {
-  const queryClient = useQueryClient()
-  return (
-    <Button
-      variant="ghost"
-      size="sm"
-      className="text-muted-foreground"
-      onClick={async () => {
-        if (!confirm(`¿Terminar el plan «${plan.name}»? Lo hecho se conserva en el historial.`))
-          return
-        try {
-          await archivePlan(plan.id)
-          await refreshPlan(queryClient, userId)
-          notifySaved('Plan terminado')
-        } catch (error) {
-          notifyError(error, 'terminar el plan')
-        }
-      }}
-    >
-      Terminar plan
-    </Button>
   )
 }
 
 function PlannedSheet({
   planned,
   userId,
-  today,
   candidates,
-  allPlanned,
-  fixed,
   sex,
+  onMove,
   onClose,
 }: {
   planned: PlannedView | null
   userId: string
-  today: string
   candidates: SessionLogEntry[]
-  allPlanned: PlannedSession[]
-  fixed: Pick<FixedActivity, 'type' | 'days'>[]
   sex: Sex | null
+  onMove: (id: string) => void
   onClose: () => void
 }) {
   const queryClient = useQueryClient()
@@ -385,7 +438,6 @@ function PlannedSheet({
   const starter = useStartPlanned(userId)
   const [working, setWorking] = useState(false)
   const busy = working || starter.busy
-  const [moving, setMoving] = useState(false)
   const [linking, setLinking] = useState(false)
   const name = (id: string) => catalog.byId.get(id)?.name ?? id
 
@@ -396,7 +448,6 @@ function PlannedSheet({
       await refreshPlan(queryClient, userId)
       await queryClient.invalidateQueries({ queryKey: sessionLogKey(userId) })
       notifySaved(success)
-      setMoving(false)
       setLinking(false)
       onClose()
     } catch (error) {
@@ -406,17 +457,12 @@ function PlannedSheet({
     }
   }
 
-  const warningsFor = (date: string) =>
-    planned ? moveWarnings(planned, date, allPlanned, fixed) : []
-
   const pending = planned?.effectiveStatus === 'planned' || planned?.effectiveStatus === 'moved'
-  const weekStart = planned ? weekStartOf(planned.date) : today
 
   return (
     <Sheet
       open={planned !== null}
       onClose={() => {
-        setMoving(false)
         setLinking(false)
         onClose()
       }}
@@ -446,7 +492,7 @@ function PlannedSheet({
                 <Button variant="outline" disabled={busy} onClick={() => setLinking((v) => !v)}>
                   <Check /> Hecha
                 </Button>
-                <Button variant="outline" disabled={busy} onClick={() => setMoving((v) => !v)}>
+                <Button variant="outline" disabled={busy} onClick={() => onMove(planned.id)}>
                   <MoveRight /> Mover
                 </Button>
                 <Button
@@ -506,26 +552,6 @@ function PlannedSheet({
             </div>
           )}
 
-          {moving && pending && (
-            <MovePicker
-              current={planned.date}
-              weekStart={weekStart}
-              busy={busy}
-              warningsFor={warningsFor}
-              onPick={(date) => {
-                const warnings = warningsFor(date)
-                void run(
-                  async () => {
-                    await movePlanned(planned, date)
-                    for (const w of warnings) notifyWarning(w)
-                  },
-                  `Movida al ${formatDayMonth(date)}`,
-                  'mover la sesión',
-                )
-              }}
-            />
-          )}
-
           {planned.effectiveStatus === 'done' && (
             <div className="flex flex-col gap-2">
               {planned.linkedSessionId && (
@@ -576,70 +602,5 @@ function PlannedSheet({
         </div>
       )}
     </Sheet>
-  )
-}
-
-function MovePicker({
-  current,
-  weekStart,
-  busy,
-  warningsFor,
-  onPick,
-}: {
-  current: string
-  weekStart: string
-  busy: boolean
-  warningsFor: (date: string) => string[]
-  onPick: (date: string) => void
-}) {
-  const [custom, setCustom] = useState('')
-  const customWarnings = custom && custom !== current ? warningsFor(custom) : []
-  return (
-    <div className="flex flex-col gap-2 rounded-xl border p-3">
-      <p className="text-sm font-semibold">Mover a…</p>
-      <div className="grid grid-cols-7 gap-1.5">
-        {Array.from({ length: 7 }, (_, i) => addDays(weekStart, i)).map((date, i) => {
-          const warned = date !== current && warningsFor(date).length > 0
-          return (
-            <Chip
-              key={date}
-              selected={date === current}
-              className="flex flex-col items-center px-0 leading-tight"
-              label={`${WEEKDAY_LONG[i]} ${formatDayMonth(date)}${warned ? ' (con aviso)' : ''}`}
-              onClick={() => date !== current && !busy && onPick(date)}
-            >
-              <span>{WEEKDAY_SHORT[i]}</span>
-              <span className="text-[10px] font-normal">
-                {Number(date.slice(8))}
-                {warned ? ' ⚠' : ''}
-              </span>
-            </Chip>
-          )
-        })}
-      </div>
-      <p className="text-muted-foreground text-xs">
-        ⚠ = pierna pesada antes de frontón o surf, o dos intensas seguidas. Puedes moverla igual.
-      </p>
-      <div className="flex items-center gap-2">
-        <Input
-          type="date"
-          aria-label="Otro día"
-          value={custom}
-          onChange={(e) => setCustom(e.target.value)}
-        />
-        <Button
-          variant="outline"
-          disabled={busy || !custom || custom === current}
-          onClick={() => onPick(custom)}
-        >
-          Mover
-        </Button>
-      </div>
-      {customWarnings.map((w) => (
-        <p key={w} className="text-xs text-amber-700 dark:text-amber-400">
-          ⚠ {w}
-        </p>
-      ))}
-    </div>
   )
 }

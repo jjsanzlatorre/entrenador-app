@@ -17,8 +17,15 @@ import {
   type BodyMetricInput,
 } from '@/lib/progress/api'
 import { formatDayMonth, localDateKey } from '@/lib/progress/dates'
-import { formatKg, parseDecimal } from '@/lib/workout/format'
+import { formatKg } from '@/lib/workout/format'
+import { QuantityInput } from '@/components/ui/quantity-input'
+import { parseQuantity, type QuantityKind } from '@/lib/input/quantity'
 import { notifyError, notifySaved } from '@/lib/notify'
+
+// Peso con el parser de pesos (admite «lb»); el resto, número con su unidad.
+function metricQuantity(key: string, unit: string): QuantityKind {
+  return key === 'weightKg' ? { kind: 'weight' } : { kind: 'number', unit }
+}
 
 export const Route = createFileRoute('/_app/progreso/medidas')({
   ssr: false,
@@ -148,7 +155,7 @@ function MetricForm({
     for (const f of FIELDS) {
       const raw = values[f.key].trim()
       if (!raw) continue
-      const v = parseDecimal(raw)
+      const v = parseQuantity(raw, metricQuantity(f.key, f.unit))
       if (v === null || v <= 0) {
         setStatus(`${f.label}: valor no válido`)
         return
@@ -195,17 +202,15 @@ function MetricForm({
               />
             </div>
             {shown.map((f) => (
-              <div key={f.key} className="flex flex-col gap-1">
-                <Label htmlFor={`metric_${f.key}`}>
-                  {f.label} ({f.unit})
-                </Label>
-                <Input
-                  id={`metric_${f.key}`}
-                  inputMode="decimal"
-                  value={values[f.key]}
-                  onChange={(e) => setValues((v) => ({ ...v, [f.key]: e.target.value }))}
-                />
-              </div>
+              <QuantityInput
+                key={f.key}
+                id={`metric_${f.key}`}
+                label={f.label}
+                value={values[f.key]}
+                onChange={(text) => setValues((v) => ({ ...v, [f.key]: text }))}
+                quantity={metricQuantity(f.key, f.unit)}
+                hidePreview={f.key !== 'weightKg'}
+              />
             ))}
           </div>
           {showAll ? (

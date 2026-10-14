@@ -1,13 +1,23 @@
 import { Search } from 'lucide-react'
 import { Input } from '@/components/ui/input'
+import {
+  EXERCISE_GROUPS,
+  EXERCISE_GROUP_LABELS,
+  type ExerciseGroup,
+} from '@/lib/workout/exercise-groups'
 import { EQUIPMENT_LABELS, MUSCLES } from '@/lib/workout/labels'
 import { cn } from '@/lib/utils'
 
-export type FilterState = { query: string; muscleId: string | null; equipment: string | null }
+export type FilterState = {
+  query: string
+  muscleId: string | null
+  equipment: string | null
+  group: ExerciseGroup | null
+}
 
-export const EMPTY_FILTER: FilterState = { query: '', muscleId: null, equipment: null }
+export const EMPTY_FILTER: FilterState = { query: '', muscleId: null, equipment: null, group: null }
 
-// Buscador + filtro por músculo (chips) y por material (select).
+// Buscador + filtro por tipo (chips), por músculo (chips) y por material (select).
 export function ExerciseFilters({
   value,
   onChange,
@@ -30,6 +40,24 @@ export function ExerciseFilters({
           onChange={(e) => onChange({ ...value, query: e.target.value })}
           className="h-12 pl-10 text-base"
         />
+      </div>
+      <div
+        className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1"
+        role="group"
+        aria-label="Filtrar por tipo"
+      >
+        <Chip active={value.group === null} onClick={() => onChange({ ...value, group: null })}>
+          Todo
+        </Chip>
+        {EXERCISE_GROUPS.map((g) => (
+          <Chip
+            key={g}
+            active={value.group === g}
+            onClick={() => onChange({ ...value, group: value.group === g ? null : g })}
+          >
+            {EXERCISE_GROUP_LABELS[g]}
+          </Chip>
+        ))}
       </div>
       <div
         className="-mx-4 flex gap-1.5 overflow-x-auto px-4 pb-1"

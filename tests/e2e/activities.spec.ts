@@ -16,7 +16,7 @@ async function register(page: Page, activity: RegExp, rpe: string) {
     .getByRole('group', { name: 'Tipo de actividad' })
     .getByRole('button', { name: activity })
     .click()
-  await page.getByRole('button', { name: '45', exact: true }).click()
+  await page.getByRole('button', { name: '45 min', exact: true }).click()
   await page.getByRole('button', { name: rpe, exact: true }).click()
   await page.getByRole('button', { name: 'Guardar actividad' }).click()
   await expect(page).toHaveURL(/\/entrenar\/historial\//)
@@ -53,7 +53,7 @@ test('registrar un GAP, un pádel y una actividad personalizada', async ({ page,
       .getByRole('group', { name: 'Tipo de actividad' })
       .getByRole('button', { name: /Body pump/ }),
   ).toHaveAttribute('aria-pressed', 'true')
-  await page.getByRole('button', { name: '60', exact: true }).click()
+  await page.getByRole('button', { name: '60 min', exact: true }).click()
   await page.getByRole('button', { name: '8', exact: true }).click()
   await page.getByRole('button', { name: 'Guardar actividad' }).click()
   await expect(page.getByRole('heading', { name: /Body pump/ })).toBeVisible()

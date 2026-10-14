@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { ChevronDown, Watch } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Sheet } from '@/components/ui/sheet'
 import { Textarea } from '@/components/ui/textarea'
-import { parseInteger } from '@/lib/workout/format'
+import { DurationField, WatchField } from '@/components/ui/quantity-input'
+import { parseCount, parseDuration } from '@/lib/input/quantity'
 import type { SessionDetailsPatch } from '@/lib/workout/session-ops'
 import type { LocalSession } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
@@ -53,7 +53,8 @@ export function FinishSheet({
     session.avgHr !== null || session.maxHr !== null || session.calories !== null,
   )
 
-  const durationMin = parseInteger(duration)
+  const durationS = parseDuration(duration, 'min')
+  const durationMin = durationS === null ? null : Math.round(durationS / 60)
   const canSave = rpe !== null && durationMin !== null && !saving
 
   return (
@@ -70,9 +71,9 @@ export function FinishSheet({
             onSave({
               rpe,
               durationMin,
-              avgHr: parseInteger(avgHr),
-              maxHr: parseInteger(maxHr),
-              calories: parseInteger(calories),
+              avgHr: parseCount(avgHr),
+              maxHr: parseCount(maxHr),
+              calories: parseCount(calories),
               notes: notes.trim() || null,
             })
           }
@@ -110,16 +111,7 @@ export function FinishSheet({
           <p className="text-muted-foreground text-sm">{rpeHint(rpe)}</p>
         </fieldset>
 
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="duration">Duración (min)</Label>
-          <Input
-            id="duration"
-            inputMode="numeric"
-            value={duration}
-            onChange={(e) => setDuration(e.target.value)}
-            className="h-12 text-lg"
-          />
-        </div>
+        <DurationField id="duration" value={duration} onChange={setDuration} />
 
         <div className="rounded-xl border">
           <button
@@ -136,9 +128,21 @@ export function FinishSheet({
           </button>
           {watchOpen && (
             <div className="grid grid-cols-3 gap-2 px-3 pb-3">
-              <WatchField id="avg_hr" label="FC media" value={avgHr} onChange={setAvgHr} />
-              <WatchField id="max_hr" label="FC máx" value={maxHr} onChange={setMaxHr} />
-              <WatchField id="calories" label="Calorías" value={calories} onChange={setCalories} />
+              <WatchField
+                id="avg_hr"
+                label="FC media"
+                unit="ppm"
+                value={avgHr}
+                onChange={setAvgHr}
+              />
+              <WatchField id="max_hr" label="FC máx" unit="ppm" value={maxHr} onChange={setMaxHr} />
+              <WatchField
+                id="calories"
+                label="Calorías"
+                unit="kcal"
+                value={calories}
+                onChange={setCalories}
+              />
             </div>
           )}
         </div>
@@ -154,26 +158,5 @@ export function FinishSheet({
         </div>
       </div>
     </Sheet>
-  )
-}
-
-function WatchField({
-  id,
-  label,
-  value,
-  onChange,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (value: string) => void
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id} className="text-xs">
-        {label}
-      </Label>
-      <Input id={id} inputMode="numeric" value={value} onChange={(e) => onChange(e.target.value)} />
-    </div>
   )
 }

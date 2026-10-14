@@ -80,7 +80,9 @@ export function computeReviewFacts(
   const previous = loadBetween(loadSessions, addDays(weekStart, -7), addDays(weekStart, -1))
   const acwr = acuteChronicRatio(loadSessions, weekEnd, { hasActivePlan: input.plan !== null })
 
-  const catalog = new Map(input.exercises.map((e) => [e.id, { muscles: e.muscles }]))
+  const catalog = new Map(
+    input.exercises.map((e) => [e.id, { category: e.category, muscles: e.muscles }]),
+  )
   const volume = (from: DateKey, to: DateKey) =>
     muscleVolume(
       loadSessions.filter(

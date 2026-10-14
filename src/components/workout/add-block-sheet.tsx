@@ -2,9 +2,9 @@ import { useState } from 'react'
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Sheet } from '@/components/ui/sheet'
-import { parseInteger } from '@/lib/workout/format'
+import { QuantityInput } from '@/components/ui/quantity-input'
+import { parseCount, parseDistance, parseDuration, type QuantityKind } from '@/lib/input/quantity'
 import type { CircuitConfig, Exercise } from '@/lib/workout/types'
 import type { TimerConfig } from '@/lib/workout/timer'
 import { cn } from '@/lib/utils'
@@ -125,32 +125,22 @@ function NumberField({
   label,
   value,
   onChange,
-  suffix,
+  quantity = { kind: 'count' },
 }: {
   id: string
   label: string
   value: string
   onChange: (v: string) => void
-  suffix?: string
+  quantity?: QuantityKind
 }) {
   return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id} className="text-sm">
-        {label}
-      </Label>
-      <div className="flex items-center gap-2">
-        <Input
-          id={id}
-          inputMode="numeric"
-          value={value}
-          onChange={(e) => onChange(e.target.value)}
-          className="h-12 text-lg"
-        />
-        {suffix && <span className="text-muted-foreground text-sm">{suffix}</span>}
-      </div>
-    </div>
+    <QuantityInput id={id} label={label} value={value} onChange={onChange} quantity={quantity} />
   )
 }
+
+const SECONDS: QuantityKind = { kind: 'duration', bare: 's' }
+const MINUTES: QuantityKind = { kind: 'duration', bare: 'min' }
+const METERS: QuantityKind = { kind: 'distance', bare: 'm' }
 
 type Picked = { exercise: Exercise; targetReps: string }
 
@@ -191,7 +181,10 @@ function BlockForm({
     circuitRestS: '90',
   })
   const set = (key: keyof typeof p) => (v: string) => setP((prev) => ({ ...prev, [key]: v }))
-  const n = (v: string, fallback: number) => parseInteger(v) ?? fallback
+  const n = (v: string, fallback: number) => parseCount(v) ?? fallback
+  // Tiempos en segundos: número suelto en s (o en min) y también «1:30», «2'30"», «3 min»…
+  const sec = (v: string, fallback: number) => parseDuration(v, 's') ?? fallback
+  const min = (v: string, fallback: number) => parseDuration(v, 'min') ?? fallback * 60
 
   const single = kind === 'intervals' || kind === 'free'
   const needsExercise = kind !== 'free'
@@ -200,7 +193,7 @@ function BlockForm({
   function create() {
     const inputs = picked.map((x) => ({
       exercise: x.exercise,
-      targetReps: parseInteger(x.targetReps),
+      targetReps: parseCount(x.targetReps),
     }))
     let config: TimerConfig
     switch (kind) {
@@ -210,37 +203,37 @@ function BlockForm({
           config: {
             kind: 'circuit',
             rounds: n(p.rounds, 3),
-            restBetweenRoundsS: n(p.circuitRestS, 90),
+            restBetweenRoundsS: sec(p.circuitRestS, 90),
           },
           exercises: picked.map((x) => x.exercise),
         })
         return
       case 'emom':
-        config = { kind: 'emom', minutes: n(p.minutes, 12), intervalS: n(p.intervalS, 60) }
+        config = { kind: 'emom', minutes: n(p.minutes, 12), intervalS: sec(p.intervalS, 60) }
         break
       case 'amrap':
-        config = { kind: 'amrap', durationS: n(p.amrapMin, 10) * 60 }
+        config = { kind: 'amrap', durationS: min(p.amrapMin, 10) }
         break
       case 'tabata':
         config = {
           kind: 'tabata',
-          workS: n(p.workS, 20),
-          restS: n(p.restS, 10),
+          workS: sec(p.workS, 20),
+          restS: sec(p.restS, 10),
           rounds: n(p.rounds, 8),
         }
         break
       case 'for_time': {
-        const cap = parseInteger(p.capMin)
-        config = { kind: 'for_time', capS: cap ? cap * 60 : null }
+        const cap = parseDuration(p.capMin, 'min')
+        config = { kind: 'for_time', capS: cap ? cap : null }
         break
       }
       case 'intervals':
         config = {
           kind: 'intervals',
           reps: n(p.reps, 6),
-          workDistanceM: p.mode === 'distance' ? n(p.distanceM, 400) : null,
-          workS: p.mode === 'time' ? n(p.intervalWorkS, 180) : null,
-          recoveryS: n(p.recoveryS, 90),
+          workDistanceM: p.mode === 'distance' ? (parseDistance(p.distanceM, 'm') ?? 400) : null,
+          workS: p.mode === 'time' ? sec(p.intervalWorkS, 180) : null,
+          recoveryS: sec(p.recoveryS, 90),
         }
         break
       case 'free':
@@ -268,7 +261,7 @@ function BlockForm({
               label="Cada"
               value={p.intervalS}
               onChange={set('intervalS')}
-              suffix="s"
+              quantity={SECONDS}
             />
           </>
         )}
@@ -278,7 +271,7 @@ function BlockForm({
             label="Duración"
             value={p.amrapMin}
             onChange={set('amrapMin')}
-            suffix="min"
+            quantity={MINUTES}
           />
         )}
         {kind === 'tabata' && (
@@ -288,14 +281,14 @@ function BlockForm({
               label="Trabajo"
               value={p.workS}
               onChange={set('workS')}
-              suffix="s"
+              quantity={SECONDS}
             />
             <NumberField
               id="tb-rest"
               label="Descanso"
               value={p.restS}
               onChange={set('restS')}
-              suffix="s"
+              quantity={SECONDS}
             />
             <NumberField id="tb-rounds" label="Rondas" value={p.rounds} onChange={set('rounds')} />
           </>
@@ -306,7 +299,7 @@ function BlockForm({
             label="Tiempo límite (opcional)"
             value={p.capMin}
             onChange={set('capMin')}
-            suffix="min"
+            quantity={MINUTES}
           />
         )}
         {kind === 'circuit' && (
@@ -317,7 +310,7 @@ function BlockForm({
               label="Descanso entre rondas"
               value={p.circuitRestS}
               onChange={set('circuitRestS')}
-              suffix="s"
+              quantity={SECONDS}
             />
           </>
         )}
@@ -329,7 +322,7 @@ function BlockForm({
               label="Recuperación"
               value={p.recoveryS}
               onChange={set('recoveryS')}
-              suffix="s"
+              quantity={SECONDS}
             />
             <div
               className="col-span-2 grid grid-cols-2 gap-2"
@@ -359,7 +352,7 @@ function BlockForm({
                 label="Distancia por serie"
                 value={p.distanceM}
                 onChange={set('distanceM')}
-                suffix="m"
+                quantity={METERS}
               />
             ) : (
               <NumberField
@@ -367,7 +360,7 @@ function BlockForm({
                 label="Tiempo por serie"
                 value={p.intervalWorkS}
                 onChange={set('intervalWorkS')}
-                suffix="s"
+                quantity={SECONDS}
               />
             )}
           </>

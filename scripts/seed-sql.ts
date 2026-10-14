@@ -5,25 +5,15 @@ import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
 import type { PlanTemplate } from '../src/lib/plan/types.ts'
 import { buildPlanTemplates } from './plan-templates.ts'
+import {
+  loadBaseExercises,
+  loadLibraryFiles,
+  type LibraryFile,
+  type SeedExercise,
+  type SeedTechnique,
+} from './seed-exercises.ts'
 
 type Muscle = { id: string; name: string; view: string; group: string }
-type SeedExercise = {
-  id: string
-  name: string
-  aliases: string[]
-  category: string
-  tracking_type: string
-  equipment: string[]
-  is_unilateral: boolean
-  is_compound: boolean
-  default_rest_s: number
-  technique_notes: string | null
-  primary: string[]
-  secondary: string[]
-  // Migración propia para ejercicios añadidos después de 0006/0007.
-  migration?: string
-}
-
 type SeedObject = {
   id: string
   kind: string
@@ -45,7 +35,6 @@ type SeedDestination = {
   water_route: boolean
 }
 
-type SeedTechnique = { steps: string[]; mistakes: string[] }
 type SeedActivityType = {
   id: string
   name: string
@@ -262,6 +251,24 @@ function activityTypesSql(
   }
 }
 
+// Biblioteca ampliada (0036+): cada archivo de supabase/seed/exercises/ es una migración con
+// sus ejercicios, músculos y técnica.
+function libraryFileSql(f: LibraryFile) {
+  const exercises = f.exercises.map((e) => {
+    const { technique, ...exercise } = e
+    void technique
+    return exercise
+  })
+  const base = exercisesSql(f.migration, f.description, exercises)
+  return {
+    file: f.migration,
+    sql:
+      base.sql +
+      `\n-- Técnica (pasos clave y errores típicos).\n` +
+      techniqueUpdate(Object.fromEntries(f.exercises.map((e) => [e.id, e.technique]))),
+  }
+}
+
 export const PLAN_TEMPLATES_JSON = 'supabase/seed/plan_templates.json'
 
 // JSON de plantillas (generado desde scripts/plan-templates.ts; lo leen los tests y el mock E2E).
@@ -283,9 +290,7 @@ export function buildSeedFiles() {
   const muscles = JSON.parse(
     readFileSync(join(root, 'supabase/seed/muscles.json'), 'utf8'),
   ) as Muscle[]
-  const { exercises } = JSON.parse(
-    readFileSync(join(root, 'supabase/seed/exercises.json'), 'utf8'),
-  ) as { exercises: SeedExercise[] }
+  const { exercises, technique } = loadBaseExercises(root)
 
   const { objects } = JSON.parse(
     readFileSync(join(root, 'supabase/seed/equivalences.json'), 'utf8'),
@@ -293,9 +298,6 @@ export function buildSeedFiles() {
   const places = JSON.parse(
     readFileSync(join(root, 'supabase/seed/destinations.json'), 'utf8'),
   ) as { source: string; destinations: SeedDestination[] }
-  const { technique } = JSON.parse(
-    readFileSync(join(root, 'supabase/seed/exercise_technique.json'), 'utf8'),
-  ) as { technique: Record<string, SeedTechnique> }
   const templates = buildPlanTemplates()
   const { activity_types: activities } = JSON.parse(
     readFileSync(join(root, 'supabase/seed/activity_types.json'), 'utf8'),
@@ -343,6 +345,7 @@ export function buildSeedFiles() {
       technique,
       activities,
     ),
+    ...loadLibraryFiles(root).map(libraryFileSql),
   ]
 }
 

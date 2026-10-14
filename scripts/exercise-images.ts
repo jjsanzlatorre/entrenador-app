@@ -1,8 +1,9 @@
 // Descarga las imágenes de src/data/exercise-images.json y las guarda en public/exercises/
 // como WebP (máx. 480 px de ancho, ≤ 50 KB). Se ejecuta a mano cuando cambia el mapeo:
 //   npm i --no-save sharp && node scripts/exercise-images.ts
+// Solo genera las que faltan; con --force las vuelve a generar todas.
 // sharp no es dependencia del proyecto: solo hace falta para regenerar las imágenes.
-import { mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import type { ExerciseImageMap } from '../src/lib/workout/exercise-images.ts'
@@ -29,6 +30,8 @@ async function main() {
     const source = sources[entry.source]
     if (!source) throw new Error(`Fuente desconocida: ${entry.source}`)
     for (const image of entry.images) {
+      const file = join(outDir, fileName(exerciseId, image.role))
+      if (existsSync(file) && !process.argv.includes('--force')) continue
       const url = `${source.imageBaseUrl}${entry.sourceId}/${image.from}.jpg`
       const response = await fetch(url)
       if (!response.ok) throw new Error(`${url}: ${response.status}`)
@@ -47,7 +50,6 @@ async function main() {
           .toBuffer()
         if (output.length <= MAX_BYTES) break
       }
-      const file = join(outDir, fileName(exerciseId, image.role))
       writeFileSync(file, output!)
       console.log(`${file} (${statSync(file).size} bytes)`)
     }

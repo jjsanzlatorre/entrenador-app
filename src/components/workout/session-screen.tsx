@@ -129,6 +129,14 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       updateActiveSession((s) => ops.removeExercise(s, blockId, exerciseId, Date.now())),
     onRevertSuggestion: (blockId, exerciseId) =>
       updateActiveSession((s) => ops.revertWeightSuggestion(s, blockId, exerciseId, Date.now())),
+    onCompleteHold: (setId, durationS) => {
+      unlockAudio()
+      updateActiveSession((s) => {
+        const t = Date.now()
+        return ops.toggleSetComplete(ops.updateSet(s, setId, { durationS }, t), setId, t)
+      })
+      setManualSelection(null)
+    },
   }
 
   const skipRest = useCallback(() => updateActiveSession((s) => ops.clearRest(s)), [])
@@ -356,6 +364,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       )}
 
       <ExercisePicker
+        userId={session.userId}
         mode={picker}
         exercises={catalog.data ?? []}
         equipment={equipment.data ?? []}

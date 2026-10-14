@@ -1,13 +1,11 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useMemo, useState } from 'react'
 import { createFileRoute, Link } from '@tanstack/react-router'
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Sheet } from '@/components/ui/sheet'
-import { Textarea } from '@/components/ui/textarea'
+import { CreateExerciseSheet, NoResults } from '@/components/workout/create-exercise-sheet'
 import {
   EMPTY_FILTER,
   ExerciseFilters,
@@ -15,21 +13,12 @@ import {
 } from '@/components/workout/exercise-filters'
 import { ExerciseListItem } from '@/components/workout/exercise-list-item'
 import { ExerciseTechnique } from '@/components/workout/exercise-technique'
-import { createExercise, deleteExercise, type NewExerciseInput } from '@/lib/workout/api'
+import { deleteExercise } from '@/lib/workout/api'
 import { formatClock } from '@/lib/workout/format'
 import { catalogQueryKey, useCatalog } from '@/lib/workout/hooks'
-import {
-  CATEGORY_LABELS,
-  EQUIPMENT_LABELS,
-  MUSCLES,
-  TRACKING_LABELS,
-  equipmentLabel,
-  muscleName,
-} from '@/lib/workout/labels'
+import { CATEGORY_LABELS, TRACKING_LABELS, equipmentLabel, muscleName } from '@/lib/workout/labels'
 import { searchExercises } from '@/lib/workout/search'
 import type { Exercise } from '@/lib/workout/types'
-import type { ExerciseCategory, TrackingType } from '@/types/database'
-import { cn } from '@/lib/utils'
 import { notifyError, notifySaved } from '@/lib/notify'
 
 export const Route = createFileRoute('/_app/entrenar/ejercicios')({
@@ -42,7 +31,8 @@ function ExercisesPage() {
   const catalog = useCatalog(auth.userId)
   const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER)
   const [detail, setDetail] = useState<Exercise | null>(null)
-  const [creating, setCreating] = useState(false)
+  // null: cerrado; texto: nombre con el que se abre (lo buscado si no hay resultados).
+  const [creating, setCreating] = useState<string | null>(null)
 
   const results = useMemo(() => searchExercises(catalog.data ?? [], filter), [catalog.data, filter])
 
@@ -56,7 +46,7 @@ function ExercisesPage() {
       </Link>
       <div className="flex items-center justify-between gap-2">
         <h1 className="text-2xl font-bold">Ejercicios</h1>
-        <Button onClick={() => setCreating(true)}>
+        <Button onClick={() => setCreating('')}>
           <Plus /> Crear
         </Button>
       </div>
@@ -64,6 +54,9 @@ function ExercisesPage() {
       {catalog.isPending && <p className="text-muted-foreground text-sm">Cargando…</p>}
       {catalog.isError && <p className="text-destructive text-sm">{catalog.error.message}</p>}
       <p className="text-muted-foreground text-xs">{results.length} ejercicios</p>
+      {catalog.data && results.length === 0 && (
+        <NoResults query={filter.query} onCreate={(name) => setCreating(name)} />
+      )}
       <ul className="divide-y">
         {results.map((e) => (
           <ExerciseListItem key={e.id} exercise={e} onClick={() => setDetail(e)} />
@@ -72,9 +65,11 @@ function ExercisesPage() {
 
       <ExerciseDetail exercise={detail} userId={auth.userId} onClose={() => setDetail(null)} />
       <CreateExerciseSheet
-        open={creating}
+        open={creating !== null}
+        initialName={creating ?? ''}
         userId={auth.userId}
-        onClose={() => setCreating(false)}
+        onClose={() => setCreating(null)}
+        onCreated={(e) => setDetail(e)}
       />
     </div>
   )
@@ -165,224 +160,5 @@ function MuscleList({
       <span className="font-medium">{title}:</span>{' '}
       {muscles.map((m) => muscleName(m.muscleId)).join(', ')}
     </p>
-  )
-}
-
-const CATEGORIES: ExerciseCategory[] = ['strength', 'functional', 'cardio', 'mobility', 'sport']
-const TRACKING_TYPES: TrackingType[] = [
-  'weight_reps',
-  'reps',
-  'time',
-  'distance_time',
-  'calories',
-  'duration_only',
-]
-
-const EMPTY_FORM: NewExerciseInput = {
-  name: '',
-  category: 'strength',
-  trackingType: 'weight_reps',
-  equipment: [],
-  primary: [],
-  secondary: [],
-  defaultRestS: 90,
-  isUnilateral: false,
-  techniqueNotes: null,
-}
-
-function CreateExerciseSheet({
-  open,
-  userId,
-  onClose,
-}: {
-  open: boolean
-  userId: string
-  onClose: () => void
-}) {
-  const queryClient = useQueryClient()
-  const [form, setForm] = useState<NewExerciseInput>(EMPTY_FORM)
-  const create = useMutation({
-    mutationFn: () => createExercise(userId, form),
-    onError: (error) => notifyError(error, 'crear el ejercicio'),
-    onSuccess: async () => {
-      notifySaved('Ejercicio creado')
-      await queryClient.invalidateQueries({ queryKey: catalogQueryKey(userId) })
-      setForm(EMPTY_FORM)
-      onClose()
-    },
-  })
-
-  function toggle(list: 'primary' | 'secondary' | 'equipment', value: string) {
-    setForm((f) => {
-      const current = f[list]
-      const next = current.includes(value)
-        ? current.filter((v) => v !== value)
-        : [...current, value]
-      // Un músculo no puede ser principal y secundario a la vez.
-      if (list === 'primary')
-        return { ...f, primary: next, secondary: f.secondary.filter((m) => m !== value) }
-      if (list === 'secondary')
-        return { ...f, secondary: next, primary: f.primary.filter((m) => m !== value) }
-      return { ...f, equipment: next }
-    })
-  }
-
-  function submit(e: FormEvent) {
-    e.preventDefault()
-    create.mutate()
-  }
-
-  const valid = form.name.trim().length > 0 && form.primary.length > 0
-
-  return (
-    <Sheet
-      open={open}
-      onClose={onClose}
-      title="Crear ejercicio"
-      footer={
-        <Button
-          size="lg"
-          className="w-full"
-          form="create-exercise"
-          type="submit"
-          disabled={!valid || create.isPending}
-        >
-          {create.isPending ? 'Guardando…' : 'Guardar ejercicio'}
-        </Button>
-      }
-    >
-      <form id="create-exercise" onSubmit={submit} className="flex flex-col gap-4 pb-2">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ex-name">Nombre</Label>
-          <Input
-            id="ex-name"
-            required
-            maxLength={80}
-            value={form.name}
-            onChange={(e) => setForm({ ...form, name: e.target.value })}
-          />
-        </div>
-        <div className="grid grid-cols-2 gap-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="ex-category">Categoría</Label>
-            <select
-              id="ex-category"
-              value={form.category}
-              onChange={(e) => setForm({ ...form, category: e.target.value as ExerciseCategory })}
-              className="border-input bg-background h-11 rounded-md border px-2"
-            >
-              {CATEGORIES.map((c) => (
-                <option key={c} value={c}>
-                  {CATEGORY_LABELS[c]}
-                </option>
-              ))}
-            </select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="ex-tracking">Se registra por</Label>
-            <select
-              id="ex-tracking"
-              value={form.trackingType}
-              onChange={(e) => setForm({ ...form, trackingType: e.target.value as TrackingType })}
-              className="border-input bg-background h-11 rounded-md border px-2"
-            >
-              {TRACKING_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {TRACKING_LABELS[t]}
-                </option>
-              ))}
-            </select>
-          </div>
-        </div>
-
-        <ChipGroup
-          title="Músculos principales (al menos uno)"
-          options={MUSCLES.map((m) => [m.id, m.name])}
-          selected={form.primary}
-          onToggle={(v) => toggle('primary', v)}
-        />
-        <ChipGroup
-          title="Músculos secundarios"
-          options={MUSCLES.map((m) => [m.id, m.name])}
-          selected={form.secondary}
-          onToggle={(v) => toggle('secondary', v)}
-        />
-        <ChipGroup
-          title="Material"
-          options={Object.entries(EQUIPMENT_LABELS)}
-          selected={form.equipment}
-          onToggle={(v) => toggle('equipment', v)}
-        />
-
-        <div className="grid grid-cols-2 items-end gap-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="ex-rest">Descanso (s)</Label>
-            <Input
-              id="ex-rest"
-              inputMode="numeric"
-              value={form.defaultRestS}
-              onChange={(e) =>
-                setForm({ ...form, defaultRestS: Math.min(600, Number(e.target.value) || 0) })
-              }
-            />
-          </div>
-          <label className="flex h-11 items-center gap-2 text-sm">
-            <input
-              type="checkbox"
-              className="size-5"
-              checked={form.isUnilateral}
-              onChange={(e) => setForm({ ...form, isUnilateral: e.target.checked })}
-            />
-            Unilateral
-          </label>
-        </div>
-
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="ex-notes">Notas de técnica</Label>
-          <Textarea
-            id="ex-notes"
-            value={form.techniqueNotes ?? ''}
-            onChange={(e) => setForm({ ...form, techniqueNotes: e.target.value })}
-          />
-        </div>
-        {create.isError && <p className="text-destructive text-sm">{create.error.message}</p>}
-      </form>
-    </Sheet>
-  )
-}
-
-function ChipGroup({
-  title,
-  options,
-  selected,
-  onToggle,
-}: {
-  title: string
-  options: [string, string][]
-  selected: string[]
-  onToggle: (value: string) => void
-}) {
-  return (
-    <fieldset>
-      <legend className="mb-2 text-sm font-medium">{title}</legend>
-      <div className="flex flex-wrap gap-1.5">
-        {options.map(([value, label]) => (
-          <button
-            key={value}
-            type="button"
-            onClick={() => onToggle(value)}
-            aria-pressed={selected.includes(value)}
-            className={cn(
-              'h-9 rounded-full border px-3 text-sm',
-              selected.includes(value)
-                ? 'bg-primary text-primary-foreground border-primary'
-                : 'bg-background',
-            )}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-    </fieldset>
   )
 }

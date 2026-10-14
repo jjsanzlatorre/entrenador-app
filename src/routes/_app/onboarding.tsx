@@ -6,8 +6,6 @@ import { Chip, WeekdayPicker } from '@/components/plan/chip'
 import { homeOf } from '@/components/progress/achievements'
 import { CitySearch } from '@/components/progress/city-search'
 import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import { Stepper } from '@/components/ui/stepper'
 import { Textarea } from '@/components/ui/textarea'
 import { resetAuthState } from '@/lib/auth'
@@ -34,7 +32,8 @@ import { localDateKey, weekStartOf } from '@/lib/progress/dates'
 import type { Home } from '@/lib/progress/equivalences'
 import { commitmentsKey, useCommitments } from '@/lib/progress/hooks'
 import type { Commitment } from '@/lib/progress/types'
-import { parseDecimal, parseInteger } from '@/lib/workout/format'
+import { QuantityInput } from '@/components/ui/quantity-input'
+import { describeDuration, parseCount, parseDuration, parseWeight } from '@/lib/input/quantity'
 import { EQUIPMENT_LABELS } from '@/lib/workout/labels'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor'
 import { activityEmoji, activityLabel, fixedActivityOptions } from '@/lib/activities/catalog'
@@ -65,8 +64,14 @@ const EQUIPMENT_CHOICES = [
   'kettlebell',
   'machine',
   'cable',
+  'smith',
+  'ez_bar',
+  'trap_bar',
+  'plate',
   'pullup_bar',
   'dip_bars',
+  'rings',
+  'trx',
   'band',
   'box',
   'medball',
@@ -75,10 +80,15 @@ const EQUIPMENT_CHOICES = [
   'skierg',
   'rower',
   'air_bike',
+  'treadmill',
+  'stationary_bike',
+  'elliptical',
+  'stair_climber',
   'jump_rope',
   'bike',
   'pool',
   'mat',
+  'foam_roller',
 ] as const
 
 const fixedLabel = (type: string) => `${activityEmoji(type)} ${activityLabel(type)}`
@@ -177,14 +187,18 @@ function Wizard({
     const d = draft
     const num = (v: string, label: string) => {
       if (!v.trim()) return null
-      const n = parseDecimal(v)
+      const n = parseWeight(v)
       if (n === null || n <= 0 || n > 500) throw new Error(`${label}: valor no válido`)
       return n
     }
-    const clock = (v: string, label: string) => {
+    // Número suelto = minutos; «25:30» = 25 min 30 s. Con límites razonables para avisar de
+    // un «95» que quería decir segundos.
+    const clock = (v: string, label: string, minS: number, maxS: number) => {
       if (!v.trim()) return null
       const s = parseMinSec(v)
       if (s === null) throw new Error(`${label}: escribe minutos:segundos, p. ej. 25:30`)
+      if (s < minS || s > maxS)
+        throw new Error(`${label}: ${describeDuration(s)} no parece real; escribe minutos:segundos`)
       return s
     }
     try {
@@ -194,8 +208,8 @@ function Wizard({
           squat_1rm_kg: num(d.squat, 'Sentadilla'),
           bench_1rm_kg: num(d.bench, 'Press banca'),
           deadlift_1rm_kg: num(d.deadlift, 'Peso muerto'),
-          run_5k_s: clock(d.run5k, '5K'),
-          swim_100m_s: clock(d.swim100, '100 m nado'),
+          run_5k_s: clock(d.run5k, '5K', 10 * 60, 2 * 3600),
+          swim_100m_s: clock(d.swim100, '100 m nado', 40, 10 * 60),
         },
       }
     } catch (e) {
@@ -217,8 +231,8 @@ function Wizard({
     try {
       await saveTrainingProfile(userId, data)
       if (!skipAll) {
-        const birth = parseInteger(draft.birthYear)
-        const height = parseInteger(draft.heightCm)
+        const birth = parseCount(draft.birthYear)
+        const height = parseCount(draft.heightCm)
         const year = new Date().getFullYear()
         const patch: {
           birth_year?: number | null
@@ -393,42 +407,44 @@ function Wizard({
               hint="Opcional y aproximado. Ayuda a ajustar pesos y ritmos."
             >
               <div className="grid grid-cols-3 gap-2">
-                <Field
+                <QuantityInput
                   id="squat"
-                  label="Sentadilla 1RM (kg)"
+                  label={<span className="text-xs">Sentadilla 1RM</span>}
                   value={draft.squat}
                   onChange={(v) => set({ squat: v })}
-                  decimal
+                  quantity={{ kind: 'weight' }}
                 />
-                <Field
+                <QuantityInput
                   id="bench"
-                  label="Banca 1RM (kg)"
+                  label={<span className="text-xs">Banca 1RM</span>}
                   value={draft.bench}
                   onChange={(v) => set({ bench: v })}
-                  decimal
+                  quantity={{ kind: 'weight' }}
                 />
-                <Field
+                <QuantityInput
                   id="deadlift"
-                  label="Peso muerto 1RM (kg)"
+                  label={<span className="text-xs">Peso muerto 1RM</span>}
                   value={draft.deadlift}
                   onChange={(v) => set({ deadlift: v })}
-                  decimal
+                  quantity={{ kind: 'weight' }}
                 />
               </div>
               <div className="mt-2 grid grid-cols-2 gap-2">
-                <Field
+                <QuantityInput
                   id="run5k"
                   label="5K (mm:ss)"
                   placeholder="28:00"
                   value={draft.run5k}
                   onChange={(v) => set({ run5k: v })}
+                  quantity={{ kind: 'duration', bare: 'min' }}
                 />
-                <Field
+                <QuantityInput
                   id="swim100"
                   label="100 m nado (m:ss)"
                   placeholder="2:10"
                   value={draft.swim100}
                   onChange={(v) => set({ swim100: v })}
+                  quantity={{ kind: 'duration', bare: 'min' }}
                 />
               </div>
             </Section>
@@ -449,19 +465,21 @@ function Wizard({
                 ))}
               </div>
               <div className="grid grid-cols-2 gap-2">
-                <Field
+                <QuantityInput
                   id="birth"
                   label="Año de nacimiento"
                   value={draft.birthYear}
                   onChange={(v) => set({ birthYear: v })}
-                  numeric
+                  quantity={{ kind: 'count' }}
+                  hidePreview
                 />
-                <Field
+                <QuantityInput
                   id="height"
-                  label="Altura (cm)"
+                  label="Altura"
                   value={draft.heightCm}
                   onChange={(v) => set({ heightCm: v })}
-                  numeric
+                  quantity={{ kind: 'count', unit: 'cm' }}
+                  hidePreview
                 />
               </div>
             </Section>
@@ -680,39 +698,6 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   )
 }
 
-function Field({
-  id,
-  label,
-  value,
-  onChange,
-  placeholder,
-  decimal,
-  numeric,
-}: {
-  id: string
-  label: string
-  value: string
-  onChange: (v: string) => void
-  placeholder?: string
-  decimal?: boolean
-  numeric?: boolean
-}) {
-  return (
-    <div className="flex flex-col gap-1">
-      <Label htmlFor={id} className="text-xs leading-tight">
-        {label}
-      </Label>
-      <Input
-        id={id}
-        value={value}
-        placeholder={placeholder}
-        inputMode={decimal ? 'decimal' : numeric ? 'numeric' : 'text'}
-        onChange={(e) => onChange(e.target.value)}
-      />
-    </div>
-  )
-}
-
 // Actividades fijas: se eligen de la lista (globales + personalizadas) y cada una lleva sus días.
 function FixedActivitiesPicker({
   userId,
@@ -780,7 +765,8 @@ function FixedActivityRow({
   const [days, setDays] = useState<number[]>(value?.days ?? [])
   const [minutes, setMinutes] = useState(value?.minutes ? String(value.minutes) : '')
   const emit = (nextDays: number[], nextMinutes: string) => {
-    const m = parseInteger(nextMinutes)
+    const seconds = parseDuration(nextMinutes, 'min')
+    const m = seconds === null ? null : Math.round(seconds / 60)
     onChange(
       nextDays.length > 0
         ? { type, days: nextDays, minutes: m && m >= 5 && m <= 600 ? m : null, label: null }
@@ -799,22 +785,19 @@ function FixedActivityRow({
         }}
       />
       {days.length > 0 && (
-        <div className="mt-2 flex items-center gap-2">
-          <Label htmlFor={`fixed-${type}`} className="text-sm">
-            Minutos
-          </Label>
-          <Input
-            id={`fixed-${type}`}
-            inputMode="numeric"
-            className="w-24"
-            placeholder="90"
-            value={minutes}
-            onChange={(e) => {
-              setMinutes(e.target.value)
-              emit(days, e.target.value)
-            }}
-          />
-        </div>
+        <QuantityInput
+          id={`fixed-${type}`}
+          className="mt-2"
+          label="Duración"
+          placeholder="90"
+          value={minutes}
+          onChange={(v) => {
+            setMinutes(v)
+            emit(days, v)
+          }}
+          quantity={{ kind: 'duration', bare: 'min' }}
+          chips={[60, 90, 120]}
+        />
       )}
     </div>
   )

@@ -12,7 +12,7 @@ import {
   Trash2,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { setFields } from '@/lib/workout/fields'
+import { fieldSpecs } from '@/lib/workout/fields'
 import { formatClock } from '@/lib/workout/format'
 import { useNow } from '@/lib/workout/hooks'
 import { formatDistance, formatPace, paceKindForExercise } from '@/lib/workout/pace'
@@ -226,7 +226,18 @@ export function TimedBlockCard({
         <div className="mt-3 flex flex-col gap-1">
           {block.sets.map((set) => {
             const exercise = exercisesById.get(set.exerciseId)
-            const fields = setFields(exercise?.trackingType ?? 'weight_reps', exercise?.category)
+            // En series de intervalos la distancia va en metros («400»), aunque sea carrera.
+            const specs = fieldSpecs(exercise).map((spec) =>
+              config.kind === 'intervals' && spec.field === 'distanceM'
+                ? {
+                    ...spec,
+                    unit: 'm',
+                    step: 25,
+                    quantity: { kind: 'distance' as const, bare: 'm' as const },
+                    label: 'Distancia (m)',
+                  }
+                : spec,
+            )
             const pace = paceKindForExercise(set.exerciseId)
             const paceText = pace ? formatPace(pace, set.distanceM, set.durationS) : null
             return (
@@ -238,7 +249,7 @@ export function TimedBlockCard({
                 )}
                 <SetRow
                   set={set}
-                  fields={fields}
+                  specs={specs}
                   label={`${set.setIndex + 1}`}
                   selected={selectedSet === set.id}
                   onSelect={() => setSelectedSet(set.id)}

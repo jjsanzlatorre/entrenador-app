@@ -1,0 +1,581 @@
+{
+  "_comment": "Kettlebell, TRX (suspensión) y gomas elásticas. npm run seed:sql genera la migración.",
+  "migration": "0040_seed_exercises_kettlebell_trx_bands.sql",
+  "description": "Semilla: kettlebell, TRX y gomas elásticas (clean, snatch, turkish get-up, remo TRX, pull apart…) con su técnica. Requiere 0026.",
+  "exercises": [
+    {
+      "id": "kb_clean",
+      "name": "Cargada con kettlebell",
+      "aliases": ["kettlebell clean", "kb clean", "clean con kettlebell", "cargada kb"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Bisagra de cadera que lleva la kettlebell a la posición de rack sin golpear el antebrazo.",
+      "primary": ["glutes", "hamstrings"],
+      "secondary": ["upper_back", "forearms", "core", "biceps"],
+      "technique": {
+        "steps": [
+          "Kettlebell entre los pies; cógela con una mano haciendo bisagra de cadera.",
+          "Balancéala entre las piernas y extiende la cadera con fuerza.",
+          "Mantén el codo cerca del cuerpo y deja que la kettlebell rodee la mano hasta el rack, junto al pecho.",
+          "Vuelve a bajarla con control al balanceo siguiente."
+        ],
+        "mistakes": [
+          "Tirar con el brazo como en un curl.",
+          "Separar el codo: la kettlebell golpea el antebrazo.",
+          "Redondear la espalda al bajar."
+        ]
+      }
+    },
+    {
+      "id": "kb_snatch",
+      "name": "Arrancada con kettlebell",
+      "aliases": ["kettlebell snatch", "kb snatch", "snatch con kettlebell", "arrancada kb"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "Del balanceo a la vertical por encima de la cabeza en un solo movimiento.",
+      "primary": ["glutes", "hamstrings", "delt_front"],
+      "secondary": ["upper_back", "core", "forearms", "triceps"],
+      "technique": {
+        "steps": [
+          "Empieza como un swing a una mano con la espalda neutra.",
+          "Extiende la cadera con fuerza y lleva la kettlebell pegada al cuerpo hacia arriba.",
+          "Mete la mano por debajo del asa al final para que la kettlebell gire suave y no golpee.",
+          "Bloquea el brazo arriba un segundo y baja con control al balanceo."
+        ],
+        "mistakes": [
+          "Dejar que la kettlebell golpee la muñeca arriba.",
+          "Tirar con el brazo en vez de con la cadera.",
+          "Arquear la lumbar arriba."
+        ]
+      }
+    },
+    {
+      "id": "kb_turkish_get_up",
+      "name": "Turkish get-up",
+      "aliases": ["turkish get up", "tgu", "levantada turca", "get-up turco", "turkish getup"],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell", "dumbbell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 120,
+      "technique_notes": "De tumbado a de pie con la kettlebell arriba y la mirada en ella; despacio.",
+      "primary": ["core", "delt_front"],
+      "secondary": ["glutes", "quads", "triceps", "upper_back"],
+      "technique": {
+        "steps": [
+          "Túmbate con la kettlebell arriba en una mano (brazo estirado) y esa rodilla doblada.",
+          "Apóyate en el codo y luego en la mano contraria mientras miras la kettlebell.",
+          "Sube la cadera, pasa la pierna estirada por debajo hasta apoyar la rodilla y ponte de pie.",
+          "Deshaz los pasos en orden inverso hasta tumbarte."
+        ],
+        "mistakes": [
+          "Doblar el brazo de la kettlebell.",
+          "Ir deprisa saltándose posiciones.",
+          "Dejar de mirar la kettlebell."
+        ]
+      }
+    },
+    {
+      "id": "kb_press",
+      "name": "Press con kettlebell",
+      "aliases": [
+        "kettlebell press",
+        "kb press",
+        "press militar con kettlebell",
+        "kettlebell military press"
+      ],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Desde el rack, empuja hacia arriba con el antebrazo vertical y el glúteo apretado.",
+      "primary": ["delt_front", "delt_side"],
+      "secondary": ["triceps", "core"],
+      "technique": {
+        "steps": [
+          "Coloca la kettlebell en rack: junto al pecho, con el asa en la palma y el codo abajo.",
+          "Aprieta glúteos y abdomen.",
+          "Empuja hacia arriba hasta estirar el brazo, con el bíceps junto a la oreja.",
+          "Baja controlando al rack."
+        ],
+        "mistakes": [
+          "Inclinar el tronco hacia el lado contrario.",
+          "Arquear la lumbar.",
+          "Doblar la muñeca hacia atrás."
+        ]
+      }
+    },
+    {
+      "id": "kb_one_arm_swing",
+      "name": "Kettlebell swing a una mano",
+      "aliases": [
+        "one arm kettlebell swing",
+        "single arm swing",
+        "swing a una mano",
+        "kb swing unilateral"
+      ],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell"],
+      "is_unilateral": true,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Igual que el swing, con una mano: el core evita que el tronco gire.",
+      "primary": ["glutes", "hamstrings"],
+      "secondary": ["lower_back", "core", "forearms"],
+      "technique": {
+        "steps": [
+          "Kettlebell un poco delante; cógela con una mano haciendo bisagra de cadera.",
+          "Llévala entre las piernas y extiende la cadera con fuerza.",
+          "Deja que suba hasta la altura del pecho sin tirar con el hombro.",
+          "Deja que caiga y vuelve a la bisagra; cambia de mano al acabar."
+        ],
+        "mistakes": [
+          "Girar el tronco hacia el lado de la kettlebell.",
+          "Hacer sentadilla en vez de bisagra.",
+          "Subir con el brazo."
+        ]
+      }
+    },
+    {
+      "id": "kb_halo",
+      "name": "Halo con kettlebell",
+      "aliases": ["kettlebell halo", "halo", "kb halo", "círculos con kettlebell"],
+      "category": "mobility",
+      "tracking_type": "reps",
+      "equipment": ["kettlebell", "plate"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 45,
+      "technique_notes": "Rodea la cabeza con la kettlebell boca abajo, cerca de la cabeza; ligero.",
+      "primary": ["delt_front", "delt_side"],
+      "secondary": ["upper_back", "core", "triceps"],
+      "technique": {
+        "steps": [
+          "Sujeta la kettlebell por los lados del asa, boca abajo, delante del pecho.",
+          "Llévala alrededor de la cabeza, cerca del cuello y con los codos doblados.",
+          "Mantén el abdomen firme para que el tronco no se mueva.",
+          "Alterna el sentido en cada repetición."
+        ],
+        "mistakes": [
+          "Alejar mucho la kettlebell de la cabeza.",
+          "Arquear la espalda al pasar por detrás.",
+          "Usar un peso que obliga a mover el cuerpo."
+        ]
+      }
+    },
+    {
+      "id": "kb_deadlift",
+      "name": "Peso muerto con kettlebell",
+      "aliases": ["kettlebell deadlift", "kb deadlift", "peso muerto kb", "sumo kettlebell"],
+      "category": "strength",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Kettlebell entre los pies; bisagra de cadera con la espalda neutra.",
+      "primary": ["glutes", "hamstrings"],
+      "secondary": ["lower_back", "quads", "forearms"],
+      "technique": {
+        "steps": [
+          "Ponte con la kettlebell entre los pies, a la altura del empeine.",
+          "Lleva la cadera atrás con las rodillas algo flexionadas y coge el asa con las dos manos.",
+          "Tensa la espalda y sube empujando el suelo hasta quedar erguido.",
+          "Baja por el mismo camino."
+        ],
+        "mistakes": [
+          "Redondear la espalda.",
+          "Kettlebell demasiado adelantada.",
+          "Echarse hacia atrás arriba."
+        ]
+      }
+    },
+    {
+      "id": "kb_high_pull",
+      "name": "Tirón alto con kettlebell",
+      "aliases": [
+        "kettlebell high pull",
+        "sumo high pull",
+        "kb high pull",
+        "tirón al mentón con kettlebell"
+      ],
+      "category": "functional",
+      "tracking_type": "weight_reps",
+      "equipment": ["kettlebell"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 90,
+      "technique_notes": "Desde abajo, extiende la cadera y tira de la kettlebell hasta el pecho con los codos altos.",
+      "primary": ["upper_back", "glutes"],
+      "secondary": ["hamstrings", "delt_side", "biceps"],
+      "technique": {
+        "steps": [
+          "Con los pies abiertos y la kettlebell entre ellos, cógela con las dos manos.",
+          "Extiende la cadera con fuerza y aprovecha el impulso para tirar.",
+          "Lleva los codos altos y fuera hasta que el asa llegue a la altura del pecho.",
+          "Baja controlando y repite."
+        ],
+        "mistakes": [
+          "Tirar solo con los brazos.",
+          "Subir el asa por encima de la barbilla.",
+          "Redondear la espalda al bajar."
+        ]
+      }
+    },
+    {
+      "id": "trx_row",
+      "name": "Remo en TRX",
+      "aliases": [
+        "trx row",
+        "suspension row",
+        "remo en suspensión",
+        "remo con anillas",
+        "ring row"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx", "rings"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 75,
+      "technique_notes": "Cuerpo recto inclinado; cuanto más horizontal, más difícil.",
+      "primary": ["upper_back", "lats"],
+      "secondary": ["biceps", "delt_rear", "core"],
+      "technique": {
+        "steps": [
+          "Coge las asas con las palmas enfrentadas y camina hacia delante hasta inclinarte atrás.",
+          "Cuerpo recto de talones a cabeza y brazos estirados.",
+          "Tira llevando el pecho hacia las manos y juntando los omóplatos.",
+          "Baja despacio hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Dejar caer la cadera.",
+          "Encoger los hombros.",
+          "Soltarse hacia atrás sin control."
+        ]
+      }
+    },
+    {
+      "id": "trx_chest_press",
+      "name": "Press de pecho en TRX",
+      "aliases": [
+        "trx chest press",
+        "flexiones en trx",
+        "suspension push-up",
+        "press en suspensión"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 75,
+      "technique_notes": "De espaldas al anclaje, inclinado hacia delante, baja como en una flexión.",
+      "primary": ["chest"],
+      "secondary": ["triceps", "delt_front", "core"],
+      "technique": {
+        "steps": [
+          "De espaldas al anclaje, coge las asas con los brazos estirados delante del pecho.",
+          "Inclínate hacia delante con el cuerpo recto.",
+          "Baja doblando los codos hasta que las manos queden junto al pecho.",
+          "Empuja hasta estirar los brazos."
+        ],
+        "mistakes": [
+          "Dejar que las asas se abran hacia fuera.",
+          "Hundir la cadera.",
+          "Inclinarse tanto que no se controla."
+        ]
+      }
+    },
+    {
+      "id": "trx_squat",
+      "name": "Sentadilla en TRX",
+      "aliases": ["trx squat", "sentadilla asistida", "suspension squat"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Agarrado a las asas para equilibrarte; baja profundo con el torso erguido.",
+      "primary": ["quads", "glutes"],
+      "secondary": ["adductors"],
+      "technique": {
+        "steps": [
+          "De cara al anclaje, coge las asas con los brazos casi estirados.",
+          "Pies a la anchura de los hombros.",
+          "Baja en sentadilla tan profundo como puedas con el torso erguido.",
+          "Sube empujando con las piernas; los brazos solo equilibran."
+        ],
+        "mistakes": [
+          "Tirar con los brazos para subir.",
+          "Talones despegados.",
+          "Rodillas hacia dentro."
+        ]
+      }
+    },
+    {
+      "id": "trx_hamstring_curl",
+      "name": "Curl femoral en TRX",
+      "aliases": ["trx hamstring curl", "curl de isquios en suspensión", "trx leg curl"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Tumbado con los talones en las asas, sube la cadera y lleva los talones al glúteo.",
+      "primary": ["hamstrings"],
+      "secondary": ["glutes", "core"],
+      "technique": {
+        "steps": [
+          "Túmbate boca arriba con los talones en las asas, bajo el anclaje.",
+          "Sube la cadera hasta alinear el cuerpo.",
+          "Lleva los talones hacia los glúteos sin bajar la cadera.",
+          "Estira las piernas despacio."
+        ],
+        "mistakes": [
+          "Dejar caer la cadera al doblar las rodillas.",
+          "Ir con impulso.",
+          "Arquear la lumbar."
+        ]
+      }
+    },
+    {
+      "id": "trx_pike",
+      "name": "Pike en TRX",
+      "aliases": ["trx pike", "pica en trx", "suspension pike", "navaja en trx"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "En plancha con los pies en las asas, sube la cadera en V con las piernas rectas.",
+      "primary": ["core"],
+      "secondary": ["delt_front", "triceps"],
+      "technique": {
+        "steps": [
+          "Pon los pies en las asas y colócate en plancha alta con las manos bajo los hombros.",
+          "Sube la cadera hacia el techo con las piernas estiradas, formando una V invertida.",
+          "Baja despacio a la plancha sin hundir la cadera."
+        ],
+        "mistakes": [
+          "Doblar las rodillas (eso es otro ejercicio).",
+          "Hundir la cadera al volver.",
+          "Manos por delante de los hombros."
+        ]
+      }
+    },
+    {
+      "id": "trx_y_raise",
+      "name": "Elevación en Y en TRX",
+      "aliases": ["trx y fly", "trx y raise", "y en suspensión", "trx y"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Inclinado atrás, sube los brazos estirados en forma de Y.",
+      "primary": ["delt_rear", "upper_back"],
+      "secondary": ["delt_side"],
+      "technique": {
+        "steps": [
+          "Coge las asas y camina hacia delante hasta inclinarte un poco atrás.",
+          "Con los brazos estirados, súbelos en diagonal hasta formar una Y por encima de la cabeza.",
+          "Baja despacio sin dejar caer el cuerpo."
+        ],
+        "mistakes": ["Doblar los codos.", "Encoger los hombros.", "Arquear la lumbar."]
+      }
+    },
+    {
+      "id": "trx_biceps_curl",
+      "name": "Curl de bíceps en TRX",
+      "aliases": ["trx biceps curl", "curl en suspensión", "trx curl"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["trx"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 60,
+      "technique_notes": "Inclinado atrás, codos a la altura de los hombros; lleva las manos a la frente.",
+      "primary": ["biceps"],
+      "secondary": ["forearms"],
+      "technique": {
+        "steps": [
+          "Coge las asas con las palmas hacia arriba y camina hasta inclinarte atrás.",
+          "Sube los codos a la altura de los hombros con los brazos estirados.",
+          "Dobla los codos llevando las manos hacia la frente sin bajar los codos.",
+          "Vuelve despacio a brazos estirados."
+        ],
+        "mistakes": ["Bajar los codos durante el curl.", "Hundir la cadera.", "Usar impulso."]
+      }
+    },
+    {
+      "id": "band_pull_apart",
+      "name": "Pull apart con goma",
+      "aliases": ["band pull apart", "pull aparts", "aperturas con goma", "separación de goma"],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["band"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 45,
+      "technique_notes": "Brazos estirados al frente: abre la goma hasta el pecho juntando los omóplatos.",
+      "primary": ["delt_rear", "upper_back"],
+      "secondary": [],
+      "technique": {
+        "steps": [
+          "Coge una goma con los brazos estirados al frente, a la altura de los hombros.",
+          "Ábrela llevando las manos hacia los lados hasta que toque el pecho.",
+          "Junta los omóplatos un segundo y vuelve despacio."
+        ],
+        "mistakes": [
+          "Doblar los codos.",
+          "Encoger los hombros.",
+          "Arquear la espalda para abrir más."
+        ]
+      }
+    },
+    {
+      "id": "banded_lateral_walk",
+      "name": "Paso lateral con goma",
+      "aliases": [
+        "lateral band walk",
+        "monster walk",
+        "banded side steps",
+        "pasos laterales con mini band",
+        "cangrejo con goma"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["band"],
+      "is_unilateral": false,
+      "is_compound": false,
+      "default_rest_s": 45,
+      "technique_notes": "Goma en las rodillas o tobillos, semisentadilla y pasos laterales sin juntar los pies.",
+      "primary": ["glutes"],
+      "secondary": ["quads"],
+      "technique": {
+        "steps": [
+          "Coloca una mini band por encima de las rodillas o en los tobillos.",
+          "Baja a media sentadilla con el pecho alto.",
+          "Da pasos laterales cortos sin juntar del todo los pies.",
+          "Haz las mismas repeticiones hacia los dos lados."
+        ],
+        "mistakes": [
+          "Dejar que las rodillas se cierren.",
+          "Levantarse de la semisentadilla.",
+          "Balancear el tronco en cada paso."
+        ]
+      }
+    },
+    {
+      "id": "band_row",
+      "name": "Remo con goma",
+      "aliases": [
+        "band row",
+        "resistance band row",
+        "remo con banda elástica",
+        "remo sentado con goma"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["band"],
+      "is_unilateral": false,
+      "is_compound": true,
+      "default_rest_s": 60,
+      "technique_notes": "Goma anclada al frente o a los pies; tira llevando los codos atrás.",
+      "primary": ["upper_back", "lats"],
+      "secondary": ["biceps", "delt_rear"],
+      "technique": {
+        "steps": [
+          "Ancla la goma a la altura del pecho o pásala por los pies sentado.",
+          "Con la espalda recta, coge los extremos con los brazos estirados.",
+          "Tira llevando los codos atrás y juntando los omóplatos.",
+          "Vuelve despacio resistiendo la goma."
+        ],
+        "mistakes": [
+          "Echar el tronco atrás para tirar.",
+          "Soltar la goma de golpe.",
+          "Encoger los hombros."
+        ]
+      }
+    },
+    {
+      "id": "band_external_rotation",
+      "name": "Rotación externa con goma",
+      "aliases": [
+        "band external rotation",
+        "rotación externa de hombro",
+        "manguito rotador",
+        "external rotation"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["band", "cable"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 45,
+      "technique_notes": "Codo pegado al costado a 90°; gira el antebrazo hacia fuera. Para el manguito rotador.",
+      "primary": ["delt_rear"],
+      "secondary": ["upper_back"],
+      "technique": {
+        "steps": [
+          "Ancla la goma a la altura del codo y ponte de lado.",
+          "Codo pegado al costado y doblado a 90° (una toalla entre codo y cuerpo ayuda).",
+          "Gira el antebrazo hacia fuera sin despegar el codo y vuelve despacio."
+        ],
+        "mistakes": [
+          "Separar el codo del cuerpo.",
+          "Girar el tronco en vez del brazo.",
+          "Goma demasiado fuerte."
+        ]
+      }
+    },
+    {
+      "id": "band_kickback",
+      "name": "Patada de glúteo con goma",
+      "aliases": [
+        "band kickback",
+        "glute kickback band",
+        "patada trasera con goma",
+        "patada de burro con goma"
+      ],
+      "category": "strength",
+      "tracking_type": "reps",
+      "equipment": ["band", "mat"],
+      "is_unilateral": true,
+      "is_compound": false,
+      "default_rest_s": 45,
+      "technique_notes": "A cuatro patas o de pie, lleva la pierna atrás contra la goma apretando el glúteo.",
+      "primary": ["glutes"],
+      "secondary": ["hamstrings"],
+      "technique": {
+        "steps": [
+          "Ponte a cuatro patas con la goma por la planta de un pie y sujeta en las manos.",
+          "Empuja ese pie hacia atrás y arriba apretando el glúteo.",
+          "Vuelve despacio sin arquear la lumbar; termina un lado y cambia."
+        ],
+        "mistakes": [
+          "Arquear la lumbar para subir más.",
+          "Girar la cadera hacia fuera.",
+          "Ir con impulso."
+        ]
+      }
+    }
+  ]
+}

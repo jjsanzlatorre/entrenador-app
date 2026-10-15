@@ -3,8 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { idbGet, idbPut } from '@/lib/offline/idb'
 import { listOutbox } from '@/lib/offline/outbox'
 import { listLocalFinishedSessions } from '@/lib/workout/active-session'
-import { sessionStats } from '@/lib/workout/calc'
-import { totalDistanceM } from '@/lib/workout/session-ops'
 import {
   fetchCommitments,
   fetchEquivalenceCatalog,
@@ -14,7 +12,8 @@ import {
   fetchSessionLog,
   fetchSessionTotals,
 } from './api'
-import { activityDaysFromSessions, sessionMinutes } from './adherence'
+import { activityDaysFromSessions } from './adherence'
+import { logEntryFromLocal } from './session-log'
 import type { EquivalenceCatalog } from './equivalences'
 import { addDays, type DateKey } from './dates'
 import { loadShownMilestones } from './milestones-store'
@@ -70,21 +69,7 @@ export function useSessionLog(userId: string, enabled = true) {
       )
       for (const s of local) {
         if (!s.endedAt || (!offline && !pendingIds.has(s.id))) continue
-        const stats = sessionStats(s)
-        const entry: SessionLogEntry = {
-          id: s.id,
-          sessionType: s.sessionType,
-          activityTypeId: s.activityTypeId ?? null,
-          startedAt: s.startedAt,
-          endedAt: s.endedAt,
-          durationMin: s.durationMin,
-          rpe: s.rpe,
-          distanceM: s.distanceM ?? totalDistanceM(s),
-          plannedSessionId: s.plannedSessionId ?? null,
-          tonnageKg: stats.tonnageKg,
-          totalReps: stats.totalReps,
-        }
-        byId.set(s.id, { ...entry, durationMin: sessionMinutes(entry) })
+        byId.set(s.id, logEntryFromLocal({ ...s, endedAt: s.endedAt }))
       }
       const sessions = [...byId.values()]
         .filter((s) => !deletedIds.has(s.id))

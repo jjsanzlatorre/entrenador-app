@@ -58,7 +58,13 @@ function TodayPage() {
         >
           <Play className="size-8 shrink-0" />
           <div className="flex-1">
-            <p className="text-lg font-bold">Continuar sesión</p>
+            <p className="text-lg font-bold">
+              {session.mode === 'past'
+                ? 'Continuar entreno pasado'
+                : session.mode === 'edit'
+                  ? 'Continuar edición'
+                  : 'Continuar sesión'}
+            </p>
             <p className="text-sm opacity-90">
               {session.title} · {sessionStats(session).completedSets} series hechas
             </p>

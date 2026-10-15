@@ -18,26 +18,28 @@ import { useActivityTypes } from '@/lib/activities/hooks'
 import { ActivityEditorSheet } from '@/components/activities/activity-editor'
 import { cn } from '@/lib/utils'
 import { notifyError } from '@/lib/notify'
+import { z } from 'zod'
+import { WhenField } from '@/components/workout/when-field'
+import { useNow } from '@/lib/workout/hooks'
+import { whenFromInstant, whenProblem, whenToMs, type WhenValue } from '@/lib/workout/when'
 
 // «Registrar actividad»: deportes, clases de gimnasio, yoga, surf, personalizadas u otra, en una
 // sola pantalla.
+// ?desde=<ms>: viene de «Registrar entreno pasado» con la fecha y hora ya elegidas.
 export const Route = createFileRoute('/_app/entrenar/actividad')({
   ssr: false,
+  validateSearch: z.object({ desde: z.coerce.number().optional() }),
   component: QuickActivityPage,
 })
 
-function localDateTimeValue(date: Date) {
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(date.getMinutes())}`
-}
-
 // Inicio de una actividad de «min» minutos que acaba ahora.
-function startForDuration(min: number) {
-  return localDateTimeValue(new Date(Date.now() - min * 60_000))
+function startForDuration(min: number): WhenValue {
+  return whenFromInstant(Date.now() - min * 60_000)
 }
 
 function QuickActivityPage() {
   const { auth } = Route.useRouteContext()
+  const { desde } = Route.useSearch()
   const navigate = useNavigate()
   const queryClient = useQueryClient()
   // Se vuelve a pintar cuando llegan las actividades (y las personalizadas) del servidor.
@@ -48,9 +50,11 @@ function QuickActivityPage() {
   const [title, setTitle] = useState('')
   const [duration, setDuration] = useState('60')
   // Por defecto: terminó ahora y empezó hace «duración» minutos.
-  const [start, setStart] = useState(() => startForDuration(60))
+  const [start, setStart] = useState<WhenValue>(() =>
+    desde && desde < Date.now() ? whenFromInstant(desde) : startForDuration(60),
+  )
   // Mientras no se toque «Empezó», se recalcula al cambiar la duración (terminó ahora).
-  const [startTouched, setStartTouched] = useState(false)
+  const [startTouched, setStartTouched] = useState(Boolean(desde))
   const [rpe, setRpe] = useState<number | null>(null)
   const [notes, setNotes] = useState('')
   const [watchOpen, setWatchOpen] = useState(false)
@@ -61,7 +65,14 @@ function QuickActivityPage() {
 
   const durationS = parseDuration(duration, 'min')
   const durationMin = durationS === null ? null : Math.round(durationS / 60)
-  const valid = rpe !== null && durationMin !== null && durationMin > 0 && start !== ''
+  const now = useNow(30_000)
+  const startMs = whenToMs(start)
+  const valid =
+    rpe !== null &&
+    durationMin !== null &&
+    durationMin > 0 &&
+    startMs !== null &&
+    !whenProblem(start, now)
 
   function changeDuration(value: string) {
     setDuration(value)
@@ -71,7 +82,7 @@ function QuickActivityPage() {
   }
 
   async function save() {
-    if (!valid || rpe === null || durationMin === null) return
+    if (!valid || rpe === null || durationMin === null || startMs === null) return
     setSaving(true)
     try {
       const session = createQuickActivity(
@@ -79,7 +90,7 @@ function QuickActivityPage() {
         {
           activityId: type,
           title,
-          startedAt: new Date(start).toISOString(),
+          startedAt: new Date(startMs).toISOString(),
           durationMin,
           rpe,
           notes: notes.trim() || null,
@@ -175,19 +186,17 @@ function QuickActivityPage() {
         </div>
       </fieldset>
 
+      <WhenField
+        id="act-start"
+        label="¿Cuándo empezó?"
+        value={start}
+        onChange={(v) => {
+          setStart(v)
+          setStartTouched(true)
+        }}
+      />
+
       <div className="grid gap-3">
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="act-start">Empezó</Label>
-          <Input
-            id="act-start"
-            type="datetime-local"
-            value={start}
-            onChange={(e) => {
-              setStart(e.target.value)
-              setStartTouched(true)
-            }}
-          />
-        </div>
         <div className="flex flex-col gap-2">
           <Label htmlFor="act-title">Título (opcional)</Label>
           <Input

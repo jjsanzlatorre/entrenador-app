@@ -9,6 +9,7 @@ import { toPayload } from './payload'
 import { finishSession, type SessionDetailsPatch } from './session-ops'
 import { createSessionOfType } from './session-kinds'
 import type { LocalSession } from './types'
+import { retimeSession, type StartKind } from './when'
 import type { SessionType } from '@/types/database'
 
 type State = { loadedFor: string | null; session: LocalSession | null }
@@ -56,10 +57,24 @@ export function getActiveSession() {
   return state.session
 }
 
-export async function startNewSession(userId: string, sessionType: SessionType = 'strength') {
+// Cuándo empieza: ahora (por defecto), hace un rato hoy (en directo con esa hora de inicio) o
+// antes (modo «entreno pasado»). Ver startKind en ./when.
+export type SessionStart = StartKind
+
+export function applyStart(session: LocalSession, start: SessionStart | undefined): LocalSession {
+  if (!start || start.kind === 'now') return session
+  if (start.kind === 'past') return asPastSession(session, start.startedAt)
+  return { ...session, startedAt: new Date(start.startedAt).toISOString() }
+}
+
+export async function startNewSession(
+  userId: string,
+  sessionType: SessionType = 'strength',
+  start?: SessionStart,
+) {
   await loadActiveSession(userId)
   if (state.session) return state.session
-  const session = createSessionOfType(userId, sessionType, Date.now())
+  const session = applyStart(createSessionOfType(userId, sessionType, Date.now()), start)
   setState({ loadedFor: userId, session })
   await persist(async () => {
     await idbPut('kv', activeKey(userId), session.id)
@@ -79,6 +94,19 @@ export async function startPreparedSession(session: LocalSession) {
     await saveLocal(session, true)
   })
   return { session, started: true }
+}
+
+// «Registrar entreno pasado»: la sesión preparada (vacía, de una plantilla, de «Repetir» o del
+// plan) se abre sin temporizadores ni cuenta en vivo, con la fecha y hora elegidas.
+export function asPastSession(session: LocalSession, startedAt: number): LocalSession {
+  return {
+    ...session,
+    mode: 'past',
+    startedAt: new Date(startedAt).toISOString(),
+    rest: null,
+    // Los bloques con temporizador no se cronometran: sus series se apuntan a mano.
+    blocks: session.blocks.map((b) => (b.timer ? { ...b, timer: null } : b)),
+  }
 }
 
 // Guarda una sesión ya terminada (p. ej. «Registrar actividad») sin pasar por la sesión en curso.
@@ -142,12 +170,18 @@ export async function editSession(session: LocalSession) {
 export async function saveEditedSession(details: SessionDetailsPatch) {
   const current = state.session
   if (!current) return null
+  const now = Date.now()
+  const { startedAt, ...rest } = details
+  const patched: LocalSession = { ...current, ...rest }
+  const retimed =
+    startedAt && startedAt !== current.startedAt
+      ? retimeSession(patched, startedAt, patched.durationMin, now)
+      : patched
   const saved: LocalSession = {
-    ...current,
-    ...details,
+    ...retimed,
     mode: 'live',
     rest: null,
-    rev: Math.max(current.rev + 1, Date.now()),
+    rev: Math.max(current.rev + 1, retimed.rev, now),
   }
   setState({ ...state, session: null })
   await persist(async () => {
@@ -167,6 +201,17 @@ export async function cancelEdit() {
     const pending = (await listOutbox(current.userId)).some((i) => i.sessionId === current.id)
     if (!pending) await idbDelete('sessions', current.id)
   })
+}
+
+// Cambia la fecha y hora de una sesión ya registrada (historial). Se guarda en el móvil y se
+// encola con la nueva fecha: el servidor rehace récords y la planificada enlazada sigue igual.
+export async function rescheduleSession(session: LocalSession, startedAt: string) {
+  const moved: LocalSession = {
+    ...retimeSession({ ...session, mode: 'edit' }, startedAt, session.durationMin, Date.now()),
+    mode: 'live',
+  }
+  await persist(() => saveLocal(moved, true))
+  return moved
 }
 
 export async function deleteSession(sessionId: string, userId: string) {

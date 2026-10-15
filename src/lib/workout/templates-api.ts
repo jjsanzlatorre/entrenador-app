@@ -7,7 +7,12 @@ import { getSupabaseBrowserClient } from '@/lib/supabase/client'
 import { idbGet, idbPut } from '@/lib/offline/idb'
 import { notifyError, notifySaved, notifyWarning } from '@/lib/notify'
 import type { Json, SessionType, WorkoutTemplateRow } from '@/types/database'
-import { getLocalSession, startPreparedSession } from './active-session'
+import {
+  applyStart,
+  getLocalSession,
+  startPreparedSession,
+  type SessionStart,
+} from './active-session'
 import {
   fetchSession,
   getExerciseHistory,
@@ -212,17 +217,19 @@ export function useStartFromStructure(userId: string) {
       sessionType: SessionType
       activityTypeId?: string | null
       templateId?: string
+      start?: SessionStart
     },
   ) {
     setBusy(true)
     try {
-      const session = await prepareFromStructure(structure, {
+      const prepared = await prepareFromStructure(structure, {
         userId,
         catalog: catalog.byId,
         title: meta.title,
         sessionType: meta.sessionType,
         activityTypeId: meta.activityTypeId ?? null,
       })
+      const session = applyStart(prepared, meta.start)
       if (session.blocks.length === 0) {
         notifyWarning('Sus ejercicios ya no están en tu biblioteca')
         return
@@ -240,7 +247,7 @@ export function useStartFromStructure(userId: string) {
   }
 
   // «Repetir»: la misma estructura que una sesión pasada (por id o ya cargada).
-  async function repeat(source: string | LocalSession) {
+  async function repeat(source: string | LocalSession, when?: SessionStart) {
     setBusy(true)
     let session: LocalSession | null
     try {
@@ -260,6 +267,7 @@ export function useStartFromStructure(userId: string) {
       title: session.title || 'Entreno',
       sessionType: session.sessionType,
       activityTypeId: session.activityTypeId ?? null,
+      start: when,
     })
   }
 

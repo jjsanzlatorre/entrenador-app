@@ -154,6 +154,7 @@ export function SessionMilestonePopup({
         sessionId,
         localDateKey(startedAt),
         ctx!,
+        localDateKey(new Date()),
       )
       const { best, keys } = pickMilestone(candidates, new Set(shown.data!.items.map((i) => i.key)))
       if (keys.length > 0) {

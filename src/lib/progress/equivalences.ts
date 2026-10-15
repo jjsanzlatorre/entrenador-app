@@ -10,7 +10,7 @@ import {
   type Period,
   type PeriodKind,
 } from './accumulated'
-import type { DateKey } from './dates'
+import { formatDayMonth, formatMonth, type DateKey } from './dates'
 import type { SessionLogEntry } from './types'
 
 export type EquivalenceObject = {
@@ -321,9 +321,16 @@ export function equivalenceFor(
   }
 }
 
-// «Este mes has levantado el peso de un tractor»
-export function withPeriod(kind: PeriodKind, phrase: string) {
-  return `${PERIOD_PREFIX[kind]} ${phrase.charAt(0).toLowerCase()}${phrase.slice(1)}`
+// «Este mes has levantado el peso de un tractor». Con `today`, un periodo que ya pasó (sesión
+// registrada a posteriori) se nombra: «La semana del 5 oct…», «En septiembre…».
+export function withPeriod(kind: PeriodKind, phrase: string, period?: Period, today?: DateKey) {
+  let prefix = PERIOD_PREFIX[kind]
+  if (period?.from && period.to && today && kind !== 'total' && today > period.to) {
+    if (kind === 'week') prefix = `La semana del ${formatDayMonth(period.from)}`
+    else if (kind === 'month') prefix = `En ${formatMonth(period.from).replace(/ de \d{4}$/, '')}`
+    else prefix = `En ${period.from.slice(0, 4)}`
+  }
+  return `${prefix} ${phrase.charAt(0).toLowerCase()}${phrase.slice(1)}`
 }
 
 // ── Hitos (pop-up de fin de sesión) ─────────────────────────
@@ -379,11 +386,14 @@ export type MilestoneCandidate = {
 }
 
 // Hitos que cruza una sesión: peldaños superados con ella que no lo estaban sin ella.
+// Con una sesión de fecha pasada se mira el periodo de esa fecha: solo sale si el hito es nuevo
+// (no lo habían cruzado ya las demás sesiones del periodo) y la clave no se ha enseñado.
 export function crossedMilestones(
   sessions: SessionLogEntry[],
   sessionId: string,
   day: DateKey,
   ctx: EquivalenceContext,
+  today?: DateKey,
 ): MilestoneCandidate[] {
   const before = sessions.filter((s) => s.id !== sessionId)
   if (before.length === sessions.length) return []
@@ -406,7 +416,7 @@ export function crossedMilestones(
         period,
         step: now,
         value: vAfter,
-        phrase: withPeriod(kind, stepPhrase(metric, now, vAfter, ctx.home)),
+        phrase: withPeriod(kind, stepPhrase(metric, now, vAfter, ctx.home), period, today),
         valueLabel: formatMetricValue(metric, vAfter),
         score: PERIOD_SCORE[kind] + METRIC_SCORE[metric] + now.value / (now.value + 1e9),
       })

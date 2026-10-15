@@ -1,7 +1,7 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { createFileRoute, Link, useNavigate } from '@tanstack/react-router'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { CloudUpload, Pencil, RotateCcw, Trash2 } from 'lucide-react'
+import { CalendarClock, CloudUpload, Pencil, RotateCcw, Trash2 } from 'lucide-react'
 import { z } from 'zod'
 import { Button } from '@/components/ui/button'
 import { PairComparison } from '@/components/partners/pair'
@@ -14,10 +14,20 @@ import { useActiveSession } from '@/lib/workout/active-session'
 import { isRepeatable } from '@/lib/workout/templates'
 import { useStartFromStructure } from '@/lib/workout/templates-api'
 import { listOutbox } from '@/lib/offline/outbox'
-import { deleteSession, editSession, getLocalSession } from '@/lib/workout/active-session'
+import {
+  deleteSession,
+  editSession,
+  getLocalSession,
+  rescheduleSession,
+} from '@/lib/workout/active-session'
+import { Sheet } from '@/components/ui/sheet'
+import { WhenField } from '@/components/workout/when-field'
+import { whenFromInstant, whenProblem, whenToMs } from '@/lib/workout/when'
+import { sessionLogKey } from '@/lib/progress/hooks'
+import type { LocalSession } from '@/lib/workout/types'
 import { fetchPreviousPerformance, fetchSession, isOnline } from '@/lib/workout/api'
 import { formatDateLong, formatTime } from '@/lib/workout/format'
-import { historyQueryKey, useCatalog } from '@/lib/workout/hooks'
+import { historyQueryKey, useCatalog, useNow } from '@/lib/workout/hooks'
 import { totalDistanceM } from '@/lib/workout/session-ops'
 import { CARDIO_TYPES, sessionTypeEmoji, sessionTypeLabel } from '@/lib/workout/session-kinds'
 import { fetchSessionRecords } from '@/lib/progress/api'
@@ -213,6 +223,23 @@ function SessionDetailPage() {
           />
         </div>
       )}
+      {session.endedAt && (
+        <ChangeDateButton
+          session={session}
+          onMoved={async (moved) => {
+            queryClient.setQueryData(['session', moved.id], { session: moved, pending: true })
+            for (const key of [
+              historyQueryKey(auth.userId),
+              sessionLogKey(auth.userId),
+              ['exercise-set-counts'],
+              ['weekly-review'],
+              ['active-plan'],
+              ['previous', moved.id],
+            ])
+              void queryClient.invalidateQueries({ queryKey: key })
+          }}
+        />
+      )}
       <div className="grid grid-cols-2 gap-2">
         <Button variant="outline" size="lg" onClick={() => void handleEdit()}>
           <Pencil /> Editar
@@ -232,5 +259,77 @@ function SessionDetailPage() {
         </Button>
       ) : null}
     </div>
+  )
+}
+
+// «Cambiar fecha»: mueve la sesión a otro día u hora (sin fechas futuras). Se guarda en el móvil
+// y se sube con la nueva fecha; récords, cumplimiento, mapa, carga y logros se recalculan.
+function ChangeDateButton({
+  session,
+  onMoved,
+}: {
+  session: LocalSession
+  onMoved: (moved: LocalSession) => Promise<void>
+}) {
+  const [open, setOpen] = useState(false)
+  const [when, setWhen] = useState(() => whenFromInstant(session.startedAt))
+  const [saving, setSaving] = useState(false)
+  const initial = whenFromInstant(session.startedAt)
+  const unchanged = when.date === initial.date && when.time === initial.time
+  const now = useNow(30_000)
+  const invalid = Boolean(whenProblem(when, now))
+
+  async function save() {
+    const ms = whenToMs(when)
+    if (ms === null || invalid) return
+    setSaving(true)
+    try {
+      const moved = await rescheduleSession(session, new Date(ms).toISOString())
+      await onMoved(moved)
+      notifySaved('Fecha cambiada')
+      setOpen(false)
+    } catch (error) {
+      notifyError(error, 'cambiar la fecha')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <>
+      <Button
+        variant="outline"
+        size="lg"
+        onClick={() => {
+          setWhen(whenFromInstant(session.startedAt))
+          setOpen(true)
+        }}
+      >
+        <CalendarClock /> Cambiar fecha
+      </Button>
+      <Sheet
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Cambiar fecha y hora"
+        footer={
+          <Button
+            size="lg"
+            className="h-14 w-full text-lg"
+            disabled={saving || invalid || unchanged}
+            onClick={() => void save()}
+          >
+            {saving ? 'Guardando…' : 'Guardar fecha'}
+          </Button>
+        }
+      >
+        <div className="flex flex-col gap-3 pb-2">
+          <WhenField id="change-when" label="¿Cuándo empezó?" value={when} onChange={setWhen} />
+          <p className="text-muted-foreground text-sm">
+            Se recalculan los récords, el cumplimiento de las semanas afectadas, la carga y los
+            logros. La duración no cambia.
+          </p>
+        </div>
+      </Sheet>
+    </>
   )
 }

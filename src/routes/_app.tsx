@@ -60,13 +60,16 @@ function AppLayout() {
     window.addEventListener('online', onOnline)
     const unsubscribe = onSessionsSynced((ids) => {
       void queryClient.invalidateQueries({ queryKey: historyQueryKey(userId) })
-      // Récords y cumplimiento dependen de las sesiones del servidor.
+      // Récords y cumplimiento dependen de las sesiones del servidor; la revisión semanal puede
+      // quedar desactualizada si la sesión es (o se ha movido a) una semana ya revisada.
       for (const key of [
         'session-log',
         'records',
         'exercise-samples',
         'session-prs',
         'active-plan',
+        'exercise-set-counts',
+        'weekly-review',
       ]) {
         void queryClient.invalidateQueries({ queryKey: [key] })
       }

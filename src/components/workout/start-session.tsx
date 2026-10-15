@@ -1,49 +1,93 @@
 import { useState } from 'react'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { Dumbbell, Users, Zap } from 'lucide-react'
+import { Dumbbell, History, Users, Zap } from 'lucide-react'
 import { PartnerPickerSheet, useAcceptedPartners, usePairStart } from '@/components/partners/pair'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { quickActivityOptions } from '@/lib/activities/catalog'
 import { useActivityTypes } from '@/lib/activities/hooks'
 import type { PartnerLink } from '@/lib/progress/api'
-import { startNewSession } from '@/lib/workout/active-session'
+import { startNewSession, type SessionStart } from '@/lib/workout/active-session'
+import { localDateKey, addDays } from '@/lib/progress/dates'
+import {
+  defaultTime,
+  startHint,
+  startKind,
+  whenFromInstant,
+  whenProblem,
+  whenToMs,
+  type WhenValue,
+} from '@/lib/workout/when'
+import { WhenField } from './when-field'
+import { useNow } from '@/lib/workout/hooks'
 import { START_OPTIONS, sessionTypeEmoji } from '@/lib/workout/session-kinds'
 import { QuickStartOptions } from './templates'
 import type { SessionType } from '@/types/database'
 
 // Botones de inicio: «Empezar entreno» (elige tipo), «Registrar actividad» y, si hay personas
-// vinculadas, «Entrenar con…» (entreno en pareja, §7).
+// vinculadas, «Entrenar con…» (entreno en pareja, §7). Con `showPast`, también «Registrar
+// entreno pasado» (sin temporizadores, con la fecha elegida).
 export function StartSessionButtons({
   userId,
   label = 'Empezar entreno',
+  showPast = false,
 }: {
   userId: string
   label?: string
+  showPast?: boolean
 }) {
   const navigate = useNavigate()
   const [choosing, setChoosing] = useState(false)
+  // «Registrar entreno pasado»: la misma hoja, con la fecha de ayer por defecto.
+  const [past, setPast] = useState(false)
+  const [when, setWhen] = useState<WhenValue>(() => whenFromInstant(Date.now()))
+  const nowMs = useNow(30_000)
   const partners = useAcceptedPartners(userId)
   const pair = usePairStart(userId)
   const [picking, setPicking] = useState(false)
   const [partner, setPartner] = useState<PartnerLink | null>(null)
   useActivityTypes(userId)
 
+  // Fecha y hora elegidas → cómo empieza (null si no valen: futuro o incompleta).
+  function chosenStart(now: number): SessionStart | null {
+    if (whenProblem(when, now)) return null
+    const ms = whenToMs(when)!
+    const kind = startKind(ms, now)
+    return past ? { kind: 'past', startedAt: ms } : kind
+  }
+
+  function openSheet(asPast: boolean) {
+    const now = Date.now()
+    setPast(asPast)
+    setWhen(
+      asPast
+        ? { date: addDays(localDateKey(now), -1), time: defaultTime(now) }
+        : whenFromInstant(now),
+    )
+    setChoosing(true)
+  }
+
   async function start(type: SessionType) {
-    setChoosing(false)
     if (partner) {
+      setChoosing(false)
       await pair.startFree(type, partner)
       setPartner(null)
       return
     }
-    await startNewSession(userId, type)
+    const at = chosenStart(nowMs)
+    if (!at) return
+    setChoosing(false)
+    await startNewSession(userId, type, at)
     await navigate({ to: '/entrenar/sesion' })
   }
+
+  const current = chosenStart(nowMs)
+  const hint = current && !past ? startHint(current, nowMs) : null
 
   return (
     <>
       <div className="grid grid-cols-[1fr_auto] gap-2">
-        <Button size="lg" className="h-16 text-lg" onClick={() => setChoosing(true)}>
+        <Button size="lg" className="h-16 text-lg" onClick={() => openSheet(false)}>
           <Dumbbell className="size-6" /> {label}
         </Button>
         <Button asChild size="lg" variant="outline" className="h-16 px-4">
@@ -63,6 +107,11 @@ export function StartSessionButtons({
           <Users /> Entrenar con…
         </Button>
       )}
+      {showPast && (
+        <Button variant="outline" size="lg" onClick={() => openSheet(true)} className="-mt-1">
+          <History /> Registrar entreno pasado
+        </Button>
+      )}
       <PartnerPickerSheet
         open={picking}
         partners={partners}
@@ -70,7 +119,7 @@ export function StartSessionButtons({
         onPick={(p) => {
           setPicking(false)
           setPartner(p)
-          setChoosing(true)
+          openSheet(false)
         }}
       />
       <Sheet
@@ -79,16 +128,45 @@ export function StartSessionButtons({
           setChoosing(false)
           setPartner(null)
         }}
-        title={partner ? `¿Qué entrenáis ${partner.displayName} y tú?` : '¿Qué vas a entrenar?'}
+        title={
+          partner
+            ? `¿Qué entrenáis ${partner.displayName} y tú?`
+            : past
+              ? 'Registrar entreno pasado'
+              : '¿Qué vas a entrenar?'
+        }
       >
-        {!partner && <QuickStartOptions userId={userId} onStarted={() => setChoosing(false)} />}
+        {!partner && (
+          <div className="pb-4">
+            <WhenField
+              label={past ? '¿Cuándo lo hiciste?' : '¿Cuándo?'}
+              value={when}
+              onChange={setWhen}
+              now={nowMs}
+              hint={
+                past
+                  ? 'Apuntas ejercicios, series, pesos y duración, sin temporizadores ni cuenta en vivo.'
+                  : hint
+              }
+            />
+          </div>
+        )}
+        {!partner && (
+          <QuickStartOptions
+            userId={userId}
+            onStarted={() => setChoosing(false)}
+            start={() => chosenStart(nowMs)}
+            past={past}
+          />
+        )}
         <div className="grid grid-cols-2 gap-2 pb-2">
           {START_OPTIONS.map((o) => (
             <button
               key={o.sessionType}
               type="button"
+              disabled={!partner && !current}
               onClick={() => void start(o.sessionType)}
-              className="bg-secondary flex h-24 flex-col items-center justify-center gap-1 rounded-2xl text-lg font-bold active:scale-95"
+              className="bg-secondary flex h-24 flex-col items-center justify-center gap-1 rounded-2xl text-lg font-bold active:scale-95 disabled:opacity-50"
             >
               <span className="text-3xl" aria-hidden>
                 {sessionTypeEmoji(o.sessionType)}
@@ -125,7 +203,11 @@ export function StartSessionButtons({
         ) : null}
         <p className="text-muted-foreground pb-2 text-center text-sm">
           ¿Deporte, clase o yoga?{' '}
-          <Link to="/entrenar/actividad" className="text-primary underline">
+          <Link
+            to="/entrenar/actividad"
+            search={past && current?.kind !== 'now' && current ? { desde: current.startedAt } : {}}
+            className="text-primary underline"
+          >
             Registrar actividad
           </Link>
         </p>

@@ -14,6 +14,7 @@ import { unlockAudio } from '@/lib/workout/alerts'
 import { getExerciseHistory, getLastPerformance } from '@/lib/workout/api'
 import { elapsedMinutes, sessionStats } from '@/lib/workout/calc'
 import { formatClock } from '@/lib/workout/format'
+import { formatWhen } from '@/lib/workout/when'
 import {
   useCatalog,
   useEquipment,
@@ -47,6 +48,8 @@ const LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
 export function SessionScreen({ session }: { session: LocalSession }) {
   const navigate = useNavigate()
   const live = session.mode === 'live'
+  // «Registrar entreno pasado»: sin temporizadores ni cuenta en vivo; se guarda como nueva.
+  const past = session.mode === 'past'
   const catalog = useCatalog(session.userId)
   const equipment = useEquipment(session.userId)
   const exerciseIds = useMemo(
@@ -149,14 +152,16 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       updateActiveSession((s) => ops.removeExercise(s, blockId, exerciseId, Date.now())),
     onRevertSuggestion: (blockId, exerciseId) =>
       updateActiveSession((s) => ops.revertWeightSuggestion(s, blockId, exerciseId, Date.now())),
-    onCompleteHold: (setId, durationS) => {
-      unlockAudio()
-      updateActiveSession((s) => {
-        const t = Date.now()
-        return ops.toggleSetComplete(ops.updateSet(s, setId, { durationS }, t), setId, t)
-      })
-      setManualSelection(null)
-    },
+    onCompleteHold: past
+      ? undefined
+      : (setId, durationS) => {
+          unlockAudio()
+          updateActiveSession((s) => {
+            const t = Date.now()
+            return ops.toggleSetComplete(ops.updateSet(s, setId, { durationS }, t), setId, t)
+          })
+          setManualSelection(null)
+        },
   }
 
   // Mantener pulsado el nombre de un ejercicio y soltarlo sobre otro bloque: superserie.
@@ -234,12 +239,13 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   async function handleSave(details: ops.SessionDetailsPatch) {
     setSaving(true)
     try {
-      const saved = live ? await finishActiveSession(details) : await saveEditedSession(details)
+      const saved =
+        live || past ? await finishActiveSession(details) : await saveEditedSession(details)
       if (saved) {
         await navigate({
           to: '/entrenar/historial/$sessionId',
           params: { sessionId: saved.id },
-          search: { nueva: live ? 1 : undefined },
+          search: { nueva: live || past ? 1 : undefined },
           replace: true,
         })
       }
@@ -249,7 +255,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   }
 
   async function handleDiscard() {
-    if (live) {
+    if (live || past) {
       if (!confirm('¿Descartar la sesión? Se borrarán todas sus series.')) return
       await discardActiveSession()
       await navigate({ to: '/entrenar', replace: true })
@@ -294,6 +300,10 @@ export function SessionScreen({ session }: { session: LocalSession }) {
             <div className="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs">
               {live ? (
                 <span className="font-semibold tabular-nums">{formatClock(elapsedS)}</span>
+              ) : past ? (
+                <span className="font-semibold" data-testid="past-badge">
+                  Entreno pasado · {formatWhen(new Date(session.startedAt).getTime(), now)}
+                </span>
               ) : (
                 <span className="text-muted-foreground">Editando</span>
               )}
@@ -315,6 +325,12 @@ export function SessionScreen({ session }: { session: LocalSession }) {
           <p className="text-destructive rounded-lg border p-3 text-sm">{catalog.error.message}</p>
         )}
 
+        {past && (
+          <p className="text-muted-foreground rounded-xl border p-3 text-sm">
+            Apunta lo que hiciste: ejercicios, series y pesos. Marca ✓ las series hechas (o «Marcar
+            todas como hechas» al guardar) y pon la duración al final.
+          </p>
+        )}
         {live && session.blocks.some((b) => !timed.isTimedBlock(b)) && (
           <Tip id="session-sets" title="Registrar series rápido">
             ✓ o desliza la serie a la derecha para completarla (la siguiente se rellena con los
@@ -382,7 +398,7 @@ export function SessionScreen({ session }: { session: LocalSession }) {
         </div>
 
         <Button variant="ghost" className="text-destructive mt-6" onClick={handleDiscard}>
-          <Trash2 /> {live ? 'Descartar sesión' : 'Cancelar edición'}
+          <Trash2 /> {live || past ? 'Descartar sesión' : 'Cancelar edición'}
         </Button>
         {live && (
           <p className="text-muted-foreground px-2 text-center text-xs">
@@ -453,11 +469,12 @@ export function SessionScreen({ session }: { session: LocalSession }) {
         <FinishSheet
           open
           session={session}
-          elapsedMin={session.durationMin ?? elapsedMinutes(session.startedAt, now)}
+          elapsedMin={session.durationMin ?? (past ? null : elapsedMinutes(session.startedAt, now))}
           pendingSets={pendingSets}
           saving={saving}
           onClose={() => setFinishing(false)}
           onSave={(details) => void handleSave(details)}
+          onCompleteAll={() => updateActiveSession((s) => ops.completeFilledSets(s, Date.now()))}
         />
       )}
     </div>

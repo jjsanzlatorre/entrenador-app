@@ -9,6 +9,9 @@ import { parseCount, parseDuration } from '@/lib/input/quantity'
 import type { SessionDetailsPatch } from '@/lib/workout/session-ops'
 import type { LocalSession } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
+import { whenFromInstant, whenProblem, whenToMs } from '@/lib/workout/when'
+import { WhenField } from './when-field'
+import { useNow } from '@/lib/workout/hooks'
 
 const RPE_HINTS: Record<number, string> = {
   1: 'Muy suave',
@@ -33,18 +36,34 @@ export function FinishSheet({
   saving,
   onClose,
   onSave,
+  onCompleteAll,
 }: {
   open: boolean
   session: LocalSession
-  elapsedMin: number
+  elapsedMin: number | null
   pendingSets: number
   saving: boolean
   onClose: () => void
   onSave: (details: SessionDetailsPatch) => void
+  // «Entreno pasado»: marcar como hechas las series pendientes que tienen datos.
+  onCompleteAll?: () => void
 }) {
   const editing = session.mode === 'edit'
+  const past = session.mode === 'past'
   const [rpe, setRpe] = useState<number | null>(session.rpe)
-  const [duration, setDuration] = useState(String(session.durationMin ?? elapsedMin))
+  const [duration, setDuration] = useState(
+    session.durationMin !== null
+      ? String(session.durationMin)
+      : elapsedMin !== null
+        ? String(elapsedMin)
+        : '',
+  )
+  // Fecha y hora de inicio (por defecto, la de la sesión). En directo solo se guarda si cambia.
+  const initialWhen = whenFromInstant(session.startedAt)
+  const [when, setWhen] = useState(initialWhen)
+  const whenChanged = when.date !== initialWhen.date || when.time !== initialWhen.time
+  const now = useNow(30_000)
+  const whenInvalid = Boolean(whenProblem(when, now))
   const [avgHr, setAvgHr] = useState(session.avgHr?.toString() ?? '')
   const [maxHr, setMaxHr] = useState(session.maxHr?.toString() ?? '')
   const [calories, setCalories] = useState(session.calories?.toString() ?? '')
@@ -55,13 +74,17 @@ export function FinishSheet({
 
   const durationS = parseDuration(duration, 'min')
   const durationMin = durationS === null ? null : Math.round(durationS / 60)
-  const canSave = rpe !== null && durationMin !== null && !saving
+  const canSave = rpe !== null && durationMin !== null && !saving && !whenInvalid
+  const startedAt =
+    past || whenChanged
+      ? new Date(whenToMs(when) ?? Date.parse(session.startedAt)).toISOString()
+      : undefined
 
   return (
     <Sheet
       open={open}
       onClose={onClose}
-      title={editing ? 'Guardar cambios' : 'Terminar sesión'}
+      title={editing ? 'Guardar cambios' : past ? 'Guardar entreno' : 'Terminar sesión'}
       footer={
         <Button
           size="lg"
@@ -75,6 +98,7 @@ export function FinishSheet({
               maxHr: parseCount(maxHr),
               calories: parseCount(calories),
               notes: notes.trim() || null,
+              ...(startedAt ? { startedAt } : {}),
             })
           }
         >
@@ -84,11 +108,30 @@ export function FinishSheet({
     >
       <div className="flex flex-col gap-5">
         {pendingSets > 0 && !editing && (
-          <p className="rounded-lg bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
-            Tienes {pendingSets} {pendingSets === 1 ? 'serie sin marcar' : 'series sin marcar'}: se
-            guardarán pero no cuentan como hechas.
-          </p>
+          <div className="flex flex-col gap-2 rounded-lg bg-amber-500/10 p-3 text-sm text-amber-800 dark:text-amber-300">
+            <p>
+              Tienes {pendingSets} {pendingSets === 1 ? 'serie sin marcar' : 'series sin marcar'}:
+              se guardarán pero no cuentan como hechas.
+            </p>
+            {past && onCompleteAll && (
+              <Button variant="outline" size="sm" className="self-start" onClick={onCompleteAll}>
+                Marcar todas como hechas
+              </Button>
+            )}
+          </div>
         )}
+
+        <WhenField
+          id="finish-when"
+          label={past || editing ? '¿Cuándo empezó?' : 'Empezó'}
+          value={when}
+          onChange={setWhen}
+          hint={
+            !past && !editing && whenChanged
+              ? 'Se guardará con esta fecha y hora (fin = inicio + duración).'
+              : null
+          }
+        />
 
         <fieldset className="flex flex-col gap-2">
           <legend className="mb-2 text-sm font-medium">¿Cómo de dura ha sido? (RPE)</legend>

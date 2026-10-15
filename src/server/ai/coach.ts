@@ -329,6 +329,8 @@ export type StoredReview = {
   review: WeeklyReview
   responses: ChangeResponses
   createdAt: string
+  // 0045: se registró o cambió un entreno de esa semana después de generarla.
+  staleAt?: string | null
 }
 
 export interface ReviewStore {
@@ -348,6 +350,8 @@ export type WeeklyReviewResult = {
   createdAt: string
   // true = guardada (no ha gastado consulta).
   cached: boolean
+  // Desactualizada: cambiaron los entrenos de la semana revisada (se ofrece regenerarla).
+  staleAt: string | null
 }
 
 // Una revisión por semana (la anterior a la de hoy): si ya existe se devuelve la guardada sin
@@ -374,6 +378,7 @@ export async function weeklyReview(
         responses: stored.responses,
         createdAt: stored.createdAt,
         cached: true,
+        staleAt: stored.staleAt ?? null,
       }
     }
     if (!req.generate) return aiFailure('not_generated')
@@ -430,6 +435,7 @@ export async function weeklyReview(
     responses: {},
     createdAt: (req.now?.() ?? new Date()).toISOString(),
     cached: false,
+    staleAt: null,
   }
 }
 

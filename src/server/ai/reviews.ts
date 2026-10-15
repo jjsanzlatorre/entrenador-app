@@ -37,7 +37,7 @@ export function supabaseReviewStore(
     async latest(weekStart) {
       const { data, error } = await supabase
         .from('ai_interactions')
-        .select('id, output, responses, created_at')
+        .select('id, output, responses, created_at, stale_at')
         .eq('user_id', userId)
         .eq('kind', 'weekly_review')
         .eq('status', 'ok')
@@ -53,6 +53,7 @@ export function supabaseReviewStore(
         review,
         responses: parseResponses(data.responses),
         createdAt: data.created_at,
+        staleAt: data.stale_at ?? null,
       }
     },
   }

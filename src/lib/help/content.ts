@@ -32,6 +32,17 @@ export const HELP_SECTIONS: { id: string; emoji: string; title: string; points: 
     ],
   },
   {
+    id: 'past',
+    emoji: '🗓️',
+    title: 'Entrenos que olvidaste apuntar',
+    points: [
+      'Entrenar → «Registrar entreno pasado»: elige el día («Ayer», «Anteayer» o el calendario) y la hora, y apunta ejercicios, series, pesos y duración, sin temporizadores. Puede partir de una plantilla o de «Repetir…».',
+      'En Plan o en «Hoy», una sesión de un día pasado sin hacer tiene «Registrar como hecha»: se abre con lo que tocaba y queda enlazada al plan.',
+      'Al empezar un entreno o al terminarlo también puedes cambiar el día y la hora; en el historial, «Cambiar fecha».',
+      'Récords, cumplimiento, rachas, mapa muscular, carga y logros se recalculan con la fecha real. Nunca se aceptan fechas futuras.',
+    ],
+  },
+  {
     id: 'activity',
     emoji: '⚡',
     title: 'Actividades y cardio',
@@ -47,7 +58,7 @@ export const HELP_SECTIONS: { id: string; emoji: string; title: string; points: 
     title: 'Plan',
     points: [
       'Elige una plantilla o pídeselo al entrenador IA; se reparte en tus días.',
-      'Toca una sesión para empezarla, moverla o saltarla. Mantén pulsada y arrástrala a otro día.',
+      'Toca una sesión para empezarla, moverla o saltarla (si ya pasó su día, «Registrar como hecha»). Mantén pulsada y arrástrala a otro día.',
       '⋯ «Opciones del plan»: desplazar, pausar, repetir semana y deshacer el último cambio.',
     ],
   },

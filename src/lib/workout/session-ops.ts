@@ -1,5 +1,6 @@
 // Operaciones puras sobre la sesión local. Cada una devuelve una sesión nueva con `rev` actualizado.
 import type { WeightSuggestion } from './suggestion'
+import { retimeSession } from './when'
 import { finalizeTimedBlock, isTimedBlock, settleFinishedTimers } from './timed-blocks'
 import type {
   BlockExercise,
@@ -575,7 +576,15 @@ export function clearRest(session: LocalSession): LocalSession {
 export type SessionDetailsPatch = Partial<
   Pick<
     LocalSession,
-    'title' | 'rpe' | 'durationMin' | 'avgHr' | 'maxHr' | 'calories' | 'notes' | 'location'
+    | 'title'
+    | 'rpe'
+    | 'durationMin'
+    | 'avgHr'
+    | 'maxHr'
+    | 'calories'
+    | 'notes'
+    | 'location'
+    | 'startedAt'
   >
 >
 
@@ -585,6 +594,28 @@ export function updateDetails(
   now: number,
 ): LocalSession {
   return bump({ ...session, ...patch }, now)
+}
+
+// «Entreno pasado»: marca como hechas las series pendientes que ya tienen algún dato (las
+// vacías se quedan pendientes). Sin descanso: no es en directo.
+export function completeFilledSets(session: LocalSession, now: number): LocalSession {
+  const at = new Date(now).toISOString()
+  let changed = false
+  const blocks = session.blocks.map((b) => ({
+    ...b,
+    sets: b.sets.map((s) => {
+      const filled =
+        s.weightKg !== null ||
+        s.reps !== null ||
+        s.durationS !== null ||
+        s.distanceM !== null ||
+        s.calories !== null
+      if (s.completed || !filled) return s
+      changed = true
+      return { ...s, completed: true, completedAt: at }
+    }),
+  }))
+  return changed ? bump({ ...session, blocks }, now) : session
 }
 
 // Distancia total de la sesión: suma de las series completadas con distancia.
@@ -611,10 +642,20 @@ export function finishSession(
       : b,
   )
   const closed = { ...settled, blocks }
-  return bump(
-    { ...closed, ...details, distanceM: totalDistanceM(closed), endedAt, rest: null },
+  const { startedAt, ...rest } = details
+  const finished = bump(
+    { ...closed, ...rest, distanceM: totalDistanceM(closed), endedAt, rest: null },
     now,
   )
+  // Entreno pasado o fecha cambiada al terminar: fin = inicio + duración y series dentro.
+  if (session.mode === 'past' || (startedAt && startedAt !== session.startedAt)) {
+    const base = session.mode === 'past' ? finished : { ...finished, mode: 'past' as const }
+    return {
+      ...retimeSession(base, startedAt ?? session.startedAt, finished.durationMin, now),
+      mode: 'live',
+    }
+  }
+  return finished
 }
 
 // Sugerencia de peso (§10): precarga el peso en las series de trabajo pendientes del ejercicio

@@ -942,6 +942,8 @@ export type Database = {
           responses: Json
           // 0033: resultado de las acciones del chat («plan», «adjust»); solo por RPC.
           action_results: Json
+          // 0045: revisión semanal desactualizada (cambió un entreno de su semana); por trigger.
+          stale_at: string | null
         }
         Insert: {
           id?: string
@@ -961,6 +963,7 @@ export type Database = {
           period?: string | null
           responses?: Json
           action_results?: Json
+          stale_at?: string | null
         }
         Update: {
           accepted?: boolean | null

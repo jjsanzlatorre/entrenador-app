@@ -20,6 +20,7 @@ import {
   useTemplates,
 } from '@/lib/workout/templates-api'
 import type { LocalSession } from '@/lib/workout/types'
+import type { SessionStart } from '@/lib/workout/active-session'
 
 // Última sesión terminada con ejercicios (las actividades rápidas no se repiten).
 export function useLastRepeatable(userId: string) {
@@ -27,15 +28,32 @@ export function useLastRepeatable(userId: string) {
   return history.data?.items.find((i) => i.endedAt && i.exerciseIds.length > 0) ?? null
 }
 
+// Últimas sesiones terminadas con ejercicios (para «Repetir…» en «Registrar entreno pasado»).
+function useRecentRepeatable(userId: string, limit: number) {
+  const history = useHistory(userId)
+  return (history.data?.items ?? [])
+    .filter((i) => i.endedAt && i.exerciseIds.length > 0)
+    .slice(0, limit)
+}
+
 // Bloque de «Empezar entreno»: repetir el último y las plantillas, antes de elegir tipo.
+// Con `past` («Registrar entreno pasado») se ofrecen las últimas sesiones para repetir.
+// `start` da la fecha y hora elegidas (null = no válidas: botones desactivados).
 export function QuickStartOptions({
   userId,
   onStarted,
+  start,
+  past = false,
 }: {
   userId: string
   onStarted?: () => void
+  start?: () => SessionStart | null
+  past?: boolean
 }) {
-  const last = useLastRepeatable(userId)
+  const lastOne = useLastRepeatable(userId)
+  const recent = useRecentRepeatable(userId, past ? 4 : 1)
+  const repeatables = past ? recent : lastOne ? [lastOne] : []
+  const last = repeatables[0] ?? null
   const templates = useTemplates(userId)
   const catalog = useCatalog(userId)
   const starter = useStartFromStructure(userId)
@@ -44,29 +62,36 @@ export function QuickStartOptions({
   const nameOf = (id: string) => catalog.byId.get(id)?.name ?? id
 
   if (!last && list.length === 0) return null
+  const when = () => (start ? start() : undefined)
+  const blocked = start ? start() === null : false
   return (
     <div className="flex flex-col gap-2 pb-3">
-      {last && (
+      {repeatables.map((item, i) => (
         <Button
+          key={item.id}
           size="lg"
           variant="secondary"
-          disabled={starter.busy}
+          disabled={starter.busy || blocked}
           className="h-auto justify-start py-3 text-left"
           onClick={() => {
+            const at = when()
+            if (at === null) return
             onStarted?.()
-            void starter.repeat(last.id)
+            void starter.repeat(item.id, at)
           }}
         >
           <RotateCcw className="size-5 shrink-0" />
           <span className="min-w-0 flex-1">
-            <span className="block font-semibold">Repetir último entreno</span>
+            <span className="block font-semibold">
+              {past ? `Repetir «${item.title}»` : i === 0 ? 'Repetir último entreno' : 'Repetir'}
+            </span>
             <span className="text-muted-foreground block truncate text-xs font-normal">
-              {sessionTypeEmoji(last.sessionType, last.activityTypeId)} {last.title} ·{' '}
-              {formatDateShort(last.startedAt)} · con los pesos sugeridos
+              {sessionTypeEmoji(item.sessionType, item.activityTypeId)} {item.title} ·{' '}
+              {formatDateShort(item.startedAt)} · con los pesos sugeridos
             </span>
           </span>
         </Button>
-      )}
+      ))}
       {list.length > 0 && (
         <section aria-label="Mis plantillas" className="flex flex-col gap-1.5">
           <h3 className="text-sm font-semibold">Mis plantillas</h3>
@@ -74,14 +99,17 @@ export function QuickStartOptions({
             <div key={t.id} className="bg-card flex items-center rounded-xl border">
               <button
                 type="button"
-                disabled={starter.busy}
+                disabled={starter.busy || blocked}
                 onClick={() => {
+                  const at = when()
+                  if (at === null) return
                   onStarted?.()
                   void starter.start(t.structure, {
                     title: t.name,
                     sessionType: t.sessionType,
                     activityTypeId: t.activityTypeId,
                     templateId: t.id,
+                    start: at,
                   })
                 }}
                 className="flex min-h-14 min-w-0 flex-1 flex-col items-start px-3 py-2 text-left"

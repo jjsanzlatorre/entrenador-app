@@ -3,7 +3,8 @@
 import { useState } from 'react'
 import { useNavigate } from '@tanstack/react-router'
 import { notifyError } from '@/lib/notify'
-import { startPreparedSession } from '@/lib/workout/active-session'
+import { asPastSession, startPreparedSession } from '@/lib/workout/active-session'
+import { whenToMs } from '@/lib/workout/when'
 import { getExerciseHistory, getLastPerformance } from '@/lib/workout/api'
 import { useCatalog } from '@/lib/workout/hooks'
 import type { Exercise, LastPerformance, LocalSession } from '@/lib/workout/types'
@@ -11,6 +12,12 @@ import type { PlannedSession } from './api'
 import { plannedToLocalSession } from './to-session'
 
 type Startable = Pick<PlannedSession, 'id' | 'sessionType' | 'title' | 'blocks'>
+
+// Hora por defecto de una planificada que se registra a posteriori: las 18:00 de ese día (sin
+// pasar de ahora). Se puede cambiar al guardar.
+export function pastStartFor(date: string, now = Date.now()) {
+  return Math.min(whenToMs({ date, time: '18:00' }) ?? now, now)
+}
 
 export async function preparePlannedSession(
   planned: Startable,
@@ -65,5 +72,23 @@ export function useStartPlanned(userId: string) {
     }
   }
 
-  return { start, busy }
+  // «Registrar como hecha» (planificada de un día pasado): modo «entreno pasado» con la
+  // estructura del plan, la fecha de ese día y enlazada a la planificada.
+  async function logPast(planned: Startable & { date: string }) {
+    setBusy(true)
+    try {
+      const prepared = await preparePlannedSession(planned, userId, catalog.byId)
+      const session = asPastSession(prepared, pastStartFor(planned.date))
+      const { started } = await startPreparedSession(session)
+      if (!started)
+        notifyError('ya tienes una sesión en curso; termínala o descártala antes', 'registrar')
+      await navigate({ to: '/entrenar/sesion' })
+    } catch (error) {
+      notifyError(error, 'registrar la sesión')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return { start, logPast, busy }
 }

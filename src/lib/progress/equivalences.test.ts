@@ -338,3 +338,43 @@ describe('hitos del pop-up', () => {
     expect(parseMilestoneKey('otra_cosa')).toBeNull()
   })
 })
+
+describe('hitos de una sesión registrada a posteriori', () => {
+  it('nombra el periodo pasado y solo sale si el hito es nuevo', () => {
+    // Semana del 5 oct: 4.900 kg el lunes; el miércoles (registrado el 15 oct) +300 kg.
+    const monday = session('strength', '2026-10-05T08:00:00', { tonnageKg: 4900 })
+    const wednesday = session('strength', '2026-10-07T18:00:00', { tonnageKg: 300 })
+    const candidates = crossedMilestones(
+      [monday, wednesday],
+      wednesday.id,
+      '2026-10-07',
+      ctx,
+      '2026-10-15',
+    )
+    const week = candidates.find((c) => c.period.kind === 'week')
+    expect(week?.key).toBe('tonnage_week_2026-10-05_tractor')
+    expect(week?.phrase).toBe('La semana del 5 oct has levantado el peso de un tractor')
+    // Mes en curso: sigue siendo «Este mes».
+    expect(candidates.find((c) => c.period.kind === 'month')?.phrase).toMatch(/^Este mes /)
+
+    // Si el resto de la semana ya lo había cruzado (sesión posterior), no hay hito nuevo.
+    const friday = session('strength', '2026-10-09T18:00:00', { tonnageKg: 200 })
+    const late = crossedMilestones(
+      [monday, wednesday, friday],
+      wednesday.id,
+      '2026-10-07',
+      ctx,
+      '2026-10-15',
+    )
+    expect(late.some((c) => c.key === 'tonnage_week_2026-10-05_tractor')).toBe(false)
+  })
+
+  it('withPeriod: periodos pasados por su nombre', () => {
+    const sept = periodFor('month', '2026-09-10')
+    expect(withPeriod('month', 'Has corrido', sept, '2026-10-02')).toBe('En septiembre has corrido')
+    expect(withPeriod('month', 'Has corrido', sept, '2026-09-30')).toBe('Este mes has corrido')
+    expect(withPeriod('total', 'Has corrido', periodFor('total', '2026-09-10'), '2026-10-02')).toBe(
+      'En total has corrido',
+    )
+  })
+})

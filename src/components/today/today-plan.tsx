@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link } from '@tanstack/react-router'
 import { useQueryClient } from '@tanstack/react-query'
-import { CalendarDays, Check, MoveRight, Play, SkipForward } from 'lucide-react'
+import { CalendarDays, Check, History, MoveRight, Play, SkipForward } from 'lucide-react'
 import { AdjustedNotice, AiAdjust } from '@/components/ai/ai-adjust'
 import { PlannedPairButton } from '@/components/partners/pair'
 import { MoveSheet } from '@/components/plan/move-sheet'
@@ -14,7 +14,13 @@ import { INTENSITY_LABELS } from '@/lib/plan/describe'
 import { refreshPlan, useActivePlan, useTrainingProfile } from '@/lib/plan/hooks'
 import { WEEKDAY_LONG } from '@/lib/plan/profile'
 import { useStartPlanned } from '@/lib/plan/start'
-import { formatDayMonth, isoWeekday, weekStartOf, type DateKey } from '@/lib/progress/dates'
+import {
+  addDays,
+  formatDayMonth,
+  isoWeekday,
+  weekStartOf,
+  type DateKey,
+} from '@/lib/progress/dates'
 import { useSessionLog } from '@/lib/progress/hooks'
 import { useCatalog } from '@/lib/workout/hooks'
 import { sessionTypeEmoji } from '@/lib/workout/session-kinds'
@@ -61,7 +67,19 @@ export function TodayPlan({
     training.data?.fixedActivities ?? [],
   )
   const todays = days.find((d) => d.date === today)?.planned ?? []
-  const overdue = overdueThisWeek(days, today)
+  // Pendientes de días pasados: las de esta semana y las de los 7 últimos días (el lunes se ven
+  // las del fin de semana), para hacerlas ahora o registrarlas como hechas.
+  const previousWeek = weekView(
+    plan.data.sessions,
+    log.data?.sessions ?? [],
+    addDays(weekStartOf(today), -7),
+    training.data?.fixedActivities ?? [],
+  )
+  const thisWeek = overdueThisWeek(days, today)
+  const overdue = [
+    ...overdueThisWeek(previousWeek, today).filter((p) => p.date >= addDays(today, -7)),
+    ...thisWeek,
+  ]
   const name = (id: string) => catalog.byId.get(id)?.name ?? id
 
   async function skip(p: PlannedView) {
@@ -162,8 +180,8 @@ export function TodayPlan({
         <div className="flex flex-col gap-2 rounded-xl border border-dashed p-3">
           <p className="text-sm font-semibold">
             {overdue.length === 1
-              ? 'Te quedó una sesión de esta semana'
-              : `Te quedaron ${overdue.length} sesiones de esta semana`}
+              ? `Te quedó una sesión ${thisWeek.length === 1 ? 'de esta semana' : 'sin hacer'}`
+              : `Te quedaron ${overdue.length} sesiones ${thisWeek.length === overdue.length ? 'de esta semana' : 'sin hacer'}`}
           </p>
           {overdue.map((p) => (
             <div key={p.id} className="flex flex-wrap items-center gap-2">
@@ -174,7 +192,12 @@ export function TodayPlan({
                   ({WEEKDAY_LONG[isoWeekday(p.date) - 1]} {formatDayMonth(p.date)})
                 </span>
               </span>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap gap-2">
+                {canStart && (
+                  <Button size="sm" disabled={starter.busy} onClick={() => void starter.logPast(p)}>
+                    <History /> Registrar como hecha
+                  </Button>
+                )}
                 {canStart && (
                   <Button
                     size="sm"

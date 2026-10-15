@@ -8,6 +8,7 @@ import {
   ChevronRight,
   CloudOff,
   GripVertical,
+  History,
   MessageCircle,
   MoreHorizontal,
   MoveRight,
@@ -396,6 +397,7 @@ function PlanPage() {
         userId={auth.userId}
         candidates={extraSameDay}
         sex={auth.profile.sex}
+        today={today}
         onMove={(id) => {
           setOpen(null)
           setMoving(id)
@@ -428,6 +430,7 @@ function PlannedSheet({
   userId,
   candidates,
   sex,
+  today,
   onMove,
   onClose,
 }: {
@@ -435,6 +438,7 @@ function PlannedSheet({
   userId: string
   candidates: SessionLogEntry[]
   sex: Sex | null
+  today: string
   onMove: (id: string) => void
   onClose: () => void
 }) {
@@ -463,6 +467,8 @@ function PlannedSheet({
   }
 
   const pending = planned?.effectiveStatus === 'planned' || planned?.effectiveStatus === 'moved'
+  // Día pasado sin hacer: «Registrar como hecha» (entreno pasado con la estructura del plan).
+  const overdue = pending && planned !== null && planned.date < today
 
   return (
     <Sheet
@@ -489,7 +495,17 @@ function PlannedSheet({
 
           {pending && (
             <div className="flex flex-col gap-2">
-              <Button size="lg" disabled={busy} onClick={() => void starter.start(planned)}>
+              {overdue && (
+                <Button size="lg" disabled={busy} onClick={() => void starter.logPast(planned)}>
+                  <History /> Registrar como hecha
+                </Button>
+              )}
+              <Button
+                size="lg"
+                variant={overdue ? 'outline' : 'default'}
+                disabled={busy}
+                onClick={() => void starter.start(planned)}
+              >
                 <Play /> Empezar ahora
               </Button>
               <PlannedPairButton userId={userId} planned={planned} disabled={busy} />

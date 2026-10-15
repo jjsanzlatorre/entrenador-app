@@ -93,7 +93,9 @@ export type RestTimer = {
 export type LocalSession = {
   id: string
   userId: string
-  mode: 'live' | 'edit'
+  // live: en directo · edit: editar una terminada · past: «registrar entreno pasado» (sin
+  // temporizadores ni cuenta en vivo; la fecha la elige el usuario).
+  mode: 'live' | 'edit' | 'past'
   sessionType: SessionType
   // Actividad personalizada (sessionType = 'custom'; 0031).
   activityTypeId?: string | null

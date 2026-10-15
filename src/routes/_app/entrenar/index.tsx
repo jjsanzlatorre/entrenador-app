@@ -50,17 +50,25 @@ function TrainPage() {
           <Play className="size-8 shrink-0" />
           <div className="min-w-0 flex-1">
             <p className="text-lg font-bold">
-              {session.mode === 'edit' ? 'Continuar edición' : 'Continuar sesión'}
+              {session.mode === 'edit'
+                ? 'Continuar edición'
+                : session.mode === 'past'
+                  ? 'Continuar entreno pasado'
+                  : 'Continuar sesión'}
             </p>
             <p className="truncate text-sm opacity-90">
               {session.title} · {stats?.completedSets ?? 0} series ·{' '}
-              {session.mode === 'live' ? `desde las ${formatTime(session.startedAt)}` : 'editando'}
+              {session.mode === 'live'
+                ? `desde las ${formatTime(session.startedAt)}`
+                : session.mode === 'past'
+                  ? formatDateShort(session.startedAt)
+                  : 'editando'}
             </p>
           </div>
           <ChevronRight className="size-6" />
         </Link>
       ) : (
-        <StartSessionButtons userId={userId} />
+        <StartSessionButtons userId={userId} showPast />
       )}
       <Tip id="train" title="Empieza en dos toques">
         «Empezar entreno» → «Repetir último entreno» o una plantilla. En el historial, «Repetir»

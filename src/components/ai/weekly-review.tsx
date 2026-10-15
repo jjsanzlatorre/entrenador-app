@@ -49,6 +49,7 @@ export function WeeklyReviewCard({ review }: { review: ReviewQuery }) {
       <div className="min-w-0 flex-1">
         <p className="text-primary text-xs font-medium uppercase">
           Revisión semanal · {formatWeekRange(res.review.weekStart)}
+          {res.staleAt ? ' · desactualizada' : ''}
         </p>
         <p className="font-semibold">{res.review.review.headline}</p>
         {pending > 0 && (
@@ -233,6 +234,28 @@ export function WeeklyReviewView({
       <p className="text-muted-foreground text-sm">
         Semana del {formatWeekRange(res.review.weekStart)}
       </p>
+      {res.staleAt && (
+        <div
+          role="status"
+          data-testid="review-stale"
+          className="bg-warning/10 flex flex-col gap-2 rounded-xl p-3 text-sm"
+        >
+          <p>
+            <span className="font-semibold">Desactualizada:</span> has registrado o cambiado
+            entrenos de esa semana después de esta revisión. Los datos de abajo son los de entonces.
+          </p>
+          {status.data?.configured && !confirming && (
+            <Button
+              variant="outline"
+              size="sm"
+              className="self-start"
+              onClick={() => setConfirming(true)}
+            >
+              <RefreshCw /> Regenerar con los datos nuevos
+            </Button>
+          )}
+        </div>
+      )}
       <ReviewFactsView facts={facts} />
 
       <section aria-label="Comentario del entrenador" className="flex flex-col gap-2">

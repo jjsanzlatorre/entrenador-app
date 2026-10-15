@@ -36,7 +36,8 @@ export type BlockActions = {
   onRemoveExercise: (blockId: string, exerciseId: string) => void
   onRevertSuggestion: (blockId: string, exerciseId: string) => void
   // Serie isométrica cronometrada: guarda el tiempo y la completa (arranca el descanso).
-  onCompleteHold: (setId: string, durationS: number) => void
+  // Sin él (entreno pasado) no hay cronómetro de serie isométrica.
+  onCompleteHold?: (setId: string, durationS: number) => void
   // Superseries (usabilidad 3/3): «Unir con el siguiente» y «Separar de la superserie».
   onMergeNext: (blockId: string) => void
   onSplit: (blockId: string, exerciseId: string) => void
@@ -197,8 +198,8 @@ export function BlockCard({
                     onToggleWarmup={() => actions.onToggleWarmup(set.id)}
                     onRemove={() => actions.onRemoveSet(set.id)}
                     onCompleteHold={
-                      exercise?.trackingType === 'time'
-                        ? (durationS) => actions.onCompleteHold(set.id, durationS)
+                      exercise?.trackingType === 'time' && actions.onCompleteHold
+                        ? (durationS) => actions.onCompleteHold?.(set.id, durationS)
                         : undefined
                     }
                   />

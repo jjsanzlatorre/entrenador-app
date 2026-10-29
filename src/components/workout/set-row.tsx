@@ -2,7 +2,8 @@ import { useEffect, useRef, useState } from 'react'
 import { useSwipe } from '@/lib/ui/use-swipe'
 import { Check, Minus, Play, Plus, Square, Trash2 } from 'lucide-react'
 import { stepQuantity } from '@/lib/input/quantity'
-import { countdownAlert, unlockAudio } from '@/lib/workout/alerts'
+import { countdownAlert, sideSwitchAlert, unlockAudio } from '@/lib/workout/alerts'
+import { holdView, pressHold, startHold, type Hold } from '@/lib/workout/hold'
 import type { FieldSpec } from '@/lib/workout/fields'
 import { formatClock, formatKg } from '@/lib/workout/format'
 import type { SetEntry } from '@/lib/workout/types'
@@ -15,13 +16,12 @@ function stepText(spec: FieldSpec) {
   return `${formatKg(spec.step)}${spec.field === 'durationS' ? ` ${spec.unit}` : ''}`
 }
 
-// Temporizador de una serie isométrica (plancha, dead hang, L-sit): con tiempo objetivo,
-// cuenta atrás; sin él, cronómetro. Basado en la hora de inicio, no en un contador.
-type Hold = { startedAt: number; targetS: number | null }
-
+// Temporizador de una serie isométrica (src/lib/workout/hold.ts): con tiempo objetivo, cuenta
+// atrás; sin él, cronómetro; «cada lado», los dos lados con aviso al cambiar.
 function useHoldClock(hold: Hold | null, onFinish: (seconds: number) => void) {
   const [now, setNow] = useState(() => Date.now())
-  const lastAlert = useRef<number | null>(null)
+  const lastAlert = useRef<string | null>(null)
+  const lastSide = useRef<1 | 2 | null>(null)
   const finish = useRef(onFinish)
   useEffect(() => {
     finish.current = onFinish
@@ -30,27 +30,34 @@ function useHoldClock(hold: Hold | null, onFinish: (seconds: number) => void) {
   useEffect(() => {
     if (!hold) return
     lastAlert.current = null
+    lastSide.current = holdView(hold, Date.now()).side
     let finished = false
     const id = window.setInterval(() => {
       const t = Date.now()
       setNow(t)
-      if (hold.targetS === null) return
-      const left = Math.ceil(hold.targetS - (t - hold.startedAt) / 1000)
-      if (left <= 3 && left !== lastAlert.current) {
-        lastAlert.current = left
-        countdownAlert(Math.max(0, left))
+      const view = holdView(hold, t)
+      // Cambio de lado automático (al acabar el tiempo del lado 1): aviso «Cambia de lado».
+      if (view.side !== lastSide.current) {
+        if (lastSide.current === 1 && view.side === 2 && hold.switchedAt === null) sideSwitchAlert()
+        lastSide.current = view.side
       }
-      if (left <= 0 && !finished) {
+      if (view.leftS !== null && view.leftS <= 3 && view.leftS >= 0) {
+        const key = `${view.side}:${view.leftS}`
+        // El 0 del lado 1 ya lo avisa el cambio de lado.
+        if (key !== lastAlert.current && !(view.side === 1 && view.leftS === 0)) {
+          lastAlert.current = key
+          countdownAlert(view.leftS)
+        }
+      }
+      if (view.done && view.resultS !== null && !finished) {
         finished = true
-        finish.current(hold.targetS)
+        finish.current(view.resultS)
       }
     }, 200)
     return () => window.clearInterval(id)
   }, [hold])
 
-  if (!hold) return null
-  const elapsed = Math.max(0, Math.floor((now - hold.startedAt) / 1000))
-  return hold.targetS === null ? elapsed : Math.max(0, hold.targetS - elapsed)
+  return hold ? holdView(hold, now) : null
 }
 
 export function SetRow({
@@ -64,6 +71,7 @@ export function SetRow({
   onToggleWarmup,
   onRemove,
   onCompleteHold,
+  perSide = false,
 }: {
   set: SetEntry
   specs: FieldSpec[]
@@ -76,6 +84,8 @@ export function SetRow({
   onRemove: () => void
   // Series por tiempo (isométricos): botón ▶ que cronometra y completa la serie.
   onCompleteHold?: (durationS: number) => void
+  // «Cada lado»: el cronómetro hace los dos lados (con aviso al cambiar).
+  perSide?: boolean
 }) {
   const [hold, setHold] = useState<Hold | null>(null)
   const holdEnabled = Boolean(onCompleteHold) && !set.completed
@@ -87,14 +97,18 @@ export function SetRow({
   function toggleHold() {
     unlockAudio()
     if (!hold) {
-      const target = set.durationS && set.durationS > 0 ? set.durationS : null
-      setHold({ startedAt: Date.now(), targetS: target })
+      setHold(startHold(Date.now(), set.durationS, perSide))
       onSelect()
       return
     }
-    const elapsed = Math.max(1, Math.round((Date.now() - hold.startedAt) / 1000))
+    const pressed = pressHold(hold, Date.now())
+    if (pressed.hold) {
+      sideSwitchAlert()
+      setHold(pressed.hold)
+      return
+    }
     setHold(null)
-    onCompleteHold?.(hold.targetS === null ? elapsed : Math.min(elapsed, hold.targetS))
+    if (pressed.resultS !== null) onCompleteHold?.(pressed.resultS)
   }
 
   // Deslizar a la derecha completa (o desmarca) y a la izquierda borra (con «Deshacer»).
@@ -168,10 +182,15 @@ export function SetRow({
                 aria-label={
                   hold?.targetS === null ? 'Cronómetro de la serie' : 'Cuenta atrás de la serie'
                 }
-                className="bg-primary/10 text-primary flex h-12 items-center justify-center rounded-lg text-2xl font-bold tabular-nums"
+                className="bg-primary/10 text-primary flex h-12 flex-col items-center justify-center rounded-lg leading-none font-bold tabular-nums"
                 style={{ gridColumn: `span ${specs.length}` }}
               >
-                {formatClock(clock)}
+                <span className="text-2xl">{formatClock(clock.clockS)}</span>
+                {clock.side !== null && (
+                  <span className="text-[11px] font-semibold" data-testid="hold-side">
+                    Lado {clock.side}
+                  </span>
+                )}
               </div>
             ) : (
               specs.map((spec) => (
@@ -189,7 +208,13 @@ export function SetRow({
               <button
                 type="button"
                 onClick={toggleHold}
-                aria-label={hold ? 'Parar y guardar el tiempo' : 'Empezar a cronometrar la serie'}
+                aria-label={
+                  hold
+                    ? hold.perSide && clock?.side === 1
+                      ? 'Cambiar de lado'
+                      : 'Parar y guardar el tiempo'
+                    : 'Empezar a cronometrar la serie'
+                }
                 className={cn(
                   'flex h-12 items-center justify-center rounded-lg font-semibold active:scale-95',
                   hold ? 'bg-destructive text-white' : 'bg-secondary',
@@ -268,8 +293,8 @@ export function SetRow({
               {onCompleteHold && (
                 <p className="text-muted-foreground text-center text-xs">
                   ▶ cronometra la serie
-                  {set.durationS ? ` (cuenta atrás desde ${formatClock(set.durationS)})` : ''} y la
-                  completa al parar.
+                  {set.durationS ? ` (cuenta atrás desde ${formatClock(set.durationS)})` : ''}
+                  {perSide ? ', los dos lados con aviso al cambiar,' : ''} y la completa al parar.
                 </p>
               )}
               <div className="flex items-center gap-1.5">

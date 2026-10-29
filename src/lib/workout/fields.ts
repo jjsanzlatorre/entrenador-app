@@ -120,6 +120,8 @@ export type FieldSpec = {
   // Paso de los botones ± (en la unidad del campo).
   step: number
   label: string
+  // Texto tras la unidad en la celda («/lado» en los ejercicios «cada lado»).
+  suffix?: string
 }
 
 export function fieldSpec(field: SetField, exercise: FieldExercise | undefined): FieldSpec {
@@ -159,8 +161,12 @@ export function fieldSpec(field: SetField, exercise: FieldExercise | undefined):
   }
 }
 
-export function fieldSpecs(exercise: FieldExercise | undefined) {
-  return setFields(exercise).map((f) => fieldSpec(f, exercise))
+// perSide: reps y tiempo son por lado («45 s/lado»).
+export function fieldSpecs(exercise: FieldExercise | undefined, perSide = false) {
+  return setFields(exercise).map((f) => {
+    const spec = fieldSpec(f, exercise)
+    return perSide && (f === 'reps' || f === 'durationS') ? { ...spec, suffix: '/lado' } : spec
+  })
 }
 
 // Valor de la serie para mostrar en la celda (sin unidad: va debajo).

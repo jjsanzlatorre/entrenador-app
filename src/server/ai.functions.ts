@@ -7,6 +7,7 @@ import {
   CHAT_HISTORY_MESSAGES,
   CHAT_MAX_MESSAGE,
   chatPlanRequestSchema,
+  WORKOUT_TEXT_MAX,
   type AiResult,
   type AiStatus,
   type ChatActionResults,
@@ -24,6 +25,7 @@ import {
   proposeDailyAdjust,
   proposePlan,
   proposeSwap,
+  parseWorkoutText,
   pendingToday,
   weeklyReview,
   type CoachDeps,
@@ -343,6 +345,30 @@ export const proposeExerciseSwap = createServerFn({ method: 'POST' })
       return await proposeSwap(deps, { data: input, exerciseId: data.exerciseId })
     } catch (error) {
       console.error('[ai] sustituir ejercicio', error)
+      return aiFailure('failed')
+    }
+  })
+
+// «Escribir entreno»: el texto que el parser de la app no ha entendido, con la IA (modelo normal).
+export const parseWorkoutWithAi = createServerFn({ method: 'POST' })
+  .middleware([authMiddleware])
+  .validator(dayInput.extend({ text: z.string().min(1).max(WORKOUT_TEXT_MAX) }))
+  .handler(async ({ data, context }) => {
+    const { supabase, deps } = setup(data.tz)
+    if (!deps) return aiFailure('not_configured')
+    try {
+      const { data: rows, error } = await supabase
+        .from('exercises')
+        .select('id, name, aliases')
+        // Con permisos de pareja la RLS también devolvería los propios de la otra persona.
+        .or(`owner_id.is.null,owner_id.eq.${context.auth.userId}`)
+      if (error) throw new Error(error.message)
+      return await parseWorkoutText(deps, {
+        text: data.text,
+        exercises: (rows ?? []).map((r) => ({ id: r.id, name: r.name, aliases: r.aliases ?? [] })),
+      })
+    } catch (error) {
+      console.error('[ai] escribir entreno', error)
       return aiFailure('failed')
     }
   })

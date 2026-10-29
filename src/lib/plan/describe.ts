@@ -11,9 +11,10 @@ const time = (s: number) =>
 
 // «8-10 reps», «400 m», «30 s», «10 cal».
 export function describeAmount(e: PlanExercise) {
-  if (e.reps) return `${e.reps} reps`
+  const side = e.per_side ? '/lado' : ''
+  if (e.reps) return `${e.reps} reps${side}`
   if (e.distance_m) return km(e.distance_m)
-  if (e.duration_s) return time(e.duration_s)
+  if (e.duration_s) return `${time(e.duration_s)}${side}`
   if (e.calories) return `${e.calories} cal`
   return ''
 }
@@ -51,6 +52,17 @@ export function describeBlock(b: PlanBlock, name: (id: string) => string) {
       }
     }
     case 'free':
+      return { title: null, lines: list }
+    case 'superset':
+      if (b.rounds) {
+        // Con rondas, cada ejercicio con su cantidad (sin «3 × …»: lo dicen las rondas).
+        return {
+          title: `Superserie · ${b.rounds} rondas${b.rest_s ? ` · desc. ${time(b.rest_s)} entre rondas` : ''}`,
+          lines: b.exercises.map((e) =>
+            [name(e.exercise_id), describeAmount(e)].filter(Boolean).join(' · '),
+          ),
+        }
+      }
       return { title: null, lines: list }
     default:
       return { title: null, lines: list }

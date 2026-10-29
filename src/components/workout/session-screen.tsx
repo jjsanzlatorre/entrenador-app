@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createPortal } from 'react-dom'
 import { Link, useNavigate } from '@tanstack/react-router'
-import { ChevronLeft, Plus, Trash2 } from 'lucide-react'
+import { ChevronLeft, Copy, PenLine, Plus, Trash2 } from 'lucide-react'
+import { Sheet } from '@/components/ui/sheet'
 import { Button } from '@/components/ui/button'
 import {
   cancelEdit,
@@ -27,7 +28,14 @@ import * as ops from '@/lib/workout/session-ops'
 import { suggestionFor } from '@/lib/workout/suggestion'
 import { cardioExerciseFor } from '@/lib/workout/session-kinds'
 import * as timed from '@/lib/workout/timed-blocks'
-import type { Exercise, LocalSession } from '@/lib/workout/types'
+import * as rounds from '@/lib/workout/rounds'
+import {
+  draftFromBlock,
+  draftProblems,
+  draftToInput,
+  type RoundDraft,
+} from '@/lib/workout/round-draft'
+import type { Exercise, LastPerformance, LocalSession } from '@/lib/workout/types'
 import { PairBanner } from '@/components/partners/pair'
 import { AppMenuButton } from '@/components/layout/app-menu'
 import { Tip } from '@/components/help/tip'
@@ -36,6 +44,10 @@ import { useLongPressDrag } from '@/lib/plan/use-long-press-drag'
 import { getActiveSession } from '@/lib/workout/active-session'
 import { AddBlockSheet, type NewBlock } from './add-block-sheet'
 import { BlockCard, type BlockActions } from './block-card'
+import { CopyBlockSheet } from './copy-block-sheet'
+import { RoundBlockCard, type RoundActions } from './round-block-card'
+import { RoundBlockEditor } from './round-block-editor'
+import { WriteWorkoutSheet } from './write-workout-sheet'
 import { ExercisePicker, type PickerMode } from './exercise-picker'
 import { FinishSheet } from './finish-sheet'
 import { RestTimerBar } from './rest-timer-bar'
@@ -65,6 +77,9 @@ export function SessionScreen({ session }: { session: LocalSession }) {
   const [finishing, setFinishing] = useState(false)
   const [saving, setSaving] = useState(false)
   const [manualSelection, setManualSelection] = useState<string | null>(null)
+  const [copying, setCopying] = useState(false)
+  const [writing, setWriting] = useState(false)
+  const [editing, setEditing] = useState<{ blockId: string; draft: RoundDraft } | null>(null)
 
   const nextPending = ops.nextPendingSetId(session)
   const allSets = session.blocks.flatMap((b) => b.sets)
@@ -152,6 +167,8 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       updateActiveSession((s) => ops.removeExercise(s, blockId, exerciseId, Date.now())),
     onRevertSuggestion: (blockId, exerciseId) =>
       updateActiveSession((s) => ops.revertWeightSuggestion(s, blockId, exerciseId, Date.now())),
+    onTogglePerSide: (blockId, exerciseId) =>
+      updateActiveSession((s) => rounds.togglePerSide(s, blockId, exerciseId, Date.now())),
     onCompleteHold: past
       ? undefined
       : (setId, durationS) => {
@@ -162,6 +179,46 @@ export function SessionScreen({ session }: { session: LocalSession }) {
           })
           setManualSelection(null)
         },
+  }
+
+  // Superseries y circuitos por rondas (§7).
+  const roundActions: RoundActions = {
+    onCompleteRound: (blockId, roundIndex) => {
+      unlockAudio()
+      updateActiveSession((s) => rounds.completeRound(s, blockId, roundIndex, Date.now()))
+      setManualSelection(null)
+    },
+    onUncompleteRound: (blockId, roundIndex) =>
+      updateActiveSession((s) => rounds.uncompleteRound(s, blockId, roundIndex, Date.now())),
+    onAddRound: (blockId) => updateActiveSession((s) => rounds.addRound(s, blockId, Date.now())),
+    onRemoveRound: (blockId) => {
+      const block = getActiveSession()?.blocks.find((b) => b.id === blockId)
+      if (
+        block &&
+        rounds.lastRoundHasDone(block) &&
+        !confirm('La última ronda tiene series hechas. ¿Quitarla?')
+      )
+        return
+      updateActiveSession((s) => rounds.removeRound(s, blockId, Date.now()))
+    },
+    onDuplicate: (blockId) =>
+      updateActiveSession((s) => rounds.duplicateBlock(s, blockId, Date.now())),
+    onEdit: (blockId) => {
+      const block = session.blocks.find((b) => b.id === blockId)
+      if (block) setEditing({ blockId, draft: draftFromBlock(block, catalog.byId) })
+    },
+    onRemoveBlock: (blockId) =>
+      updateActiveSession((s) => timed.removeBlock(s, blockId, Date.now())),
+    onApplyFollowing: (setId) =>
+      updateActiveSession((s) => rounds.applyToFollowingRounds(s, setId, Date.now())),
+    onChangeSet: (setId, patch) =>
+      updateActiveSession((s) => ops.updateSet(s, setId, patch, Date.now())),
+  }
+
+  function scrollToEnd() {
+    requestAnimationFrame(() =>
+      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }),
+    )
   }
 
   // Mantener pulsado el nombre de un ejercicio y soltarlo sobre otro bloque: superserie.
@@ -207,33 +264,29 @@ export function SessionScreen({ session }: { session: LocalSession }) {
       updateActiveSession((s) => timed.removeBlock(s, blockId, Date.now())),
   }
 
-  async function handleNewBlock(block: NewBlock) {
-    if (block.kind === 'straight') {
-      setPicker({ kind: 'add' })
-      return
+  function handleNewBlock(block: NewBlock) {
+    switch (block.kind) {
+      case 'straight':
+        setPicker({ kind: 'add' })
+        return
+      case 'copy':
+        setCopying(true)
+        return
+      case 'text':
+        setWriting(true)
+        return
+      case 'rounds': {
+        const t = Date.now()
+        updateActiveSession((s) => rounds.addRoundBlock(s, block.input, t))
+        break
+      }
+      case 'timed': {
+        const t = Date.now()
+        updateActiveSession((s) => timed.addTimedBlock(s, block.config, block.exercises, t))
+        break
+      }
     }
-    if (block.kind === 'circuit') {
-      const lastMap = await getLastPerformance(
-        session.userId,
-        block.exercises.map((e) => e.id),
-        session.id,
-      )
-      const t = Date.now()
-      updateActiveSession((s) =>
-        timed.addCircuitBlock(
-          s,
-          block.config,
-          block.exercises.map((e) => ({ exercise: e, last: lastMap.get(e.id) })),
-          t,
-        ),
-      )
-    } else {
-      const t = Date.now()
-      updateActiveSession((s) => timed.addTimedBlock(s, block.config, block.exercises, t))
-    }
-    requestAnimationFrame(() =>
-      window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }),
-    )
+    scrollToEnd()
   }
 
   async function handleSave(details: ops.SessionDetailsPatch) {
@@ -358,6 +411,20 @@ export function SessionScreen({ session }: { session: LocalSession }) {
               anotherRunning={Boolean(running && running.id !== block.id)}
               actions={timedActions}
             />
+          ) : rounds.isRoundBlock(block) && block.exercises.length > 1 ? (
+            <RoundBlockCard
+              key={block.id}
+              block={block}
+              letter={LETTERS[i] ?? String(i + 1)}
+              isFirst={i === 0}
+              isLast={i === session.blocks.length - 1}
+              exercisesById={catalog.byId}
+              selectedSetId={selectedSetId}
+              actions={actions}
+              roundActions={roundActions}
+              canMergeNext={ops.canMergeWithNext(session, block.id)}
+              drag={blockDrag}
+            />
           ) : (
             <BlockCard
               key={block.id}
@@ -394,6 +461,12 @@ export function SessionScreen({ session }: { session: LocalSession }) {
             onClick={() => setAddingBlock(true)}
           >
             <Plus className="size-5" /> Bloque
+          </Button>
+          <Button variant="ghost" className="text-primary h-11" onClick={() => setWriting(true)}>
+            <PenLine /> Escribir entreno
+          </Button>
+          <Button variant="ghost" className="text-primary h-11" onClick={() => setCopying(true)}>
+            <Copy /> Copiar bloque
           </Button>
         </div>
 
@@ -443,9 +516,57 @@ export function SessionScreen({ session }: { session: LocalSession }) {
         exercises={catalog.data ?? []}
         equipment={equipment.data ?? []}
         defaultCardioId={cardioExerciseFor(session.sessionType)}
+        userId={session.userId}
+        loadLast={withLast}
         onClose={() => setAddingBlock(false)}
-        onCreate={(b) => void handleNewBlock(b)}
+        onCreate={handleNewBlock}
       />
+
+      <CopyBlockSheet
+        open={copying}
+        userId={session.userId}
+        excludeSessionId={session.id}
+        exercisesById={catalog.byId}
+        onClose={() => setCopying(false)}
+        onCopy={(block) => {
+          updateActiveSession((s) => rounds.copyBlockFrom(s, block, Date.now()))
+          scrollToEnd()
+        }}
+      />
+
+      <WriteWorkoutSheet
+        open={writing}
+        exercises={catalog.data ?? []}
+        equipment={equipment.data ?? []}
+        userId={session.userId}
+        loadLast={withLast}
+        onClose={() => setWriting(false)}
+        onAdd={(inputs) => {
+          const t = Date.now()
+          updateActiveSession((s) =>
+            inputs.reduce((acc, input) => rounds.addRoundBlock(acc, input, t), s),
+          )
+          scrollToEnd()
+        }}
+      />
+
+      {editing && (
+        <EditRoundBlockSheet
+          draft={editing.draft}
+          exercises={catalog.data ?? []}
+          equipment={equipment.data ?? []}
+          userId={session.userId}
+          loadLast={withLast}
+          onChange={(draft) => setEditing({ ...editing, draft })}
+          onClose={() => setEditing(null)}
+          onSave={(input) => {
+            updateActiveSession((s) =>
+              rounds.updateRoundBlock(s, editing.blockId, input, Date.now()),
+            )
+            setEditing(null)
+          }}
+        />
+      )}
 
       {drag &&
         typeof document !== 'undefined' &&
@@ -478,5 +599,62 @@ export function SessionScreen({ session }: { session: LocalSession }) {
         />
       )}
     </div>
+  )
+}
+
+function EditRoundBlockSheet({
+  draft,
+  exercises,
+  equipment,
+  userId,
+  loadLast,
+  onChange,
+  onClose,
+  onSave,
+}: {
+  draft: RoundDraft
+  exercises: Exercise[]
+  equipment: string[]
+  userId: string
+  loadLast: (exercise: Exercise) => Promise<LastPerformance | null>
+  onChange: (draft: RoundDraft) => void
+  onClose: () => void
+  onSave: (input: rounds.RoundBlockInput) => void
+}) {
+  const byId = new Map(exercises.map((e) => [e.id, e]))
+  const problems = draftProblems(draft, byId)
+  const input = draftToInput(draft, byId)
+  return (
+    <Sheet open onClose={onClose} title="Editar bloque" className="h-[92dvh]">
+      <div className="flex flex-col gap-4 pb-4">
+        <RoundBlockEditor
+          idPrefix="edit-rounds"
+          draft={draft}
+          onChange={onChange}
+          exercises={exercises}
+          equipment={equipment}
+          userId={userId}
+          loadLast={loadLast}
+        />
+        <p className="text-muted-foreground text-xs">
+          Los cambios se aplican a las rondas pendientes; lo ya hecho no se toca.
+        </p>
+        {problems.length > 0 && (
+          <ul className="text-destructive text-sm">
+            {problems.map((p) => (
+              <li key={`${p.key}-${p.message}`}>{p.message}</li>
+            ))}
+          </ul>
+        )}
+        <Button
+          size="lg"
+          className="h-14 text-lg"
+          disabled={!input}
+          onClick={() => input && onSave(input)}
+        >
+          Guardar cambios
+        </Button>
+      </div>
+    </Sheet>
   )
 }

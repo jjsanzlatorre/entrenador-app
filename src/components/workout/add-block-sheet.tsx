@@ -5,17 +5,32 @@ import { Input } from '@/components/ui/input'
 import { Sheet } from '@/components/ui/sheet'
 import { QuantityInput } from '@/components/ui/quantity-input'
 import { parseCount, parseDistance, parseDuration, type QuantityKind } from '@/lib/input/quantity'
-import type { CircuitConfig, Exercise } from '@/lib/workout/types'
+import { draftProblems, draftToInput, emptyDraft, type RoundDraft } from '@/lib/workout/round-draft'
+import type { RoundBlockInput } from '@/lib/workout/rounds'
+import type { Exercise, LastPerformance } from '@/lib/workout/types'
 import type { TimerConfig } from '@/lib/workout/timer'
 import { cn } from '@/lib/utils'
 import { ExercisePicker } from './exercise-picker'
+import { RoundBlockEditor } from './round-block-editor'
 
 export type NewBlockKind =
-  'straight' | 'circuit' | 'emom' | 'amrap' | 'tabata' | 'for_time' | 'intervals' | 'free'
+  | 'straight'
+  | 'circuit'
+  | 'emom'
+  | 'amrap'
+  | 'tabata'
+  | 'for_time'
+  | 'intervals'
+  | 'free'
+  | 'copy'
+  | 'text'
 
 export type NewBlock =
   | { kind: 'straight' }
-  | { kind: 'circuit'; config: CircuitConfig; exercises: Exercise[] }
+  | { kind: 'rounds'; input: RoundBlockInput }
+  // Abren su propia hoja (copiar de otra sesión, escribir el entreno).
+  | { kind: 'copy' }
+  | { kind: 'text' }
   | {
       kind: 'timed'
       config: TimerConfig
@@ -24,14 +39,23 @@ export type NewBlock =
 
 const OPTIONS: { kind: NewBlockKind; label: string; hint: string }[] = [
   { kind: 'straight', label: 'Ejercicio', hint: 'Series con descanso' },
-  { kind: 'circuit', label: 'Circuito', hint: 'Rondas de varios ejercicios' },
+  { kind: 'circuit', label: 'Superserie / circuito', hint: 'Varios ejercicios × rondas' },
   { kind: 'emom', label: 'EMOM', hint: 'Cada minuto, en el minuto' },
   { kind: 'amrap', label: 'AMRAP', hint: 'Máximas rondas en X min' },
   { kind: 'tabata', label: 'Tabata / HIIT', hint: 'Trabajo/descanso × rondas' },
   { kind: 'for_time', label: 'For Time', hint: 'Lo antes posible, con cap' },
   { kind: 'intervals', label: 'Intervalos', hint: 'Carrera, natación o bici' },
   { kind: 'free', label: 'Cronómetro', hint: 'Continuo o libre' },
+  { kind: 'copy', label: 'Copiar bloque', hint: 'De otra sesión' },
+  { kind: 'text', label: 'Escribir entreno', hint: '«a 10 + b 45s, x4»' },
 ]
+
+// Abren otra hoja o el buscador directamente (sin formulario aquí).
+const DIRECT = new Set<NewBlockKind>(['straight', 'copy', 'text'])
+
+type TimerKind = Exclude<NewBlockKind, 'straight' | 'circuit' | 'copy' | 'text'>
+const isTimerKind = (kind: NewBlockKind | null): kind is TimerKind =>
+  kind !== null && kind !== 'circuit' && !DIRECT.has(kind)
 
 const CARDIO_IDS = [
   'run',
@@ -51,6 +75,8 @@ export function AddBlockSheet({
   exercises,
   equipment,
   defaultCardioId,
+  userId,
+  loadLast,
   onClose,
   onCreate,
 }: {
@@ -58,6 +84,8 @@ export function AddBlockSheet({
   exercises: Exercise[]
   equipment: string[]
   defaultCardioId: string | null
+  userId?: string
+  loadLast?: (exercise: Exercise) => Promise<LastPerformance | null>
   onClose: () => void
   onCreate: (block: NewBlock) => void
 }) {
@@ -90,8 +118,8 @@ export function AddBlockSheet({
               key={o.kind}
               type="button"
               onClick={() => {
-                if (o.kind === 'straight') {
-                  onCreate({ kind: 'straight' })
+                if (DIRECT.has(o.kind)) {
+                  onCreate({ kind: o.kind as 'straight' | 'copy' | 'text' })
                   close()
                 } else setKind(o.kind)
               }}
@@ -103,7 +131,19 @@ export function AddBlockSheet({
           ))}
         </div>
       )}
-      {kind && kind !== 'straight' && (
+      {kind === 'circuit' && (
+        <RoundsForm
+          exercises={exercises}
+          equipment={equipment}
+          userId={userId}
+          loadLast={loadLast}
+          onCreate={(input) => {
+            onCreate({ kind: 'rounds', input })
+            close()
+          }}
+        />
+      )}
+      {isTimerKind(kind) && (
         <BlockForm
           key={kind}
           kind={kind}
@@ -151,7 +191,7 @@ function BlockForm({
   defaultCardioId,
   onCreate,
 }: {
-  kind: Exclude<NewBlockKind, 'straight'>
+  kind: TimerKind
   exercises: Exercise[]
   equipment: string[]
   defaultCardioId: string | null
@@ -171,14 +211,13 @@ function BlockForm({
     amrapMin: '10',
     workS: '20',
     restS: '10',
-    rounds: kind === 'circuit' ? '3' : '8',
+    rounds: '8',
     capMin: '',
     reps: '6',
     mode: 'distance' as 'distance' | 'time',
     distanceM: '400',
     intervalWorkS: '180',
     recoveryS: '90',
-    circuitRestS: '90',
   })
   const set = (key: keyof typeof p) => (v: string) => setP((prev) => ({ ...prev, [key]: v }))
   const n = (v: string, fallback: number) => parseCount(v) ?? fallback
@@ -197,17 +236,6 @@ function BlockForm({
     }))
     let config: TimerConfig
     switch (kind) {
-      case 'circuit':
-        onCreate({
-          kind: 'circuit',
-          config: {
-            kind: 'circuit',
-            rounds: n(p.rounds, 3),
-            restBetweenRoundsS: sec(p.circuitRestS, 90),
-          },
-          exercises: picked.map((x) => x.exercise),
-        })
-        return
       case 'emom':
         config = { kind: 'emom', minutes: n(p.minutes, 12), intervalS: sec(p.intervalS, 60) }
         break
@@ -301,18 +329,6 @@ function BlockForm({
             onChange={set('capMin')}
             quantity={MINUTES}
           />
-        )}
-        {kind === 'circuit' && (
-          <>
-            <NumberField id="c-rounds" label="Rondas" value={p.rounds} onChange={set('rounds')} />
-            <NumberField
-              id="c-rest"
-              label="Descanso entre rondas"
-              value={p.circuitRestS}
-              onChange={set('circuitRestS')}
-              quantity={SECONDS}
-            />
-          </>
         )}
         {kind === 'intervals' && (
           <>
@@ -466,6 +482,54 @@ function BlockForm({
         }}
         onClose={() => setPicking(false)}
       />
+    </div>
+  )
+}
+
+// Superserie o circuito: ejercicios con su objetivo, rondas y descansos.
+function RoundsForm({
+  exercises,
+  equipment,
+  userId,
+  loadLast,
+  onCreate,
+}: {
+  exercises: Exercise[]
+  equipment: string[]
+  userId?: string
+  loadLast?: (exercise: Exercise) => Promise<LastPerformance | null>
+  onCreate: (input: RoundBlockInput) => void
+}) {
+  const [draft, setDraft] = useState<RoundDraft>(emptyDraft)
+  const byId = new Map(exercises.map((e) => [e.id, e]))
+  const problems = draft.items.length > 0 ? draftProblems(draft, byId) : []
+  const input = draftToInput(draft, byId)
+  return (
+    <div className="flex flex-col gap-4 pb-4">
+      <RoundBlockEditor
+        idPrefix="new-rounds"
+        draft={draft}
+        onChange={setDraft}
+        exercises={exercises}
+        equipment={equipment}
+        userId={userId}
+        loadLast={loadLast}
+      />
+      {problems.length > 0 && (
+        <ul className="text-destructive text-sm">
+          {problems.map((p) => (
+            <li key={`${p.key}-${p.message}`}>{p.message}</li>
+          ))}
+        </ul>
+      )}
+      <Button
+        size="lg"
+        className="h-14 text-lg"
+        disabled={!input}
+        onClick={() => input && onCreate(input)}
+      >
+        Crear bloque
+      </Button>
     </div>
   )
 }

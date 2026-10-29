@@ -1,5 +1,6 @@
 import {
   ArrowDown,
+  ArrowLeftRight,
   ArrowUp,
   BookOpen,
   Info,
@@ -15,6 +16,7 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
 import { fieldSpecs, formatSetValues } from '@/lib/workout/fields'
+import { canBePerSide } from '@/lib/workout/round-draft'
 import { formatClock, formatKg } from '@/lib/workout/format'
 import type { SetPatch } from '@/lib/workout/session-ops'
 import type { Exercise, LastPerformance, LocalBlock } from '@/lib/workout/types'
@@ -41,6 +43,8 @@ export type BlockActions = {
   // Superseries (usabilidad 3/3): «Unir con el siguiente» y «Separar de la superserie».
   onMergeNext: (blockId: string) => void
   onSplit: (blockId: string, exerciseId: string) => void
+  // «Cada lado» en unilaterales e isométricos.
+  onTogglePerSide?: (blockId: string, exerciseId: string) => void
 }
 
 // Arrastre (mantener pulsado el nombre y soltar sobre otro bloque) para unir en superserie.
@@ -120,7 +124,7 @@ export function BlockCard({
       <div className="flex flex-col gap-4">
         {block.exercises.map((be, i) => {
           const exercise = exercisesById.get(be.exerciseId)
-          const specs = fieldSpecs(exercise)
+          const specs = fieldSpecs(exercise, be.perSide)
           const sets = block.sets.filter((s) => s.exerciseId === be.exerciseId)
           const last = lastSummary(lastByExercise?.get(be.exerciseId), exercise)
           const code = isSuperset ? `${letter}${i + 1}` : letter
@@ -149,6 +153,7 @@ export function BlockCard({
                   <p className="text-muted-foreground text-xs">
                     {last ? `Última vez ${last}` : 'Primera vez con este ejercicio'}
                     {' · '}descanso {formatClock(be.restS)}
+                    {be.perSide ? ' · cada lado' : ''}
                   </p>
                   {be.suggestion && sets.some((s) => !s.completed) && (
                     <p
@@ -202,6 +207,7 @@ export function BlockCard({
                         ? (durationS) => actions.onCompleteHold?.(set.id, durationS)
                         : undefined
                     }
+                    perSide={Boolean(be.perSide)}
                   />
                 ))}
               </div>
@@ -217,104 +223,17 @@ export function BlockCard({
         })}
       </div>
 
-      <Sheet
-        open={menuFor !== null}
+      <ExerciseMenuSheet
+        block={block}
+        exerciseId={menuFor}
+        exercise={menuExercise}
+        isFirst={isFirst}
+        isLast={isLast}
+        canMergeNext={canMergeNext}
+        actions={actions}
+        onTechnique={setTechniqueFor}
         onClose={() => setMenuFor(null)}
-        title={menuExercise?.name ?? 'Ejercicio'}
-      >
-        <div className="flex flex-col gap-2 pb-2">
-          {menuExercise && (
-            <div className="bg-muted/50 rounded-lg p-3 text-sm">
-              <p className="flex items-center gap-1 font-medium">
-                <Info className="size-4" /> {primaryMusclesText(menuExercise)}
-              </p>
-            </div>
-          )}
-          <MenuButton
-            icon={BookOpen}
-            disabled={!menuExercise}
-            onClick={() => {
-              setTechniqueFor(menuFor)
-              setMenuFor(null)
-            }}
-          >
-            Ver técnica
-          </MenuButton>
-          <MenuButton
-            icon={ArrowUp}
-            disabled={isFirst}
-            onClick={() => {
-              actions.onMove(block.id, -1)
-              setMenuFor(null)
-            }}
-          >
-            Subir bloque
-          </MenuButton>
-          <MenuButton
-            icon={ArrowDown}
-            disabled={isLast}
-            onClick={() => {
-              actions.onMove(block.id, 1)
-              setMenuFor(null)
-            }}
-          >
-            Bajar bloque
-          </MenuButton>
-          <MenuButton
-            icon={Link2}
-            onClick={() => {
-              actions.onAddSuperset(block.id)
-              setMenuFor(null)
-            }}
-          >
-            Añadir otro ejercicio en superserie
-          </MenuButton>
-          {canMergeNext && (
-            <MenuButton
-              icon={Link2}
-              onClick={() => {
-                actions.onMergeNext(block.id)
-                setMenuFor(null)
-              }}
-            >
-              Unir con el siguiente (superserie)
-            </MenuButton>
-          )}
-          {isSuperset && block.blockType === 'superset' && menuFor && (
-            <MenuButton
-              icon={Unlink}
-              onClick={() => {
-                actions.onSplit(block.id, menuFor)
-                setMenuFor(null)
-              }}
-            >
-              Separar de la superserie
-            </MenuButton>
-          )}
-          <MenuButton
-            icon={Replace}
-            disabled={!menuExercise}
-            onClick={() => {
-              if (menuExercise) actions.onSubstitute(block.id, menuExercise)
-              setMenuFor(null)
-            }}
-          >
-            Sustituir ejercicio
-          </MenuButton>
-          <MenuButton
-            icon={Trash2}
-            destructive
-            onClick={() => {
-              if (menuFor && confirm('¿Quitar este ejercicio y sus series?')) {
-                actions.onRemoveExercise(block.id, menuFor)
-              }
-              setMenuFor(null)
-            }}
-          >
-            Quitar ejercicio
-          </MenuButton>
-        </div>
-      </Sheet>
+      />
       <ExerciseTechniqueSheet
         exercise={techniqueFor ? exercisesById.get(techniqueFor) : null}
         onClose={() => setTechniqueFor(null)}
@@ -323,7 +242,140 @@ export function BlockCard({
   )
 }
 
-function MenuButton({
+// Menú ⋮ de un ejercicio del bloque (también en los bloques por rondas).
+export function ExerciseMenuSheet({
+  block,
+  exerciseId: menuFor,
+  exercise: menuExercise,
+  isFirst,
+  isLast,
+  canMergeNext,
+  actions,
+  onTechnique,
+  onClose,
+}: {
+  block: LocalBlock
+  exerciseId: string | null
+  exercise: Exercise | undefined
+  isFirst: boolean
+  isLast: boolean
+  canMergeNext: boolean
+  actions: BlockActions
+  onTechnique: (exerciseId: string) => void
+  onClose: () => void
+}) {
+  const isSuperset = block.exercises.length > 1
+  const perSide = Boolean(block.exercises.find((e) => e.exerciseId === menuFor)?.perSide)
+  return (
+    <Sheet open={menuFor !== null} onClose={onClose} title={menuExercise?.name ?? 'Ejercicio'}>
+      <div className="flex flex-col gap-2 pb-2">
+        {menuExercise && (
+          <div className="bg-muted/50 rounded-lg p-3 text-sm">
+            <p className="flex items-center gap-1 font-medium">
+              <Info className="size-4" /> {primaryMusclesText(menuExercise)}
+            </p>
+          </div>
+        )}
+        <MenuButton
+          icon={BookOpen}
+          disabled={!menuExercise}
+          onClick={() => {
+            if (menuFor) onTechnique(menuFor)
+            onClose()
+          }}
+        >
+          Ver técnica
+        </MenuButton>
+        {menuExercise && canBePerSide(menuExercise) && actions.onTogglePerSide && menuFor && (
+          <MenuButton
+            icon={ArrowLeftRight}
+            onClick={() => {
+              actions.onTogglePerSide?.(block.id, menuFor)
+              onClose()
+            }}
+          >
+            {perSide ? 'Quitar «cada lado»' : 'Cada lado (los dos lados por serie)'}
+          </MenuButton>
+        )}
+        <MenuButton
+          icon={ArrowUp}
+          disabled={isFirst}
+          onClick={() => {
+            actions.onMove(block.id, -1)
+            onClose()
+          }}
+        >
+          Subir bloque
+        </MenuButton>
+        <MenuButton
+          icon={ArrowDown}
+          disabled={isLast}
+          onClick={() => {
+            actions.onMove(block.id, 1)
+            onClose()
+          }}
+        >
+          Bajar bloque
+        </MenuButton>
+        <MenuButton
+          icon={Link2}
+          onClick={() => {
+            actions.onAddSuperset(block.id)
+            onClose()
+          }}
+        >
+          {isSuperset ? 'Añadir otro ejercicio al bloque' : 'Añadir otro ejercicio en superserie'}
+        </MenuButton>
+        {canMergeNext && (
+          <MenuButton
+            icon={Link2}
+            onClick={() => {
+              actions.onMergeNext(block.id)
+              onClose()
+            }}
+          >
+            Unir con el siguiente (superserie)
+          </MenuButton>
+        )}
+        {isSuperset && menuFor && (
+          <MenuButton
+            icon={Unlink}
+            onClick={() => {
+              actions.onSplit(block.id, menuFor)
+              onClose()
+            }}
+          >
+            Separar del bloque
+          </MenuButton>
+        )}
+        <MenuButton
+          icon={Replace}
+          disabled={!menuExercise}
+          onClick={() => {
+            if (menuExercise) actions.onSubstitute(block.id, menuExercise)
+            onClose()
+          }}
+        >
+          Sustituir ejercicio
+        </MenuButton>
+        <MenuButton
+          icon={Trash2}
+          destructive
+          onClick={() => {
+            if (menuFor && confirm('¿Quitar este ejercicio y sus series?')) {
+              actions.onRemoveExercise(block.id, menuFor)
+            }
+            onClose()
+          }}
+        >
+          Quitar ejercicio
+        </MenuButton>
+      </div>
+    </Sheet>
+  )
+}
+
+export function MenuButton({
   icon: Icon,
   children,
   onClick,

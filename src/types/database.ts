@@ -58,7 +58,7 @@ export type PlannedStatus = 'planned' | 'done' | 'skipped' | 'moved'
 export type PlanChangeKind = 'move' | 'swap' | 'shift' | 'pause' | 'repeat'
 export type SessionIntensity = 'easy' | 'moderate' | 'hard'
 export type AiInteractionKind =
-  'plan_generation' | 'daily_adjust' | 'weekly_review' | 'chat' | 'exercise_swap'
+  'plan_generation' | 'daily_adjust' | 'weekly_review' | 'chat' | 'exercise_swap' | 'workout_parse'
 export type AiInteractionStatus = 'pending' | 'ok' | 'invalid' | 'error'
 export type AiChatRole = 'user' | 'assistant'
 export type AiChangeResponse = 'accepted' | 'discarded'

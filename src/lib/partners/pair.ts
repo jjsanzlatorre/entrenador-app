@@ -81,6 +81,8 @@ export const pairTemplateSchema = z.object({
               exercise_id: z.string().min(1).max(80),
               rest_s: z.number().int().min(0).max(3600),
               target_reps: z.number().int().min(0).max(1000).nullable().optional(),
+              // «Cada lado» (bloques por rondas).
+              per_side: z.boolean().optional(),
             }),
           )
           .max(20),
@@ -128,6 +130,7 @@ export function pairTemplateFromSession(
           exercise_id: e.exerciseId,
           rest_s: e.restS,
           ...(e.targetReps !== undefined ? { target_reps: e.targetReps } : {}),
+          ...(e.perSide ? { per_side: true } : {}),
         })),
         sets: b.sets
           .filter((s) => keep.has(s.exerciseId))
@@ -274,6 +277,7 @@ export function sessionFromPairTemplate(
         exerciseId: e.exercise_id,
         restS: e.rest_s,
         ...(e.target_reps !== undefined ? { targetReps: e.target_reps } : {}),
+        ...(e.per_side ? { perSide: true } : {}),
       })),
       sets,
     }

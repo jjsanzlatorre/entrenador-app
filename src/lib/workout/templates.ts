@@ -10,7 +10,7 @@ import type { SessionLocation, SessionType } from '@/types/database'
 import { toCamel, toSnake } from './payload'
 import { createSession, type IdFn } from './session-ops'
 import { suggestionFor, type WeightSuggestion } from './suggestion'
-import { addCircuitBlock, addTimedBlock, isTimedBlock } from './timed-blocks'
+import { addTimedBlock, isTimedBlock } from './timed-blocks'
 import type { TimerConfig } from './timer'
 import type {
   BlockSettings,
@@ -61,7 +61,7 @@ export function structureFromSession(
 ): WorkoutStructure | null {
   const blocks: StructureBlock[] = session.blocks.flatMap((b) => {
     if (b.exercises.length === 0) return []
-    const timed = isTimedBlock(b) || b.blockType === 'circuit'
+    const timed = isTimedBlock(b)
     const sets = timed
       ? b.sets
       : b.exercises.flatMap((e) => {
@@ -77,6 +77,7 @@ export function structureFromSession(
           exercise_id: e.exerciseId,
           rest_s: Math.min(3600, Math.max(0, Math.round(e.restS))),
           ...(e.targetReps !== undefined ? { target_reps: e.targetReps } : {}),
+          ...(e.perSide ? { per_side: true } : {}),
         })),
         sets: sets.slice(0, 200).map((s) => ({
           exercise_id: s.exerciseId,
@@ -168,16 +169,6 @@ export function sessionFromStructure(
     if (exercises.length === 0) continue
     const settings = b.settings ? (toCamel(b.settings) as BlockSettings) : null
 
-    if (b.block_type === 'circuit' && settings?.kind === 'circuit') {
-      session = addCircuitBlock(
-        session,
-        settings as CircuitConfig,
-        exercises.map((e) => ({ exercise: ref(e.exercise_id), last: last.get(e.exercise_id) })),
-        now,
-        newId,
-      )
-      continue
-    }
     if (settings && isTimedBlock({ settings })) {
       session = addTimedBlock(
         session,
@@ -193,7 +184,7 @@ export function sessionFromStructure(
       continue
     }
 
-    // Series normales o superserie.
+    // Series normales, superserie o circuito (por rondas: las series de la estructura).
     const keep = new Set(exercises.map((e) => e.exercise_id))
     const suggestions = new Map<string, WeightSuggestion>()
     for (const e of exercises) {
@@ -252,14 +243,27 @@ export function sessionFromStructure(
     const block: LocalBlock = {
       id: newId(),
       order: session.blocks.length,
-      blockType: b.block_type === 'superset' || exercises.length > 1 ? 'superset' : 'straight',
+      blockType:
+        exercises.length === 1 ? 'straight' : b.block_type === 'circuit' ? 'circuit' : 'superset',
       exercises: exercises.map((e) => {
         const s = suggestions.get(e.exercise_id)
-        return { exerciseId: e.exercise_id, restS: e.rest_s, ...(s ? { suggestion: s } : {}) }
+        return {
+          exerciseId: e.exercise_id,
+          restS: e.rest_s,
+          ...(s ? { suggestion: s } : {}),
+          ...(e.per_side ? { perSide: true } : {}),
+        }
       }),
       sets,
     }
-    if (exercises.length === 1) block.blockType = 'straight'
+    // Rondas y descanso entre ejercicios de las superseries y circuitos.
+    if (exercises.length > 1 && settings?.kind === 'circuit') {
+      const config = settings as CircuitConfig
+      block.settings = {
+        ...config,
+        rounds: Math.max(0, ...[...counters.values()]) || config.rounds,
+      }
+    }
     session = { ...session, blocks: [...session.blocks, block] }
   }
   return session

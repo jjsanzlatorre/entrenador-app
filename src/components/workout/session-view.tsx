@@ -29,6 +29,7 @@ import {
 import { totalDistanceM } from '@/lib/workout/session-ops'
 import { isActivitySessionType } from '@/lib/activities/catalog'
 import { CARDIO_TYPES } from '@/lib/workout/session-kinds'
+import { roundCount } from '@/lib/workout/rounds'
 import { isTimedBlock } from '@/lib/workout/timed-blocks'
 import type { Exercise, LastPerformance, LocalSession, SetEntry } from '@/lib/workout/types'
 import { cn } from '@/lib/utils'
@@ -182,7 +183,11 @@ export function SessionBody({
               <p className="text-muted-foreground text-sm">Sin ejercicios.</p>
             )}
             {session.blocks.map((block) => {
-              const special = block.blockType !== 'straight' && block.blockType !== 'superset'
+              // Superseries por rondas (con sus ajustes) se ven como los circuitos; las antiguas,
+              // como siempre.
+              const special =
+                (block.blockType !== 'straight' && block.blockType !== 'superset') ||
+                (block.blockType === 'superset' && block.settings?.kind === 'circuit')
               const summary = resultSummary(block)
               return (
                 <div key={block.id} className={cn(special && 'rounded-xl border p-3')}>
@@ -198,7 +203,7 @@ export function SessionBody({
                       {block.settings?.kind === 'circuit' && (
                         <span className="text-muted-foreground font-normal">
                           {' '}
-                          · {block.settings.rounds} rondas
+                          · {roundCount(block)} rondas
                         </span>
                       )}
                       {summary && (
@@ -214,7 +219,7 @@ export function SessionBody({
                       return (
                         <ExerciseSummary
                           key={`${block.id}-${be.exerciseId}`}
-                          name={exercise?.name ?? be.exerciseId}
+                          name={`${exercise?.name ?? be.exerciseId}${be.perSide ? ' (cada lado)' : ''}`}
                           exercise={exercise}
                           superset={block.blockType === 'superset'}
                           sets={sets}

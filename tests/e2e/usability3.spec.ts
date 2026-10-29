@@ -91,12 +91,13 @@ test('deslizar, superserie, plantilla y repetir con los pesos sugeridos', async 
   await expect(page.getByRole('region', { name: 'Bloque B' })).toHaveCount(0)
   await shot(page, 'u3-sesion-superserie')
 
-  // Completa el resto con un toque y termina.
-  for (const n of [2, 3]) {
+  // La superserie se registra por rondas: completa el resto con «✓ Ronda» y termina.
+  for (const n of [1, 2, 3]) {
     await a
-      .getByRole('button', { name: `Completar ${n}` })
+      .getByRole('button', { name: `Completar ronda ${n}` })
       .first()
       .click()
+    await page.getByRole('button', { name: 'Saltar descanso' }).click()
   }
   await page.getByRole('button', { name: 'Terminar' }).click()
   await page.getByRole('dialog').getByRole('button', { name: '8', exact: true }).click()
@@ -121,7 +122,7 @@ test('deslizar, superserie, plantilla y repetir con los pesos sugeridos', async 
   await expect(page).toHaveURL(/\/entrenar\/sesion$/)
   const again = page.getByRole('region', { name: 'Bloque A' })
   await expect(again.getByText('Superserie A')).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Remo con barra', exact: true })).toBeVisible()
+  await expect(again.getByText('Remo con barra', { exact: true })).toBeVisible()
   await expect(again.getByRole('button', { name: /^Peso \(kg\).*60/ }).first()).toBeVisible()
   await shot(page, 'u3-repetir')
 

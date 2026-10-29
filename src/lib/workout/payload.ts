@@ -65,6 +65,7 @@ export function toPayload(session: LocalSession) {
           exercise_id: e.exerciseId,
           rest_s: e.restS,
           ...(e.targetReps !== undefined ? { target_reps: e.targetReps } : {}),
+          ...(e.perSide ? { per_side: true } : {}),
         })),
         ...(b.settings ? { settings: toSnake(b.settings) } : {}),
       },
@@ -112,6 +113,7 @@ function blockExercises(config: Json, sets: ExerciseSetRow[]): BlockExercise[] {
                   ...(e.target_reps !== undefined
                     ? { targetReps: typeof e.target_reps === 'number' ? e.target_reps : null }
                     : {}),
+                  ...(e.per_side === true ? { perSide: true } : {}),
                 },
               ]
             : [],

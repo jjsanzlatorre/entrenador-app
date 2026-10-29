@@ -30,6 +30,8 @@ export type PlanExercise = {
   distance_m?: number
   duration_s?: number
   calories?: number
+  // «Cada lado»: reps o duration_s son por lado.
+  per_side?: boolean
   note?: string
   // Estándar de competición (HYROX/DEKA) por sexo; se muestra según profiles.sex.
   standard?: SexStandard
@@ -38,7 +40,8 @@ export type PlanExercise = {
 export type PlanBlock = {
   block_type: PlanBlockType
   exercises: PlanExercise[]
-  // EMOM / AMRAP: minutos; circuito: rondas y descanso entre rondas.
+  // EMOM / AMRAP: minutos; superserie o circuito: rondas y descanso entre rondas (si no hay
+  // rondas en una superserie, las series de cada ejercicio).
   minutes?: number
   rounds?: number
   rest_s?: number

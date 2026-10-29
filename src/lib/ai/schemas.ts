@@ -43,6 +43,10 @@ export const aiExerciseSchema = z.object({
   distance_m: z.number().positive().max(50_000).optional(),
   duration_s: z.number().int().positive().max(14_400).optional(),
   calories: z.number().int().positive().max(1000).optional(),
+  per_side: z
+    .boolean()
+    .optional()
+    .describe('true si reps o duration_s son por lado (plancha lateral, búlgara…)'),
   note: z.string().max(200).optional(),
 })
 
@@ -50,7 +54,13 @@ export const aiBlockSchema = z.object({
   block_type: z.enum(BLOCK_TYPES),
   exercises: z.array(aiExerciseSchema).min(1).max(12),
   minutes: z.number().int().positive().max(90).optional().describe('EMOM/AMRAP: minutos'),
-  rounds: z.number().int().positive().max(20).optional().describe('circuito: rondas'),
+  rounds: z
+    .number()
+    .int()
+    .positive()
+    .max(20)
+    .optional()
+    .describe('superserie o circuito: rondas (con rest_s de descanso entre rondas)'),
   rest_s: z.number().int().min(0).max(600).optional(),
   note: z.string().max(200).optional(),
 })
@@ -453,6 +463,48 @@ export const swapSchema = z.object({
 })
 
 export type SwapAi = z.infer<typeof swapSchema>
+
+// «Escribir entreno» (0046): texto libre → bloques por rondas con ejercicios de la biblioteca.
+// Solo si el parser determinista no lo entiende.
+export const WORKOUT_TEXT_MAX = 2000
+
+export const workoutParseSchema = z.object({
+  blocks: z
+    .array(
+      z.object({
+        rounds: z
+          .number()
+          .int()
+          .min(1)
+          .max(20)
+          .describe('rondas del bloque («x4» = 4); un ejercicio solo: nº de series («3x10» = 3)'),
+        rest_s: z.number().int().min(0).max(600).optional().describe('descanso entre rondas, s'),
+        exercises: z
+          .array(
+            z.object({
+              exercise_id: z
+                .string()
+                .min(1)
+                .optional()
+                .describe('id exacto de la lista; omítelo si no hay ninguno equivalente'),
+              name: z.string().min(1).max(80).describe('el ejercicio tal y como lo escribió'),
+              reps: z.number().int().min(1).max(1000).optional(),
+              duration_s: z.number().int().min(1).max(14_400).optional().describe('segundos'),
+              weight_kg: z.number().positive().max(500).optional(),
+              distance_m: z.number().positive().max(100_000).optional().describe('metros'),
+              calories: z.number().int().positive().max(2000).optional(),
+              per_side: z.boolean().optional().describe('«/lado», «cada lado», «por pierna»…'),
+            }),
+          )
+          .min(1)
+          .max(12),
+      }),
+    )
+    .min(1)
+    .max(10),
+})
+
+export type WorkoutParseAi = z.infer<typeof workoutParseSchema>
 
 // ── Resultado de las funciones de servidor ─────────────────
 

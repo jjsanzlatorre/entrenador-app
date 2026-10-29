@@ -82,10 +82,14 @@ test('sesión: plancha lateral cronometrada y duración con vista previa', async
   await input.press('Enter')
   await expect(block.getByRole('button', { name: /^Tiempo \(s\): 0:45/ }).first()).toBeVisible()
 
-  // ▶: cuenta atrás desde 45 s; al acabar se completa la serie y arranca el descanso.
+  // ▶: cuenta atrás desde 45 s por lado (unilateral: «cada lado»); al acabar el segundo lado se
+  // completa la serie y arranca el descanso.
+  await expect(block.getByText(/cada lado/)).toBeVisible()
   await block.getByRole('button', { name: 'Empezar a cronometrar la serie' }).first().click()
   await expect(block.getByRole('timer', { name: 'Cuenta atrás de la serie' })).toBeVisible()
   await page.clock.runFor(46_000)
+  await expect(block.getByTestId('hold-side')).toHaveText('Lado 2')
+  await page.clock.runFor(45_000)
   await expect(block.getByRole('button', { name: '1 hecha. Tocar para desmarcar' })).toBeVisible()
   await expect(page.getByRole('timer').filter({ hasText: 'Descanso' })).toBeVisible()
 

@@ -98,3 +98,10 @@ export function countdownAlert(secondsLeft: number) {
     vibrate([200, 100, 200])
   }
 }
+
+// «Cambia de lado» (series por lado): dos pitidos graves y vibración larga.
+export function sideSwitchAlert() {
+  beep(220, 660)
+  window.setTimeout(() => beep(320, 990), 260)
+  vibrate([250, 120, 250])
+}

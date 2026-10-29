@@ -11,6 +11,7 @@ const exerciseSchema = z.object({
   distance_m: z.number().positive().optional(),
   duration_s: z.number().int().positive().optional(),
   calories: z.number().int().positive().optional(),
+  per_side: z.boolean().optional(),
   note: z.string().optional(),
   standard: z.object({ men: z.string(), women: z.string() }).optional(),
 })

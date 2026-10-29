@@ -25,6 +25,8 @@ import {
   type ChatResult,
   swapSchema,
   toPlanStructure,
+  workoutParseSchema,
+  type WorkoutParseAi,
   weeklyReviewSchema,
   type AdjustProposal,
   type AiResult,
@@ -43,10 +45,12 @@ import {
   dropInvalidAlternatives,
   dropInvalidChanges,
   dropUnknownFromAdjust,
+  dropUnknownFromParse,
   dropUnknownFromPlan,
   planIssues,
   resolveChatActions,
   swapIssues,
+  workoutParseIssues,
   type ChangeRules,
   type ChatActionRules,
 } from '@/lib/ai/validate'
@@ -61,6 +65,7 @@ import {
   SWAP_PROMPT,
   SYSTEM_PROMPT,
   WEEKLY_REVIEW_PROMPT,
+  WORKOUT_PARSE_PROMPT,
 } from './prompts'
 import { AiProviderError, type AiProvider } from './providers/types'
 import { AiInvalidOutputError, generateStructured, type StructuredResult } from './structured'
@@ -650,5 +655,47 @@ export async function proposeSwap(
         timeoutMs: 30_000,
       }),
     (res) => ({ proposal: { exerciseId: target.id, alternatives: res.data.alternatives } }),
+  )
+}
+
+// ── Escribir entreno (workout_parse) ───────────────────────
+
+export type ParseExercise = { id: string; name: string; aliases: string[] }
+
+// Texto libre → bloques con ejercicios de la biblioteca (modelo normal, 1 consulta). Solo se
+// pide cuando el parser determinista no lo entiende; el usuario revisa la vista previa.
+export async function parseWorkoutText(
+  deps: CoachDeps,
+  req: { text: string; exercises: ParseExercise[] },
+): Promise<AiResult<{ parse: WorkoutParseAi }>> {
+  const text = req.text.trim()
+  if (!text) return aiFailure('failed', 'Escribe el entreno primero.')
+  const known = new Set(req.exercises.map((e) => e.id))
+  const context = {
+    text,
+    exercises: {
+      format: 'exercise_id | nombre | alias',
+      list: req.exercises.map((e) =>
+        [e.id, e.name, e.aliases.slice(0, 4).join(', ')].filter(Boolean).join(' | '),
+      ),
+    },
+  }
+  return runTask(
+    deps,
+    'workout_parse',
+    { chars: text.length },
+    () =>
+      generateStructured({
+        provider: deps.provider,
+        schema: workoutParseSchema,
+        system: SYSTEM_PROMPT,
+        prompt: WORKOUT_PARSE_PROMPT,
+        context,
+        check: (parse) => workoutParseIssues(parse, known),
+        repair: (parse) => dropUnknownFromParse(parse, known),
+        maxOutputTokens: 4096,
+        timeoutMs: 30_000,
+      }),
+    (res) => ({ parse: res.data }),
   )
 }

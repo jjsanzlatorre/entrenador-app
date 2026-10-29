@@ -120,9 +120,20 @@ export function createSession(
   }
 }
 
+// Los unilaterales empiezan como «cada lado» (se quita en el menú ⋮).
+type NewExercise = Pick<Exercise, 'id' | 'defaultRestS'> & Partial<Pick<Exercise, 'isUnilateral'>>
+
+function blockExercise(exercise: NewExercise): BlockExercise {
+  return {
+    exerciseId: exercise.id,
+    restS: exercise.defaultRestS,
+    ...(exercise.isUnilateral ? { perSide: true } : {}),
+  }
+}
+
 export function addExerciseBlock(
   session: LocalSession,
-  exercise: Pick<Exercise, 'id' | 'defaultRestS'>,
+  exercise: NewExercise,
   last: LastPerformance | null | undefined,
   now: number,
   newId: IdFn = defaultId,
@@ -131,7 +142,7 @@ export function addExerciseBlock(
     id: newId(),
     order: session.blocks.length,
     blockType: 'straight',
-    exercises: [{ exerciseId: exercise.id, restS: exercise.defaultRestS }],
+    exercises: [blockExercise(exercise)],
     sets: prefillSets(exercise.id, last, newId),
   }
   return bump({ ...session, blocks: [...session.blocks, block] }, now)
@@ -141,7 +152,7 @@ export function addExerciseBlock(
 export function addToSuperset(
   session: LocalSession,
   blockId: string,
-  exercise: Pick<Exercise, 'id' | 'defaultRestS'>,
+  exercise: NewExercise,
   last: LastPerformance | null | undefined,
   now: number,
   newId: IdFn = defaultId,
@@ -153,8 +164,8 @@ export function addToSuperset(
       if (b.exercises.some((e) => e.exerciseId === exercise.id)) return b
       return {
         ...b,
-        blockType: 'superset',
-        exercises: [...b.exercises, { exerciseId: exercise.id, restS: exercise.defaultRestS }],
+        blockType: b.blockType === 'circuit' ? 'circuit' : 'superset',
+        exercises: [...b.exercises, blockExercise(exercise)],
         sets: [...b.sets, ...prefillSets(exercise.id, last, newId)],
       }
     },
@@ -229,10 +240,15 @@ export function substituteExercise(
   )
 }
 
-// Bloques que se pueden unir en superserie: series normales o superseries (no circuitos ni
-// bloques con temporizador).
+// Bloques que se pueden unir en superserie: series normales, superseries y circuitos (no bloques
+// con temporizador).
 export function isGroupable(block: LocalBlock) {
-  return !isTimedBlock(block) && (block.blockType === 'straight' || block.blockType === 'superset')
+  return (
+    !isTimedBlock(block) &&
+    (block.blockType === 'straight' ||
+      block.blockType === 'superset' ||
+      block.blockType === 'circuit')
+  )
 }
 
 // Une el bloque `sourceId` al bloque `targetId` (superserie): sus ejercicios y series pasan al
@@ -252,7 +268,7 @@ export function mergeBlocks(
   const exercises = [...target.exercises, ...source.exercises]
   const merged: LocalBlock = {
     ...target,
-    blockType: 'superset',
+    blockType: target.blockType === 'circuit' ? 'circuit' : 'superset',
     exercises,
     sets: [...target.sets, ...source.sets],
   }
@@ -294,7 +310,8 @@ export function splitExercise(
   const rest = block.exercises.filter((e) => e.exerciseId !== exerciseId)
   const kept: LocalBlock = {
     ...block,
-    blockType: rest.length > 1 ? 'superset' : 'straight',
+    blockType: rest.length > 1 ? groupedType(block, rest.length) : 'straight',
+    ...(rest.length > 1 ? {} : { settings: null }),
     exercises: rest,
     sets: block.sets.filter((s) => s.exerciseId !== exerciseId),
   }
@@ -460,7 +477,7 @@ export function toggleSetComplete(session: LocalSession, setId: string, now: num
   // Al completar una serie de trabajo, la siguiente pendiente del mismo ejercicio se precarga con
   // los mismos valores en lo que tenga vacío (usabilidad 3/3).
   const carryTo =
-    completed && !set.isWarmup && !isTimedBlock(block) && block.blockType !== 'circuit'
+    completed && !set.isWarmup && !isTimedBlock(block)
       ? block.sets
           .filter(
             (s) =>
@@ -493,22 +510,38 @@ export function toggleSetComplete(session: LocalSession, setId: string, now: num
   )
 
   if (completed && session.mode === 'live' && !isTimedBlock(block)) {
-    const lastExercise = block.exercises[block.exercises.length - 1]
-    const startsRest = block.exercises.length === 1 || lastExercise?.exerciseId === set.exerciseId
-    const restS = block.exercises.find((e) => e.exerciseId === set.exerciseId)?.restS ?? 90
-    if (startsRest && restS > 0) {
+    const rest = restAfter(next.blocks.find((b) => b.id === block.id) ?? block, set)
+    if (rest && rest.seconds > 0) {
       next = {
         ...next,
         rest: {
           startedAt: now,
-          endsAt: now + restS * 1000,
-          exerciseId: set.exerciseId,
+          endsAt: now + rest.seconds * 1000,
+          exerciseId: rest.exerciseId,
           pausedRemainingMs: null,
         },
       }
     }
   }
   return next
+}
+
+// Descanso al completar una serie. Series normales: el del ejercicio. Superseries y circuitos:
+// al cerrar la ronda (o con el último ejercicio), el de entre rondas (`restS` del último
+// ejercicio); con otro ejercicio, el de entre ejercicios si se ha puesto (por defecto, ninguno).
+function restAfter(block: LocalBlock, set: SetEntry) {
+  const own = block.exercises.find((e) => e.exerciseId === set.exerciseId)
+  if (block.exercises.length === 1) return { seconds: own?.restS ?? 90, exerciseId: set.exerciseId }
+  const last = block.exercises[block.exercises.length - 1]!
+  const roundDone = block.sets
+    .filter((s) => s.setIndex === set.setIndex)
+    .every((s) => s.completed || s.id === set.id)
+  if (roundDone || last.exerciseId === set.exerciseId) {
+    return { seconds: last.restS, exerciseId: last.exerciseId }
+  }
+  const between =
+    block.settings?.kind === 'circuit' ? (block.settings.restBetweenExercisesS ?? 0) : 0
+  return between > 0 ? { seconds: between, exerciseId: set.exerciseId } : null
 }
 
 export function nextPendingSetId(session: Pick<LocalSession, 'blocks'>) {

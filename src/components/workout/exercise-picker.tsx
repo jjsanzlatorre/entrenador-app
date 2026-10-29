@@ -25,6 +25,7 @@ export function ExercisePicker({
   error,
   onPick,
   onClose,
+  initialQuery,
 }: {
   // Con usuario, si no hay resultados se puede crear el ejercicio sin salir de la sesión.
   userId?: string
@@ -36,8 +37,14 @@ export function ExercisePicker({
   error: string | null
   onPick: (exercise: Exercise) => void
   onClose: () => void
+  // Búsqueda con la que se abre (p. ej. un ejercicio escrito que no se ha reconocido). Para que
+  // valga, el buscador se monta al abrirlo.
+  initialQuery?: string
 }) {
-  const [filter, setFilter] = useState<FilterState>(EMPTY_FILTER)
+  const [filter, setFilter] = useState<FilterState>(() => ({
+    ...EMPTY_FILTER,
+    query: initialQuery ?? '',
+  }))
   const [creating, setCreating] = useState<string | null>(null)
   const exclude = useMemo(() => new Set(excludeIds), [excludeIds])
 

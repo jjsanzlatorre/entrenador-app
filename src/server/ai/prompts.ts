@@ -16,7 +16,8 @@ export const PLAN_FORMAT_NOTES = `Formato de cada sesión:
 - day_hint: orden dentro de la semana (1 = primera sesión). El reparto en días lo hace la app según los días preferidos y las actividades fijas.
 - session_type: strength | functional | running | swimming | cycling | spinning | yoga.
 - intensity: easy | moderate | hard. heavy_legs: true si carga mucho las piernas.
-- blocks: block_type straight (un ejercicio), superset (2–3 alternos), circuit (rounds), emom/amrap (minutes), intervals (series de distancia o tiempo con rest_s de recuperación), free.
+- blocks: block_type straight (un ejercicio), superset (2–3 alternos) o circuit (3 o más encadenados): con rounds (nº de rondas) y rest_s del bloque (descanso entre rondas); emom/amrap (minutes), intervals (series de distancia o tiempo con rest_s de recuperación), free.
+- per_side: true en unilaterales e isométricos por lado (reps o duration_s por lado: «plancha lateral 45 s cada lado»).
 - Fuerza: sets, reps como «8-10» o «12», rir 0–5 y rest_s. Cardio: distance_m (metros) o duration_s (segundos); natación siempre en metros.
 - Notas breves (≤ 1 frase).`
 
@@ -144,6 +145,13 @@ Para add_sessions_range, add_session, move_session, skip_session y modify_sessio
 ${CHAT_EXAMPLES}
 
 ${PLAN_FORMAT_NOTES}`
+
+export const WORKOUT_PARSE_PROMPT = `TAREA: el usuario ha escrito un entreno («text») y la app no lo ha entendido del todo. Conviértelo en bloques para registrarlo.
+- Un bloque por línea o por «;». Los ejercicios unidos con «+» (o en una lista con «x4» al final) van en el mismo bloque (superserie o circuito) con sus rondas: «x4», «×4», «4 rondas», «4 vueltas».
+- «3x10» en un ejercicio solo = rounds 3 y reps 10.
+- Valores: reps, duration_s (en segundos: «45s» = 45, «1:30» = 90, «2 min» = 120), weight_kg («@20kg», «20 kg»; «lb» → kg), distance_m (metros: «5 km» = 5000), calories («20 cal»). per_side: true con «/lado», «cada lado», «por lado», «por pierna».
+- exercise_id: el de la lista que sea el mismo ejercicio (por nombre o alias, en español o inglés). Si no hay ninguno equivalente, omítelo y deja name: el usuario lo elegirá o lo creará. Nunca inventes ids.
+- No añadas ejercicios, rondas ni valores que no estén en el texto. Respeta el orden.`
 
 export const SWAP_PROMPT = `TAREA: el usuario quiere sustituir un ejercicio («target») y las reglas de la app no encuentran alternativa con los mismos músculos principales y su material. Propón de 1 a 3 alternativas de la lista de ejercicios que trabajen lo más parecido posible, con el material disponible del usuario y respetando sus limitaciones.
 - alternatives: exercise_id exacto de la lista (nunca el mismo que «target») y reason en 1 frase.`

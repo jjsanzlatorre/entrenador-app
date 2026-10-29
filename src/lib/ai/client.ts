@@ -10,6 +10,7 @@ import {
   generatePlanProposal,
   getAiStatus,
   getWeeklyReview,
+  parseWorkoutWithAi,
   prepareChatPlan,
   proposeExerciseSwap,
   proposeTodayAdjust,
@@ -71,6 +72,7 @@ export function useAiRequests() {
   const chatFn = useServerFn(sendChatMessage)
   const swapFn = useServerFn(proposeExerciseSwap)
   const chatPlanFn = useServerFn(prepareChatPlan)
+  const parseFn = useServerFn(parseWorkoutWithAi)
   const base = () => ({ today: localDateKey(new Date()), tz: userTimeZone() })
   return {
     proposePlan: (templateId: string | null) =>
@@ -83,6 +85,8 @@ export function useAiRequests() {
     // create_plan del chat: genera (o devuelve el ya generado) el plan de esa respuesta.
     prepareChatPlan: (chatInteractionId: string) =>
       call(() => chatPlanFn({ data: { ...base(), chatInteractionId } })),
+    // «Escribir entreno» cuando el parser de la app no lo entiende.
+    parseWorkout: (text: string) => call(() => parseFn({ data: { ...base(), text } })),
   }
 }
 

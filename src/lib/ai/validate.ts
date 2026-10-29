@@ -12,6 +12,7 @@ import {
   type DailyAdjust,
   type PlanChange,
   type SwapAi,
+  type WorkoutParseAi,
 } from './schemas'
 
 type WithBlocks = { blocks: { exercises: { exercise_id: string }[] }[] }
@@ -520,4 +521,21 @@ export function dropInvalidAlternatives(swap: SwapAi, known: Set<string>, target
     return true
   })
   return alternatives.length > 0 ? { alternatives } : null
+}
+
+// «Escribir entreno»: ids que no existen. Al reparar se quitan (el ejercicio queda por elegir).
+export function workoutParseIssues(parse: WorkoutParseAi, known: Set<string>) {
+  const ids = parse.blocks.flatMap((b) => b.exercises.flatMap((e) => e.exercise_id ?? []))
+  return unknownExerciseIssues([...new Set(ids)].filter((id) => !known.has(id)))
+}
+
+export function dropUnknownFromParse(parse: WorkoutParseAi, known: Set<string>): WorkoutParseAi {
+  return {
+    blocks: parse.blocks.map((b) => ({
+      ...b,
+      exercises: b.exercises.map(({ exercise_id, ...e }) =>
+        exercise_id && known.has(exercise_id) ? { ...e, exercise_id } : e,
+      ),
+    })),
+  }
 }

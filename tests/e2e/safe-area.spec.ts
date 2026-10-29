@@ -177,6 +177,18 @@ test('vertical (Dynamic Island): cabeceras, navegación, pantallas completas, ho
   await expectSafe(page, PORTRAIT, '/entrenar/sesion')
   await page.mouse.wheel(0, 2000)
   await expectSafe(page, PORTRAIT, '/entrenar/sesion con scroll')
+  // «Escribir entreno» con la vista previa de un circuito y la tarjeta por rondas.
+  await page.getByRole('button', { name: 'Escribir entreno' }).click()
+  const write = page.getByRole('dialog', { name: 'Escribir entreno' })
+  await write
+    .getByLabel('Escribe el entreno como lo apuntarías en una libreta')
+    .fill('plancha lateral 45s/lado + flexiones 20, x3')
+  await write.getByRole('button', { name: 'Interpretar' }).click()
+  await expect(write.getByTestId('round-item')).toHaveCount(2)
+  await expectSafe(page, PORTRAIT, 'hoja «Escribir entreno»')
+  await write.getByRole('button', { name: 'Añadir el bloque' }).click()
+  await expect(page.getByRole('group', { name: 'Ronda 1 de 3' })).toBeVisible()
+  await expectSafe(page, PORTRAIT, 'bloque por rondas')
 
   // Cronómetro a pantalla completa (se abre solo al empezar).
   await page.goto('/entrenar/cronometro')

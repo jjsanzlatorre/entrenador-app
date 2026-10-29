@@ -304,6 +304,28 @@ export function amrapAdd(
   )
 }
 
+// Copia sin empezar de un bloque con temporizador (duplicar o copiar de otra sesión): mismos
+// ajustes y ejercicios, temporizador a cero y series como al crearlo.
+export function resetTimedBlock(block: LocalBlock, newId: IdFn = defaultId): LocalBlock {
+  if (!isTimedBlock(block)) return block
+  const config = block.settings
+  const weights = new Map<string, number | null>()
+  for (const s of block.sets) if (s.weightKg !== null) weights.set(s.exerciseId, s.weightKg)
+  const inputs: TimedExerciseInput[] = block.exercises.map((e) => ({
+    exercise: { id: e.exerciseId, defaultRestS: e.restS },
+    targetReps: e.targetReps ?? null,
+    weightKg: weights.get(e.exerciseId) ?? null,
+  }))
+  return {
+    ...block,
+    exercises: block.exercises.map(({ suggestion: _s, ...e }) => ({ ...e })),
+    sets: initialSets(config, inputs, newId),
+    settings: { ...config },
+    result: initialResult(config),
+    timer: createTimerState(),
+  }
+}
+
 // Al terminar (a mano o porque se acaba el tiempo): resultado y series hechas.
 export function finalizeTimedBlock(block: LocalBlock, now: number): LocalBlock {
   if (!isTimedBlock(block) || !block.timer) return block

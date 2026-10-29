@@ -189,7 +189,10 @@ export function ValueCell({
       )}
     >
       <span className="text-xl font-semibold">{shown.text}</span>
-      <span className="text-muted-foreground mt-0.5 text-[10px] font-normal">{shown.unit}</span>
+      <span className="text-muted-foreground mt-0.5 text-[10px] font-normal">
+        {shown.unit}
+        {spec.suffix ?? ''}
+      </span>
     </button>
   )
 }

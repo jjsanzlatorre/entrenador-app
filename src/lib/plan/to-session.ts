@@ -119,24 +119,39 @@ export function plannedToLocalSession(
         const suggestions = b.exercises.map((e) =>
           plannedSuggestion(e, catalog, historyByExercise.get(e.exercise_id)),
         )
+        const multi = b.exercises.length > 1
+        // Superserie con rondas: N rondas y el descanso del bloque entre rondas.
+        const rounds = multi && b.rounds ? b.rounds : null
         const block: LocalBlock = {
           id: newId(),
           order: session.blocks.length,
-          blockType: b.exercises.length > 1 ? 'superset' : 'straight',
+          blockType: multi ? 'superset' : 'straight',
           exercises: b.exercises.map((e, i) => ({
             exerciseId: e.exercise_id,
-            restS: e.rest_s ?? ref(e.exercise_id).defaultRestS,
+            restS:
+              rounds && i === b.exercises.length - 1 && b.rest_s !== undefined
+                ? b.rest_s
+                : (e.rest_s ?? ref(e.exercise_id).defaultRestS),
             ...(suggestions[i] ? { suggestion: suggestions[i] } : {}),
+            ...(e.per_side ? { perSide: true } : {}),
           })),
           sets: b.exercises.flatMap((e, i) =>
             straightSets(
-              e,
+              rounds ? { ...e, sets: rounds } : e,
               catalog,
               lastByExercise.get(e.exercise_id),
               suggestions[i] ?? null,
               newId,
             ),
           ),
+        }
+        if (rounds) {
+          block.settings = {
+            kind: 'circuit',
+            rounds,
+            restBetweenRoundsS: block.exercises.at(-1)!.restS,
+            restBetweenExercisesS: 0,
+          }
         }
         session = { ...session, blocks: [...session.blocks, block] }
         break
@@ -204,7 +219,7 @@ export function plannedToLocalSession(
           now,
           newId,
         )
-        // La prescripción manda sobre la última vez en distancia, reps y calorías.
+        // La prescripción manda sobre la última vez en distancia, tiempo, reps y calorías.
         const block = session.blocks.at(-1)!
         const byExercise = new Map(b.exercises.map((e) => [e.exercise_id, e]))
         const sets = block.sets.map((s) => {
@@ -213,11 +228,18 @@ export function plannedToLocalSession(
           return {
             ...s,
             reps: lowerReps(e.reps) ?? s.reps,
+            durationS: e.duration_s ?? s.durationS,
             distanceM: e.distance_m ?? s.distanceM,
             calories: e.calories ?? s.calories,
           }
         })
-        session = { ...session, blocks: [...session.blocks.slice(0, -1), { ...block, sets }] }
+        const exercises = block.exercises.map((x) =>
+          byExercise.get(x.exerciseId)?.per_side ? { ...x, perSide: true } : x,
+        )
+        session = {
+          ...session,
+          blocks: [...session.blocks.slice(0, -1), { ...block, exercises, sets }],
+        }
         break
       }
     }

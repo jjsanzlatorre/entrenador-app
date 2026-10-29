@@ -45,16 +45,28 @@ export type SetEntry = {
 
 // Reps objetivo por ronda/minuto en bloques con temporizador (EMOM, AMRAP, For Time…).
 // suggestion: sugerencia de peso (§10) aplicada al preparar el bloque; solo en el dispositivo.
+// perSide: «cada lado» (unilaterales e isométricos): reps o tiempo son por lado; el cronómetro de
+// la serie hace los dos lados. Para el volumen, los dos lados son 1 serie.
 export type BlockExercise = {
   exerciseId: string
   restS: number
   targetReps?: number | null
   suggestion?: WeightSuggestion | null
+  perSide?: boolean
 }
 
 export type LocalBlockType = BlockType
 
-export type CircuitConfig = { kind: 'circuit'; rounds: number; restBetweenRoundsS: number }
+// Bloque por rondas (superserie o circuito). También lo llevan las superseries creadas con rondas
+// (kind 'circuit' por compatibilidad). El descanso entre rondas es el `restS` del último
+// ejercicio (como en las superseries antiguas); restBetweenRoundsS lo copia. Entre ejercicios,
+// restBetweenExercisesS (0 o ausente: sin descanso).
+export type CircuitConfig = {
+  kind: 'circuit'
+  rounds: number
+  restBetweenRoundsS: number
+  restBetweenExercisesS?: number
+}
 export type BlockSettings = TimerConfig | CircuitConfig
 
 export type IntervalSplit = { distanceM: number | null; durationS: number }
